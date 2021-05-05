@@ -1,11 +1,8 @@
-import uuid, random
+import uuid
 from datespot import *
 
 # temporary simple mockup of users DB
 usersDB = {}
-
-def printUsers():
-    print(usersDB)
 
 class User:
 
@@ -15,7 +12,7 @@ class User:
             currentLocation (tuple[int]): Tuple of two ints representing 2D coordinates.
             homeLocation (tuple[int]): Tuple of two ints representing 2D coordinates.
         """
-        self.id = uuid.UUID(int = (random.randint(0, (2 ** 128) - 1))).int # UUID library wants 128 bit. ".int" is attribute of the UUID obj to express it as int.
+        self.id = uuid.uuid1() # generates uuid based on current time
         self.name = name
         self.currentLocation = currentLocation
         self.homeLocation = homeLocation
