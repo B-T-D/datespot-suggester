@@ -2,6 +2,8 @@
 Interface between the database and the User model.
 """
 
+# This one is cluttered so that the domain layer user.py can be relatively clean
+
 import uuid
 import json
 import user
@@ -17,13 +19,13 @@ class UserAPI:
 
     def _load_db(self):
         """Load all JSON into memory."""
+        allData = {}
         try:
             with open(self._datafile, 'r') as fobj:
                 allData = json.load(fobj)
                 fobj.seek(0) # reset position to start of the file
         except FileNotFoundError:
-            print("Not found")
-            #print(f"File {self._datafile} not found.")
+            print(f"File {self._datafile} not found.")
         print(type(allData))
         if not "users" in allData: # initialize the "users" nested dict if not present
             allData["users"] = {}
@@ -41,13 +43,12 @@ class UserAPI:
         self._update_json() # write all data back to the persistent json
         return user_id
 
-    def _validate_user(self, user_id):
+    def _validate_user(self, user_id) -> None:
         """
-        Rause a KeyError if the user_id doesn't exist.
+        Raise KeyError if the user_id doesn't exist.
         """
         if not user_id in self.data:
             raise KeyError(f"User with id {user_id} not found.")
-        return
 
 
     def load_user(self, user_id: int) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
@@ -78,7 +79,7 @@ class UserAPI:
         del self.data[user_id]
         self._update_json()
 
-    def _serialize_user(self, user: user.User) -> dict:
+    def _serialize_user(self, user: user.User) -> dict: # todo: superfluous?
         """
         Create a dictionary representation of the user.
         """

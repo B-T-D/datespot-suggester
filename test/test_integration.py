@@ -1,6 +1,6 @@
 import unittest
 
-from datespot.user_api import UserAPI
+from python_backend.user_api import UserAPI
 
 class TestHelloWorld(unittest.TestCase):
 

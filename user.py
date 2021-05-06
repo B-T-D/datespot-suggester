@@ -1,6 +1,5 @@
 from datespot import *
 
-
 class User:
 
     def __init__(self, name:  str, currentLocation: tuple=None, homeLocation: tuple=None, likes: list=None, dislikes: list=None):
@@ -14,6 +13,7 @@ class User:
         self.homeLocation = homeLocation
         self.likes = [] # features of a date location that would make the user like it
         self.dislikes = [] # features of a date location that would make the user dislike it
+        self.travelPropensity= None #  todo placeholder. Integer indicating how willing the user is to travel, relative to other users. 
     
     def __str__(self):
         """
@@ -27,7 +27,6 @@ class User:
             "dislikes": self.dislikes
         }
         return "User" + str(userDict)
-        
     
     def datespot_score(self, datespot) -> int:
         # Wrapper for external calls

@@ -1,14 +1,14 @@
 import unittest
 
-from datespot.user_api import UserAPI
-from datespot import user
+from python_backend.user_api import UserAPI
+from python_backend import user
 
-class TestQuickThings(unittest.TestCase):
+class TestHelloWorldThings(unittest.TestCase):
     """Quick replacement of the manual tests."""
 
     def setUp(self):
         # create a fake DB 
-        self.api = UserAPI(datafile_name="test/mock_data.json")
+        self.api = UserAPI(datafile_name="test/mock_user_data.json")
         
         # make a mock user with a known uuid primary key:
         knownKey = 1
@@ -21,12 +21,12 @@ class TestQuickThings(unittest.TestCase):
         self.assertIn(newUser, self.api.data)
     
     def test_load_user(self):
-        existingUser = self.api.load_user("1") # todo it should work with an int literal
+        existingUser = self.api.load_user(1) # todo it should work with an int literal
         #print(type(existingUser))
         #self.assertIsInstance(existingUser, user.User) # todo this keeps failing even though it's a user instance. For namespacing reasons (?)
         print(existingUser)
         self.assertEqual(existingUser.name, "test_user")
     
     def test_delete_user(self):
-        self.api.delete_user("1")
-        self.assertNotIn("1", self.api.data)
+        self.api.delete_user(1)
+        self.assertNotIn(1, self.api.data)

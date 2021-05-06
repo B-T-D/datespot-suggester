@@ -5,6 +5,9 @@ class Match:
     def __init__(self, user1, user2):
         self.user1 = user1
         self.user2 = user2
+        self.midpoint = None # todo. Midpoint of a straight line between the two users' locations. 
+                                # Later, nuances wrt home vs. current location, asymmetrical propensities to travel
+        self.chat_logs = None # todo. Text of chats between the users, for running various restaurant-suggestor NLP algorithms on. 
     
     def get_joint_datespot_score(self, datespot):
         """
