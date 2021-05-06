@@ -1,6 +1,8 @@
+from app_object_type import DatespotAppType
+
 from datespot import *
 
-class User:
+class User(metaclass=DatespotAppType):
 
     def __init__(self, name:  str, currentLocation: tuple=None, homeLocation: tuple=None, likes: list=None, dislikes: list=None):
         """

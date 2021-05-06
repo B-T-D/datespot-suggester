@@ -3,12 +3,14 @@ import unittest
 from python_backend.user_api import UserAPI
 from python_backend import user
 
+TEST_JSON_DB_NAME = "test/mock_user_data.json"
+
 class TestHelloWorldThings(unittest.TestCase):
     """Quick replacement of the manual tests."""
 
     def setUp(self):
         # create a fake DB 
-        self.api = UserAPI(datafile_name="test/mock_user_data.json")
+        self.api = UserAPI(datafile_name=TEST_JSON_DB_NAME)
         
         # make a mock user with a known uuid primary key:
         knownKey = 1

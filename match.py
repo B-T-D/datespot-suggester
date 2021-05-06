@@ -1,6 +1,6 @@
+from app_object_type import DatespotAppType
 
-
-class Match:
+class Match(metaclass=DatespotAppType):
 
     def __init__(self, user1, user2):
         self.user1 = user1

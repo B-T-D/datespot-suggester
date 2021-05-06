@@ -2,13 +2,14 @@
 Interface between the database and the User model.
 """
 
-# This one is cluttered so that the domain layer user.py can be relatively clean
+# This one is cluttered so that the domain layer user.py can be relatively clean.
+# Repository design pattern.
 
 import uuid
 import json
 import user
 
-JSON_DB_NAME = "mockDB.json"
+JSON_DB_NAME = "mockUserDB.json"
 
 class UserAPI:
 
@@ -18,18 +19,14 @@ class UserAPI:
         self._load_db() # todo bad practice?
 
     def _load_db(self):
-        """Load all JSON into memory."""
-        allData = {}
+        """Load the JSON into memory."""
+        self.data = {}
         try:
             with open(self._datafile, 'r') as fobj:
-                allData = json.load(fobj)
+                self.data = json.load(fobj)
                 fobj.seek(0) # reset position to start of the file
         except FileNotFoundError:
             print(f"File {self._datafile} not found.")
-        print(type(allData))
-        if not "users" in allData: # initialize the "users" nested dict if not present
-            allData["users"] = {}
-        self.data = allData["users"]
     
     def create_user(self, name: str, currentLocation: tuple=None, homeLocation: tuple=None): 
         """
