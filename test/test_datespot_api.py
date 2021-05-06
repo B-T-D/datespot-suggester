@@ -34,8 +34,15 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_instantiation(self):
         self.assertIsInstance(self.mockRestaurant, Datespot)
+    
+    def test_create_datespot(self):
+        domenicosLocation = (40.723889184134926, -73.97613846772394)
+        domenicosTraits = ["coffee", "coffee shop", "gourmet", "americano", "knows coffee", "bricks", "burger juice"]
+        domenicosPriceRange = 1
+        domenicosHours = [[8, 19], [8, 19], [8, 19], [8, 19], [8, 19], [8, 19], [10, 17]]
 
 
-
-40.72289821341384, -73.97993915779077
-        
+        domenicosKey = self.api.create_datespot(domenicosLocation, "Domenico's", domenicosTraits, domenicosPriceRange, domenicosHours)
+        self.assertEqual(len(domenicosKey), 3)
+        domenicos = self.api.load_datespot(domenicosKey)
+        self.assertIsInstance(domenicos, Datespot)
