@@ -107,31 +107,8 @@ class UserAPI:
 
 
 def main():
+    pass
 
-    api = UserAPI()
-    print(api.data)
-
-    # Init user "Grort"
-
-    # Init user "Drobb"
-
-    # Init second user "Grort" for name collision
-
-    api = UserAPI()
-    
-    newUser = api.create_user("Grort")
-    #print(newUser.name)
-    #print(newUser)
-    #print(api.data)
-
-    # load existing user with id 1
-    existingUser = api.load_user("1")
-    print(existingUser)
-
-    #assert "1" in api.data
-    #api.delete_user("1")
-    print(api.data)
-    #assert not "1" in api.data
 
 if __name__ == "__main__":
     main()

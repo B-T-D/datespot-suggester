@@ -35,13 +35,13 @@ def main():
     print(locationsDB)
 
     ###
-    score_user0_terrezanos = newUser0.get_restaurant_score("Terrezano's")
+    score_user0_terrezanos = newUser0.datespot_score(terrezanos)
     print(score_user0_terrezanos)
 
 
     # init a match between Grort0 and Drobb
     GrortDrobb = Match(newUser0, newUser2)
-    print(GrortDrobb.get_joint_restaurant_score("Terrezano's"))
+    print(GrortDrobb.get_joint_datespot_score(terrezanos))
 
 if __name__ == '__main__':
     main()
