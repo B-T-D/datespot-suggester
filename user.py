@@ -1,64 +1,51 @@
-import uuid
 from datespot import *
 
-# temporary simple mockup of users DB
-usersDB = {}
 
 class User:
 
-    def __init__(self, name:  str, currentLocation: tuple=None, homeLocation: tuple=None):
+    def __init__(self, name:  str, currentLocation: tuple=None, homeLocation: tuple=None, likes: list=None, dislikes: list=None):
         """
         Args:
             currentLocation (tuple[int]): Tuple of two ints representing 2D coordinates.
             homeLocation (tuple[int]): Tuple of two ints representing 2D coordinates.
         """
-        self.id = uuid.uuid1() # generates uuid based on current time
         self.name = name
         self.currentLocation = currentLocation
         self.homeLocation = homeLocation
         self.likes = [] # features of a date location that would make the user like it
         self.dislikes = [] # features of a date location that would make the user dislike it
-
-        if not self.id in usersDB: #  initialize the user in the mock db
-            usersDB[self.id] = {} # initialize the pk
-            userEntry = usersDB[self.id]
-            userEntry["name"] = self.name
-            userEntry["current_location"] = self.currentLocation
-            userEntry["home_location"] = self.homeLocation
-            userEntry["likes"] = self.likes # todo probably should at least have these be sets for O(1)* lookup 
-            userEntry["dislikes"] = self.dislikes
-        else:
-            raise NotImplementedError("uuid collision (user)")
-
-    def get_restaurant_score(self, restaurant_name: str) -> int:
+    
+    def __str__(self):
         """
-            Takes the unique name of a restaurant and returns the score for how well this user matches with that restaurant.
+        Return the string representation of a dictionary containing all the user's info.
         """
-        print(f"restaurant name = {restaurant_name}")
-        print(f"hash = {hash(restaurant_name)}")
-        restaurantsDBEntry = locationsDB[hash(restaurant_name)]
-        print(restaurantsDBEntry)
-        restaurantTraits = locationsDB[hash(restaurant_name)]["traits"]
-        print(restaurantTraits)
+        userDict = {
+            "name": self.name,
+            "current_location": self.currentLocation,
+            "home_location": self.homeLocation,
+            "likes": self.likes,
+            "dislikes": self.dislikes
+        }
+        return "User" + str(userDict)
+        
+    
+    def datespot_score(self, datespot) -> int:
+        # Wrapper for external calls
+        """
+        Takes a datespot object and returns the score for how well this user matches with that datespot.
 
+        Args:
+
+            datespot (datespot.Datespot object): An instance of the Datespot class.
+        """
+        return self._get_datespot_score(datespot)
+
+    def _get_datespot_score(self, datespot) -> int:
+        
         score = 0
-
-        # todo heinous time complexity
-        for trait in restaurantTraits:
+        for trait in datespot.traits: # todo this is O(n^2); should likes and/or traits be hash sets?
             if trait in self.likes:
                 score += 1
             elif trait in self.dislikes:
                 score -= 1
-        
-        return score
-
-
-
-def main(): # temp debugging
-    
-    pass
-
-
-if __name__ == '__main__':
-    main()
-    
+        return score    

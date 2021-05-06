@@ -6,7 +6,11 @@ class Match:
         self.user1 = user1
         self.user2 = user2
     
-    def get_joint_restaurant_score(self, restaurant_name: str):
-        score1 = self.user1.get_restaurant_score(restaurant_name)
-        score2 = self.user2.get_restaurant_score(restaurant_name)
+    def get_joint_datespot_score(self, datespot):
+        """
+        Args:
+            datespot (datespot.Datespot object): A datespot object.
+        """
+        score1 = self.user1.datespot_score(datespot)
+        score2 = self.user2.datespot_score(datespot)
         return (score1 + score2) / 2 # simple mean score
