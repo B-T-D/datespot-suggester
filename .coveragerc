@@ -1,0 +1,6 @@
+[run]
+omit =
+		env\*
+		/home/travis/virtualenv/*
+		test\*
+		test/*
