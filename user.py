@@ -4,6 +4,7 @@ from datespot import *
 
 class User(metaclass=DatespotAppType):
 
+    # todo no camel case in the constructor arg names
     def __init__(self, name:  str, currentLocation: tuple=None, homeLocation: tuple=None, likes: list=None, dislikes: list=None):
         """
         Args:
