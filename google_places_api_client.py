@@ -19,6 +19,11 @@ class Client:
         # You make further requests for the same results by attaching the token, until you've gotten up to 60 results total. Not clear if they count for pricing.
         # https://stackoverflow.com/questions/15692829/google-places-search-next-page-token-returns-same-results
 
+    # todo baseline query should be
+        # location = matchObj.midpoint
+        # radius = matchObj.distance / 2
+    # That is, imagine a circle c s/t each user's location is a point on the circle's perimeter. Query location is center of c, with query's radius equal to the c's radius.
+
 class Parser:
 
     def __init__(self, response_from_file=None):
