@@ -10,6 +10,10 @@ import user_api
 
 JSON_DB_NAME = "jsonMap.json"
 
+# todo: For all three "api": At a given point in time, a model instance's data is either a json-legal dict,
+#   or an app-internal dict literal. Those are the only options. Should be one method that toggles between them,
+#   and should be simple and obvious to tell which way it's toggled at any given place in the code / execution.
+
 class MatchAPI:
 
     def __init__(self, datafile_name=JSON_DB_NAME):

@@ -71,6 +71,14 @@ class DatespotAPI:
             three_coord_location = [element for element in location] 
             three_coord_location.append(0)
             location = tuple(three_coord_location)
+
+            # todo: YAGNI? Is it really all that likely for two restaurants to have 
+            #   identical lat lon, given that each coordinate is specified to 6+ decimal
+            #   places? Consult google API docs--is collision possible at all in the
+            #   response data? Google must've faced the X-Y collision issue too.
+            #   If collision is possible, is it probable enough to justify the convolutedness
+            #   of this DIY elevation coordinate?
+
         newDatespot = datespot.Datespot(
             location,
             name,
