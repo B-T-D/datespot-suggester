@@ -92,4 +92,3 @@ class MatchAPI:
 
     def delete_match(self, matchKey: tuple):
         del self.data[matchKey]
-

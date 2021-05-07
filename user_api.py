@@ -94,7 +94,7 @@ class UserAPI:
         )
         return userObj
 
-    def update_user(self, user_id): # todo -- tbd if it takes id key vs user object.
+    def update_user(self, user_id): # todo -- updating location might be single most important thing this does. 
         pass
     
     def delete_user(self, user_id: int):

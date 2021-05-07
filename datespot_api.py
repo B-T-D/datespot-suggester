@@ -15,6 +15,8 @@ class DatespotAPI:
         self.data = {}
         self._load_db() # todo bad practice? https://softwareengineering.stackexchange.com/questions/48932/constructor-should-generally-not-call-methods
 
+        # todo: refactor to a bunch of small read-writes, like in the user api.
+
     def _load_db(self): # todo DRY--write a JSON handler utility so this and 
                         #   UserAPI can share same code.
         """Load stored JSON into memory."""

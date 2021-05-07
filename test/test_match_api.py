@@ -47,30 +47,9 @@ class TestHelloWorldThings(unittest.TestCase):
         assert self.user_api.is_valid_user(3)
         # match Grort with Miltrudd:
         self.knownMatchKey = self.api.create_match(self.userKeyMiltrudd, self.userKeyGrort)
-    
-    """
-    def tearDown(self):
-        # erase so stuff doesn't pile up from multiple tests
-
-        dataMap = {
-            "user_data": "test/testing_mockUserDB.json",
-            "datespot_data": "test/testing_mockDatespotDB.json",
-            "match_data": "test/testing_mockMatchData.json"
-            }
-        with open(TEST_JSON_DB_NAME, 'w') as fobj:
-            json.dump(dataMap, fobj)
-            fobj.seek(0)
-
-        for filename in dataMap:
-            with open(dataMap[filename]) as fobj:
-                blankDict = {}
-                json.dump(blankDict, fobj)
-                fobj.seek(0)
-    """
 
     def test_instantiation(self):
         self.assertIsInstance(self.api, MatchAPI)
-    
 
     def test_create_match(self):
         matchKey = self.api.create_match(userid_1 = self.userKeyGrort, userid_2 = self.userKeyDrobb)
