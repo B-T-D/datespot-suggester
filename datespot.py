@@ -55,10 +55,15 @@ class Datespot(metaclass=DatespotAppType):
         trait_weights = {
             "fast food": - 25, # e.g. largish penalty for being fast food
             "lodging": -5, # e.g. slight penalty for being hotel (some nice hotel bars could have "lodging" type)
+            "pizza": -10,
+            "chain": -5, # todo this shouldn't stack with "unromantic chain..."
+            "unromantic chain": -15, # e.g. Olive Garden, Outback Steakhouse
+            "bar": 5,
+            "cafe": 5
             } 
         for trait in trait_weights:
             if trait in self.traits:
-                self.baseline_dateworthiness = min(0, self.baseline_dateworthiness + trait_weights[trait])
+                self.baseline_dateworthiness = max(0, self.baseline_dateworthiness + trait_weights[trait])
 
 
 def main():
