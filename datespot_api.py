@@ -34,9 +34,14 @@ class DatespotAPI:
         #   for where to get it.
         self._datafile = allJson["datespot_data"]
         datespotJson = None
-        with open(self._datafile, 'r') as fobj:
-            datespotJson = json.load(fobj)
-            fobj.seek(0)
+        try:
+            with open(self._datafile, 'r') as fobj:
+                datespotJson = json.load(fobj)
+                fobj.seek(0)
+        except FileNotFoundError: # create it
+            with open(self._datafile, 'w') as fobj: #todo this isn't actually working to write the blank dict
+                json.dump(str(dict()), fobj)
+            return # todo cleanup, this was quick hack
 
         # convert each key to a tuple literal
         for stringKey in datespotJson:
@@ -57,7 +62,7 @@ class DatespotAPI:
             json.dump(jsonData, fobj)
             fobj.seek(0)
     
-    def create_datespot(self, location: tuple, name: str, traits: list, price_range: int, hours: list):
+    def create_datespot(self, location: tuple, name: str, traits: list, price_range: int, hours: list=[]):
         """
         Returns the location key. 
         """
@@ -81,9 +86,10 @@ class DatespotAPI:
         datespotDict = {
             "location": datespot.location,
             "name": datespot.name,
-            "traits": datespot.traits,
+            "traits": list(datespot.traits),
             "price_range": datespot.price_range,
-            "hours": datespot.hours
+            "hours": datespot.hours,
+            "baseline_dateworthiness": datespot.baseline_dateworthiness
         }
         return datespotDict
 
