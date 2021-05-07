@@ -6,12 +6,14 @@ import json
 from datespot_api import DatespotAPI
 
 DEBUG = True # Don't e.g. allow it to make live API requests every time unit tests run.
-EXAMPLE_NS_RESPONSE = "example_gpa_response.json"
+EXAMPLE_NS_RESPONSE = "example_gpa_response.json"  # "NS" for "Nearby Search"
+EXAMPLE_NS_NEXT_PAGE_RESPONSE = ""
+EXAMPLE_NS_LAST_PAGE_RESPONSE = ""
 
 class Client:
 
     def __init__(self):
-        pass
+        self._allow_live_requests = not DEBUG
 
     # todo NB the next_page_token. https://developers.google.com/maps/documentation/places/web-service/search#nearby-search-and-text-search-responses
         # You make further requests for the same results by attaching the token, until you've gotten up to 60 results total. Not clear if they count for pricing.
@@ -19,7 +21,12 @@ class Client:
 
 class Parser:
 
-    def __init__(self):
+    def __init__(self, response_from_file=None):
+        if response_from_file is None and DEBUG:
+            self.response_from_file = True
+        if self.response_from_file:
+            self.response_files = [EXAMPLE_NS_RESPONSE, ]
+
         self.NS_response_data = {} # Google API "Nearby Search" response data.
         self.data = {}
     
@@ -30,9 +37,10 @@ class Parser:
         self.NS_response_data = self.NS_response_data["results"] # strip non-relevant keys
         
     def add_datespot(self): # todo need to update existing ones, not overwrite. First check if the datespot is already in the DB.
+                                # In theory GMAPI isn't the sole data source. Also user inputs, and maybe something like Yelp.
         datespot_api = DatespotAPI()
         for i in range(1):
-            result = self.NS_response_data[i]
+            result = self.NS_response_data.pop()
             print(result)
             location_result = result["geometry"]["location"]
             location = (location_result["lat"], location_result["lng"]) 
@@ -52,7 +60,6 @@ class Parser:
             )
             datespotObj = datespot_api.load_datespot(datespotKey)
             print(f"datespotObj type = {type(datespotObj)}\n{datespotObj}")
-
 
 
 

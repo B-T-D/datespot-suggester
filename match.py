@@ -37,6 +37,9 @@ class Match(metaclass=DatespotAppType):
                                 # those two specific users should be considered more heavily right?
                                 #   E.g. they chatted about how they both love Terrezano's.
 
+        self.same_sex = None # todo. Google Places can be tagged "LGBT friendly"; that trait should weight higher
+                                # for a same sex match.
+
     
     def _compute_distance(self) -> None:
         """
@@ -63,6 +66,4 @@ class Match(metaclass=DatespotAppType):
         """
         score1 = self.user1.datespot_score(datespot)
         score2 = self.user2.datespot_score(datespot)
-        return (score1 + score2) / 2 # simple mean score
-
-    
+        return (score1 + score2) / 2 # simple mean score   
