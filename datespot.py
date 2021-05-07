@@ -28,15 +28,21 @@ class Datespot(metaclass=DatespotAppType):
         self.name = name
         # todo key is the location tuple, with a third element for a Z coordinate in case two restaurants were in same building on different floors.
         
-        self.traits = traits
-        if self.traits:
-            self.traits = set(self.traits)
+        
         self.price_range = price_range
         self.hours = hours
 
         self.baseline_dateworthiness = 50 # Integer from 0 to 99
+                    # todo should probably be normalized to float in [0..1] or [-1..1]
             # concept: There are some features that make a place obviously unsuitable for dates in general. You don't
-            #   need sophisticated user input or AI to tell you that a McDonalds should have a low baseline dateworthiness.   
+            #   need sophisticated user input or AI to tell you that a McDonalds should have a lower 
+            #   baseline dateworthiness.   
+
+        self.traits = traits
+        if self.traits:
+            self.traits = set(self.traits)
+            self._update_dateworthiness() # check if any traits affect the baseline_dateworthiness score
+                # todo what's a better time/place to call this?
 
     def is_open_now(self, day: int, hour: int) -> bool: # simple int in [0..6] for day, [0..23] for hour, for now
         hours = locationsDB[self.id][day]
