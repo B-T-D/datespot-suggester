@@ -5,31 +5,41 @@ Interface between the database and the Datespot model.
 import json
 import datespot
 
-JSON_DB_NAME = "mockDatespotsDB.json"
+JSON_DB_NAME = "jsonMap.json"
 
 class DatespotAPI:
 
     def __init__(self, datafile_name=JSON_DB_NAME): # takes datafile_name to simplify tests code
-        self._datafile = datafile_name
-        self.data = None
-        self._load_db() # todo bad practice?
+        self._master_datafile = datafile_name
+        self._datafile = None
+        self.data = {}
+        self._load_db() # todo bad practice? https://softwareengineering.stackexchange.com/questions/48932/constructor-should-generally-not-call-methods
 
     def _load_db(self): # todo DRY--write a JSON handler utility so this and 
                         #   UserAPI can share same code.
-        """Load all JSON into memory."""
-        jsonData = None
+        """Load stored JSON into memory."""
+        allJson = None
+    
+        #jsonData = None
         try:
-            with open(self._datafile, 'r') as fobj:
-                jsonData = json.load(fobj)
+            with open(self._master_datafile, 'r') as fobj:
+                allJson = json.load(fobj)
                 fobj.seek(0) # reset position to start of the file
         except FileNotFoundError:
             print(f"File {self._datafile} not found.")
         
+        # the jsonMap file doesn't actually contain all the JSON, just the filenames
+        #   for where to get it.
+        self._datafile = allJson["datespot_data"]
+        datespotJson = None
+        with open(self._datafile, 'r') as fobj:
+            datespotJson = json.load(fobj)
+            fobj.seek(0)
+
         # convert each key to a tuple literal
-        self.data = {}
-        for stringKey in jsonData:
+        for stringKey in datespotJson:
             tupleKey = self._string_loc_key_to_tuple(stringKey)
-            self.data[tupleKey] = jsonData[stringKey]
+            self.data[tupleKey] = datespotJson[stringKey]
     
     def _update_json(self):
 
@@ -39,14 +49,11 @@ class DatespotAPI:
             stringKey = self._tuple_loc_key_to_string(tupleKey)
             jsonData[stringKey] = self.data[tupleKey]
 
-        try:
-            with open(self._datafile, 'r') as fobj:
-                fobj.seek(0)
-            with open(self._datafile, 'w') as fobj:
-                json.dump(jsonData, fobj)
-                fobj.seek(0)
-        except FileNotFoundError:
-            print(f"File '{self._datafile}' not found.")
+        with open(self._datafile, 'r') as fobj: # todo artifact?
+            fobj.seek(0)
+        with open(self._datafile, 'w') as fobj:
+            json.dump(jsonData, fobj)
+            fobj.seek(0)
     
     def create_datespot(self, location: tuple, name: str, traits: list, price_range: int, hours: list):
         """
@@ -85,6 +92,9 @@ class DatespotAPI:
         if not location_key in self.data: # todo--mess with tuples vs string supported as keys
             raise KeyError(f"Restaurant with location-key {location_key} not found.")
     
+
+    # todo try using the object_hook arg to json.load to handle the tuple vs string 
+    #   thing in a more code-concise way. 
     def _tuple_loc_key_to_string(self, location_key: tuple) -> str:
         """
         Convert a tuple literal to a string representation that Python json library

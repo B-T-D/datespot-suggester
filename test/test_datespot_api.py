@@ -5,18 +5,29 @@ import random
 from python_backend.datespot_api import DatespotAPI
 from python_backend.datespot import Datespot
 
-TEST_JSON_DB_NAME = "test/mock_datespot_data.json"
+TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
-data = {}
-with open(TEST_JSON_DB_NAME, 'w') as fobj:
-    json.dump(data, fobj)
-    fobj.seek(0)
-fobj.close()
 
 class TestHelloWorldThings(unittest.TestCase):
     """Quick non-brokenness tests."""
 
     def setUp(self):
+
+        dataMap = {
+            "user_data": "test/testing_mockUserDB.json",
+            "datespot_data": "test/testing_mockDatespotDB.json",
+            "match_data": "test/testing_mockMatchData.json"
+            }
+        with open(TEST_JSON_DB_NAME, 'w') as fobj:
+            json.dump(dataMap, fobj)
+            fobj.seek(0)
+
+        # make sure all the test-mock JSONs exist
+        for filename in dataMap:
+            with open(dataMap[filename], 'w') as fobj:
+                json.dump({}, fobj)
+                fobj.seek(0)
+
         # create a fake DB
         self.api = DatespotAPI(datafile_name = TEST_JSON_DB_NAME)
 
@@ -114,3 +125,6 @@ class TestTupleVsStringKeyIssues(unittest.TestCase):
         """Is the key a tuple in the dictionary literal (api.data), and is the stringified tuple not in it?"""
         self.assertIn(self.cached_location_key, self.api.data)
         self.assertNotIn(str(self.cached_location_key), self.api.data)
+
+if __name__ == '__main__':
+    unittest.main() # todo the other ones need this for unittest to run them without pytest.

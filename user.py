@@ -16,6 +16,10 @@ class User(metaclass=DatespotAppType):
         self.likes = [] # features of a date location that would make the user like it
         self.dislikes = [] # features of a date location that would make the user dislike it
         self.travelPropensity= None #  todo placeholder. Integer indicating how willing the user is to travel, relative to other users. 
+        self.chat_logs = None # todo you want NLP on the *user*'s chats, not just the chats for this
+                                #   one match. If user said to someone else "Terrezano's is the worst
+                                # restaurant on earth", that's relevant to all future matches containing
+                                #   that user.
     
     def __str__(self):
         """
@@ -49,4 +53,28 @@ class User(metaclass=DatespotAppType):
                 score += 1
             elif trait in self.dislikes:
                 score -= 1
-        return score    
+        return score
+
+    def _validate_location(self, location: tuple) -> bool:
+        """
+        Return True if location is valid lat-lon coordinate pair, else False.
+        """
+        # todo is it cluttering for the validator to live here instead of some 
+        #   shallower layer?
+        if len(location) != 2:
+            return False
+        lat, lon = location[0], location[1]
+        if not (isinstance(lat, float) and isinstance(lon, float)):
+            return False
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            return False
+        return True
+
+    def update_current_location(self, location: tuple) -> int:
+        """
+        Update the user's current location and return a status-code int to caller.
+        """
+        if not self._validate_location(location):
+            return 1
+        self.currentLocation = location
+        return 0
