@@ -1,14 +1,28 @@
 """
-Makes requests to the Google Maps Places API and parses responses into datespot objects stored as JSON.
+Makes requests to the Google Maps Places API, parses the responses into Datespot objects, and stores them in the database.
 """
 
 import json
-from datespot_api import DatespotAPI
+import database_api
+
+### Settings and config stuff ###
+import sys, os
+import dotenv
+
+dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+dotenv.load_dotenv(dotenv_path)
 
 DEBUG = True # Don't e.g. allow it to make live API requests every time unit tests run.
+
+GOOGLE_MAPS_API_KEY = 1 
+
 EXAMPLE_NS_RESPONSE = "example_gpa_response.json"  # "NS" for "Nearby Search"
 EXAMPLE_NS_NEXT_PAGE_RESPONSE = "example_next_page_response.json"
 EXAMPLE_NS_LAST_PAGE_RESPONSE = "example_third_page_response.json"
+
+print(os.getenv("GOOGLE_MAPS_API_KEY"))
+
+###
 
 class Client:
 
@@ -60,32 +74,27 @@ class Parser:
                     self.NS_response_data.append(entry) # todo weird to keep it as a list.
         #self.NS_response_data = self.NS_response_data["results"] # strip non-relevant keys
         
-    def add_datespot(self): # todo need to update existing ones, not overwrite. First check if the datespot is already in the DB.
+    def _datespot_to_internal_json(self, result: dict): # todo: Messy. This is a dict as parsed elsewhere, then putting it back to string...
+        """
+        Convert entry in the GM response to a JSON string in the format expected by the database API.
+        """
+        # todo validate result
+        result_dict = {
+            "location": (result["geometry"]["location"]["lat"], result["geometry"]["location"]["lng"]),
+            "name": result["name"],
+            "traits": result["types"],
+        }
+        if "price_level" in result:
+            result_dict["price_level"] = result["price_level"]
+        return json.dumps(result_dict)
+
+    def add_datespots(self): # todo need to update existing ones, not overwrite. First check if the datespot is already in the DB.
                                 # In theory GMAPI isn't the sole data source. Also user inputs, and maybe something like Yelp.
-        datespot_api = DatespotAPI()
-        for result in self.NS_response_data:
-            print(result)
-            location_result = result["geometry"]["location"]
-            location = (location_result["lat"], location_result["lng"]) 
-            traits = result["types"]
-            name = result["name"]
-            traits.extend(self._traits_from_name(name, traits))
-            
-            price_range = None
-            if "price_level" in result:
-                print(f"result {name} had a price level")
-                price_range = result["price_level"]
-            else:
-                print(f"result {name} didn't have a price level")
-            
-            datespotKey = datespot_api.create_datespot(
-                location=location,
-                name=name,
-                traits=traits,
-                price_range=price_range,
-            )
-            datespotObj = datespot_api.load_datespot(datespotKey)
-            print(f"datespotObj type = {type(datespotObj)}\n{datespotObj}")
+        db = database_api.DatabaseAPI()
+        for result in self.NS_response_data[:1]: # todo slice is debug
+            result_json = self._datespot_to_internal_json(result)
+            db.add("datespot", result_json)
+
 
     def _traits_from_name(self, name: str, traits: list) -> list:
         additional_traits = []
@@ -108,13 +117,20 @@ class Parser:
 
 
 def main():
+
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--live":
+            print("***Called with live mode***")
+    
+
     myParser = Parser()
     myParser.parse()
+    print("---------")
     print(type(myParser.NS_response_data))
     #print(myParser.NS_response_data)
     print(len(myParser.NS_response_data))
     print("---------")
-    myParser.add_datespot()
+    myParser.add_datespots()
 
 if __name__ == '__main__':
     main()
