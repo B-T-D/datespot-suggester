@@ -15,6 +15,7 @@ Conceptual prototype for a dating app API that suggests date locations to users.
 - [ ] Refactor, rationalize architecture, simplify code, improve code quality and documentation, expand tests coverage.
 - [ ] Improve the restaurant-suggestion algorithm with sentiment analysis on restaurant reviews and simulated user chat histories.
 - [ ] Integrate data from additional third-party APIs (Yelp?) to improve recommendation algorithm.
+- [ ] Add support for hypothetical concurrent DB interactions. In a real dating app, multiple users would sometims interact with a single DB object concurrently.
 
 ## Problems encountered
 
