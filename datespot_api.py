@@ -20,15 +20,16 @@ class DatespotAPI:
     def _load_db(self): # todo DRY--write a JSON handler utility so this and 
                         #   UserAPI can share same code.
         """Load stored JSON into memory."""
+        print(f"_load_db was called")
         allJson = None
     
-        #jsonData = None
         try:
             with open(self._master_datafile, 'r') as fobj:
                 allJson = json.load(fobj)
                 fobj.seek(0) # reset position to start of the file
         except FileNotFoundError:
             print(f"File {self._datafile} not found.")
+            
         
         # the jsonMap file doesn't actually contain all the JSON, just the filenames
         #   for where to get it.
@@ -38,31 +39,34 @@ class DatespotAPI:
             with open(self._datafile, 'r') as fobj:
                 datespotJson = json.load(fobj)
                 fobj.seek(0)
-        except FileNotFoundError: # create it
+        except (FileNotFoundError, json.decoder.JSONDecodeError): # create it and/or add "{}" string
             with open(self._datafile, 'w') as fobj: #todo this isn't actually working to write the blank dict
                 json.dump(str(dict()), fobj)
             return # todo cleanup, this was quick hack
-
-        # convert each key to a tuple literal
-        for stringKey in datespotJson:
-            tupleKey = self._string_loc_key_to_tuple(stringKey)
-            self.data[tupleKey] = datespotJson[stringKey]
     
     def _update_json(self):
-
-        # convert each tuple key to a string
-        jsonData = {}
-        for tupleKey in self.data:
-            stringKey = self._tuple_loc_key_to_string(tupleKey)
-            jsonData[stringKey] = self.data[tupleKey]
-
-        with open(self._datafile, 'r') as fobj: # todo artifact?
-            fobj.seek(0)
+        print(f"self.data in _update_json = \n{self.data}")
         with open(self._datafile, 'w') as fobj:
-            json.dump(jsonData, fobj)
+            json.dump(self.data, fobj)
             fobj.seek(0)
     
-    def create_datespot(self, location: tuple, name: str, traits: list, price_range: int, hours: list=[]):
+    def create_datespot(self, json_data: str) -> int:
+        """
+        Returns the location's key.
+        """
+        datespot_dict = json.loads(json_data)
+        # key is the hash of the two-coordinate location, for now. TBD if lat lon in the google response are stable enough to hash
+        #   to same thing consistently and be useable for lookup.
+        location_tuple = tuple(datespot_dict["location"])
+        datespot_id = hash(location_tuple)
+
+        self.data[datespot_id] = json_data
+        print(self.data)
+        self._update_json()
+        return datespot_id
+
+
+    def create_datespot_from_individual_strings(self, location: tuple, name: str, traits: list, price_range: int, hours: list=[]): # todo any reason for this to exist and not just accept only JSON?
         """
         Returns the location key. 
         """
@@ -101,13 +105,18 @@ class DatespotAPI:
         }
         return datespotDict
 
-    def _validate_datespot(self, location_key: tuple) -> None:
+    def _validate_datespot(self, key: tuple) -> None:
         """
         Raise KeyError if location_key isn't in the database.
         """
-        if not location_key in self.data: # todo--mess with tuples vs string supported as keys
+        if not key in self.data: # todo--mess with tuples vs string supported as keys
             raise KeyError(f"Restaurant with location-key {location_key} not found.")
     
+    def _validate_new_datespot(self):
+    # todo query the db by name and location to avoid duplicates. I.e. does a restaurant with that name 
+    #   already exist at approximately that location in the db?
+        pass
+
 
     # todo try using the object_hook arg to json.load to handle the tuple vs string 
     #   thing in a more code-concise way. 
@@ -127,7 +136,11 @@ class DatespotAPI:
         values = [float(substring) for substring in stripped.split(sep=',')]
         return tuple(values)
 
-    def load_datespot(self, location_key: tuple) -> datespot.Datespot:
+    def lookup_datespot(self, id: int) -> datespot.Datespot:
+        """Return the datespot object corresponding to key "id"."""
+        self._validate_datespot(id)
+
+    def load_datespot(self, location_key: tuple) -> datespot.Datespot: # todo deprecated, remove from tests etc.
         self._validate_datespot(location_key)
         datespotData = self.data[location_key]
         datespotObj = datespot.Datespot(

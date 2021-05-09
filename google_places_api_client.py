@@ -3,7 +3,10 @@ Makes requests to the Google Maps Places API, parses the responses into Datespot
 """
 
 import json
+import requests
+
 import database_api
+import geo_utils
 
 ### Settings and config stuff ###
 import sys, os
@@ -12,22 +15,25 @@ import dotenv
 dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
 dotenv.load_dotenv(dotenv_path)
 
-DEBUG = True # Don't e.g. allow it to make live API requests every time unit tests run.
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 
-GOOGLE_MAPS_API_KEY = 1 
+DEBUG = True # Don't e.g. allow it to make live API requests every time unit tests run.
 
 EXAMPLE_NS_RESPONSE = "example_gpa_response.json"  # "NS" for "Nearby Search"
 EXAMPLE_NS_NEXT_PAGE_RESPONSE = "example_next_page_response.json"
 EXAMPLE_NS_LAST_PAGE_RESPONSE = "example_third_page_response.json"
 
-print(os.getenv("GOOGLE_MAPS_API_KEY"))
 
 ###
 
+DEFAULT_NS_RADIUS = 2000  # Default number of meters to use for radius parameter in Nearby Search requests
+
 class Client:
 
-    def __init__(self):
-        self._allow_live_requests = not DEBUG
+    def __init__(self, allow_live_requests=(not DEBUG)): # default value is False if debug mode, and vice versa
+        self._allow_live_requests = allow_live_requests
+        self._gmp_nearby_search_base_url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?key={GOOGLE_MAPS_API_KEY}" # "gmp" for "google maps places"
+        self._gmp_next_page_token = None
 
     # todo NB the next_page_token. https://developers.google.com/maps/documentation/places/web-service/search#nearby-search-and-text-search-responses
         # You make further requests for the same results by attaching the token, until you've gotten up to 60 results total. Not clear if they count for pricing.
@@ -37,6 +43,86 @@ class Client:
         # location = matchObj.midpoint
         # radius = matchObj.distance / 2
     # That is, imagine a circle c s/t each user's location is a point on the circle's perimeter. Query location is center of c, with query's radius equal to the c's radius.
+
+    def _validate_location_parameter(self, location: tuple):
+        valid = True
+
+        if not isinstance(location, tuple): # Caller should send it as a tuple
+            valid = False
+
+        if not geo_utils.is_valid_lat_lon(location):
+            valid = False
+
+        if not valid:
+            raise Exception(f"Bad location parameter: '{location}' with type = {type(location)}")
+
+    def _location_tuple_to_query_param_string(self, location: tuple) -> str:
+        """Converts the location tuple to a querystring in the format expected by GMP API."""
+        return ''.join([str(location[0]), ',', str(location[1])])
+
+    def _concatenate_gmp_nearby_search_querystring(self, location: tuple, **kwargs) -> str:
+        """Returns the correctly formed querystring url."""
+        if ("rankby" in kwargs and "radius" in kwargs) or not("rankby" in kwargs or "radius" in kwargs):
+            raise Exception(f"Query params should have exactly one of 'radius' and 'rankby'.")
+
+        ## Construct url character array
+        url = list(self._gmp_nearby_search_base_url)
+
+        location_str = self._location_tuple_to_query_param_string(location)
+        url.extend("&location=" + ''.join(location_str))
+
+        if not "rankby" in kwargs: # can't have rankby and radius in same request
+            radius = DEFAULT_NS_RADIUS # Default radius
+            if "radius" in kwargs:
+                radius = str(kwargs["radius"])
+            url.extend(f"&radius={radius}")
+        else:
+            rankby = None
+            if kwargs["rankby"].lower() in {"prominence", "distance"}: # only two valid values
+                rankby = kwargs["rankby"].lower()
+            else:
+                raise Exception(f"Invalid Nearby Search 'rankby' parameter: '{kwargs['rankby']}'")
+            url.extend(f"&rankby={rankby}")
+
+        place_type = None # todo validate it against the list of supported types to reduce malformed requests. https://developers.google.com/maps/documentation/places/web-service/supported_types
+        if "type" in kwargs:
+            place_type = kwargs["type"]
+        if place_type:
+            url.extend(f"&type={place_type}")
+        print(''.join(url))
+
+        return ''.join(url)
+
+
+    def request_gmp_nearby_search(self, location: tuple, **kwargs) -> str:
+        # Todo for unit testing, just have it request to a non-billable url? Or at that point is it basically unit testing the requests library?
+        """
+        Returns the requests.models.Response object's "text" attribute.
+
+        Args:
+            location (tuple): Pair of latitude, longitude coordinate floats.
+        
+        Supported **kwargs:
+            radius (int): Search radius, in meters.
+        """
+        # todo most extensible to just support all of the query parameters listed at https://developers.google.com/maps/documentation/places/web-service/search
+
+        # todo make sure everything is ok with the encoding Requests "guesses" is correct. https://docs.python-requests.org/en/master/user/quickstart/#make-a-request
+        
+
+        ## Validate required query params
+        
+        self._validate_location_parameter(location)
+
+        url = self._concatenate_gmp_nearby_search_querystring(location, **kwargs)
+
+
+
+        if not self._allow_live_requests:
+            print("Live requests disabled.")
+
+        #response = requests.get("https://nytimes.com")
+        #print(response.text)
 
 class Parser:
 
@@ -63,7 +149,7 @@ class Parser:
             "Chick-fil-A",
         }
     
-    def parse(self):
+    def parse(self, response_text: str=None):
 
         if self.response_from_file: # put all three pages of results into a single dict
             for filename in self.response_files:
@@ -73,6 +159,8 @@ class Parser:
                 for entry in file_response_data:
                     self.NS_response_data.append(entry) # todo weird to keep it as a list.
         #self.NS_response_data = self.NS_response_data["results"] # strip non-relevant keys
+
+        
         
     def _datespot_to_internal_json(self, result: dict): # todo: Messy. This is a dict as parsed elsewhere, then putting it back to string...
         """
@@ -118,6 +206,8 @@ class Parser:
 
 def main():
 
+    test_location = (40.74977666604178, -73.99597469657479)
+
     if len(sys.argv) > 1:
         if sys.argv[1] == "--live":
             print("***Called with live mode***")
@@ -125,12 +215,17 @@ def main():
 
     myParser = Parser()
     myParser.parse()
-    print("---------")
-    print(type(myParser.NS_response_data))
+    #print("---------")
+    #print(type(myParser.NS_response_data))
     #print(myParser.NS_response_data)
-    print(len(myParser.NS_response_data))
-    print("---------")
-    myParser.add_datespots()
+    #print(len(myParser.NS_response_data))
+    #print("---------")
+    #myParser.add_datespots()
+
+    myClient = Client()
+    #print(myClient._gmp_nearby_search_base_url)
+    myClient.request_gmp_nearby_search(location=(1,1), radius=9999)
+
 
 if __name__ == '__main__':
     main()

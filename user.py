@@ -21,6 +21,10 @@ class User(metaclass=DatespotAppType):
                                 #   one match. If user said to someone else "Terrezano's is the worst
                                 # restaurant on earth", that's relevant to all future matches containing
                                 #   that user.
+
+    # todo: Would be cool if NLP could extract a user's home location from chat text.
+    #   E.g. they ask each other where they live, and NLP is able to process 
+    #       "East Village" or "72nd and amsterdam" into an approximate lat lon.
     
     def __str__(self):
         """

@@ -2,18 +2,7 @@ from app_object_type import DatespotAppType
 
 from math import sqrt, radians, cos, sin, asin
 
-def haversine(lat1, lon1, lat2, lon2) -> float: # more testable if outside the class
-    """Return the great circle distance between the two lat lon points, in meters."""
-    # convert lat lon decimal degrees to radians:
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-
-    # https://en.wikipedia.org/wiki/Haversine_formula
-    lonDistance = lon2 - lon1
-    latDistance = lat2 - lat1
-    a = sin(latDistance/2)**2 + cos(lat1) * cos(lat2) * sin(lonDistance/2)**2
-    c = 2 * asin(sqrt(a)) # arcsine * 2 * radius solves for the distance
-    earthRadius = 6368 # kilometers
-    return c * earthRadius * 1000 # convert back to meters
+import geo_utils
 
 class Match(metaclass=DatespotAppType):
 
@@ -28,7 +17,7 @@ class Match(metaclass=DatespotAppType):
         self.midpoint = None # lat lon location equidistant between the two users.
             # todo nuances wrt home vs. current location
         self.distance = None # How far apart the two user are in meters.
-        if user1.currentLocation and user2.currentLocation:
+        if self.user1.currentLocation and self.user2.currentLocation:
             self._compute_midpoint()
             self._compute_distance()
     
@@ -47,17 +36,13 @@ class Match(metaclass=DatespotAppType):
         """
         lat1, lon1 = self.user1.currentLocation
         lat2, lon2 = self.user2.currentLocation
-        self.distance = haversine(lat1, lon1, lat2, lon2)
+        self.distance = geo_utils.haversine(lat1, lon1, lat2, lon2)
 
     def _compute_midpoint(self) -> None:
         """
         Compute the lat lon point equidistant from the two users, in meters.
         """
-        # not worrying about spherical geometry here
-        lat1, lon1 = self.user1.currentLocation
-        lat2, lon2 = self.user2.currentLocation
-        self.midpoint = ((lat1 + lat2) / 2, (lon1 + lon2) / 2)
-
+        self.midpoint = geo_utils.midpoint(self.user1.currentLocation, self.user2.currentLocation)
 
     def get_joint_datespot_score(self, datespot):
         """
