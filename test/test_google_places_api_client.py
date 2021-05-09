@@ -1,5 +1,12 @@
 import unittest
-import os
+import sys, os
+
+import dotenv
+
+dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+dotenv.load_dotenv(dotenv_path)
+
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 
 from google_places_api_client import Client
 
@@ -13,7 +20,7 @@ class TestClientHelloWorld(unittest.TestCase):
         self.bad_location_tuple = "-90.0000001,180.000001"
 
         self.correct_NS_request_without_page_token =\
-            "https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=AIzaSyCjVS7yVdMGa2geeyGi0BKWjB-Gi_cub1Q&location=40.74977666604178,-73.99597469657479&radius=1600&type=restaurant"
+            f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?key={GOOGLE_MAPS_API_KEY}&location=40.74977666604178,-73.99597469657479&radius=1600&type=restaurant"
 
     def test_live_requests_debug_toggle(self):
         """Is _allow_live_requests set to False when DEBUG is set to true?"""
