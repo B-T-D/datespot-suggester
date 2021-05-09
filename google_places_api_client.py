@@ -62,8 +62,9 @@ class Client:
 
     def _concatenate_gmp_nearby_search_querystring(self, location: tuple, **kwargs) -> str:
         """Returns the correctly formed querystring url."""
-        if ("rankby" in kwargs and "radius" in kwargs) or not("rankby" in kwargs or "radius" in kwargs):
-            raise Exception(f"Query params should have exactly one of 'radius' and 'rankby'.")
+
+        if ("rankby" in kwargs and "radius" in kwargs):
+            raise Exception(f"Query params cannot have both 'radius' and 'rankby'.")
 
         ## Construct url character array
         url = list(self._gmp_nearby_search_base_url)
@@ -87,9 +88,10 @@ class Client:
         place_type = None # todo validate it against the list of supported types to reduce malformed requests. https://developers.google.com/maps/documentation/places/web-service/supported_types
         if "type" in kwargs:
             place_type = kwargs["type"]
+        else:
+            place_type = "restaurant" # default to restaurant for now
         if place_type:
             url.extend(f"&type={place_type}")
-        print(''.join(url))
 
         return ''.join(url)
 
@@ -112,21 +114,21 @@ class Client:
 
         ## Validate required query params
         
+        response = None
+
         self._validate_location_parameter(location)
 
         url = self._concatenate_gmp_nearby_search_querystring(location, **kwargs)
-
-
-
-        if not self._allow_live_requests:
+            
+        if self._allow_live_requests:
+            response = requests.get(url)
+        else:
             print("Live requests disabled.")
-
-        #response = requests.get("https://nytimes.com")
-        #print(response.text)
+        return response
 
 class Parser:
 
-    def __init__(self, response_from_file=None):
+    def __init__(self, response_from_file=None): # todo just have it take the response object as an arg to the constructor
         if response_from_file is None and DEBUG: # default to reading non-live JSON from files in debug mode
             self.response_from_file = True
         if self.response_from_file:
@@ -149,6 +151,10 @@ class Parser:
             "Chick-fil-A",
         }
     
+    def response_to_memory(self, response: requests.Response) -> None:
+        print(response.text)
+        self.NS_response_data = json.loads(response.text)["results"]
+
     def parse(self, response_text: str=None):
 
         if self.response_from_file: # put all three pages of results into a single dict
@@ -158,11 +164,10 @@ class Parser:
                 file_response_data = file_response_data["results"] # strip non-relevant keys
                 for entry in file_response_data:
                     self.NS_response_data.append(entry) # todo weird to keep it as a list.
-        #self.NS_response_data = self.NS_response_data["results"] # strip non-relevant keys
-
+            return
         
         
-    def _datespot_to_internal_json(self, result: dict): # todo: Messy. This is a dict as parsed elsewhere, then putting it back to string...
+    def _datespot_to_internal_json(self, result: dict) -> str:# todo: Messy. This is a dict as parsed elsewhere, then putting it back to string...
         """
         Convert entry in the GM response to a JSON string in the format expected by the database API.
         """
@@ -179,7 +184,7 @@ class Parser:
     def add_datespots(self): # todo need to update existing ones, not overwrite. First check if the datespot is already in the DB.
                                 # In theory GMAPI isn't the sole data source. Also user inputs, and maybe something like Yelp.
         db = database_api.DatabaseAPI()
-        for result in self.NS_response_data[:1]: # todo slice is debug
+        for result in self.NS_response_data: # todo slice is debug
             result_json = self._datespot_to_internal_json(result)
             db.add("datespot", result_json)
 
@@ -211,20 +216,21 @@ def main():
     if len(sys.argv) > 1:
         if sys.argv[1] == "--live":
             print("***Called with live mode***")
-    
+            myClient = Client(allow_live_requests=True)
+        
+    else:
+        myClient = Client()
 
     myParser = Parser()
+    #myParser.response_to_memory(myClient.request_gmp_nearby_search(test_location))
     myParser.parse()
+    myParser.add_datespots()
+    
     #print("---------")
     #print(type(myParser.NS_response_data))
     #print(myParser.NS_response_data)
     #print(len(myParser.NS_response_data))
     #print("---------")
-    #myParser.add_datespots()
-
-    myClient = Client()
-    #print(myClient._gmp_nearby_search_base_url)
-    myClient.request_gmp_nearby_search(location=(1,1), radius=9999)
 
 
 if __name__ == '__main__':

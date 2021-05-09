@@ -30,7 +30,6 @@ class DatespotAPI:
         except FileNotFoundError:
             print(f"File {self._datafile} not found.")
             
-        
         # the jsonMap file doesn't actually contain all the JSON, just the filenames
         #   for where to get it.
         self._datafile = allJson["datespot_data"]

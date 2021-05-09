@@ -3,7 +3,7 @@ import sys, os
 
 import dotenv
 
-dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+dotenv_path = os.path.join(os.path.dirname(__file__), "..", ".env")
 dotenv.load_dotenv(dotenv_path)
 
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
@@ -44,11 +44,10 @@ class TestClientHelloWorld(unittest.TestCase):
         with self.assertRaises(Exception):
             self.client.request_gmp_nearby_search(self.test_location_param, rankby="garply")
     
-    def test_nearby_search_XORs_radius_and_rankby(self):
+    def test_nearby_search_NANDs_radius_and_rankby(self):
         """Does NS request handler require one of radius and rankby, but disallow both?"""
         with self.assertRaises(Exception):
             self.client.request_gmp_nearby_search(self.test_location_param, radius=5000, rankby="distance") # both
-            self.client.request_gmp_nearby_search(self.test_location_param) # neither
 
     def test_concatenate_querystring(self):
         """Does the querystring concatenator match an expected hardcoded string from a confirmed correct request?"""
@@ -58,7 +57,5 @@ class TestClientHelloWorld(unittest.TestCase):
             radius=1600,
             type="restaurant"
         )
-        print(actual_querystring)
-        print(expected_querystring)
         self.assertEqual(actual_querystring, expected_querystring)
 
