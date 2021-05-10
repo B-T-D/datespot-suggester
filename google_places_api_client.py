@@ -30,6 +30,8 @@ DEFAULT_NS_RADIUS = 2000  # Default number of meters to use for radius parameter
 
 class Client:
 
+    # todo method that makes details requests. Need details requests to get hours.
+
     def __init__(self, allow_live_requests=(not DEBUG)): # default value is False if debug mode, and vice versa
         self._allow_live_requests = allow_live_requests
         self._gmp_nearby_search_base_url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?key={GOOGLE_MAPS_API_KEY}" # "gmp" for "google maps places"
@@ -128,6 +130,8 @@ class Client:
 
 class Parser:
 
+    # todo parse Place Details responses. See Buddakan example for formatting.
+
     def __init__(self, response_from_file=None): # todo just have it take the response object as an arg to the constructor
         if response_from_file is None and DEBUG: # default to reading non-live JSON from files in debug mode
             self.response_from_file = True
@@ -136,20 +140,6 @@ class Parser:
 
         self.NS_response_data = [] # Google API "Nearby Search" response data. It ends up being a list, i.e. it's an array in JS syntax.
         self.data = {}
-        self.known_fast_foods = {  # todo these sets should live in the main Datespots model.
-            "Chipotle Mexican Grill",
-            "Subway", # todo this might catch transportation related stuff, not all Datespots are restaurants
-            "Arby's",
-            "Chick-fil-A",
-            "Popeyes Louisiana Kitchen",
-        }
-        self.known_unromantic_chains = {
-            "Outback Steakhouse",
-            "Olive Garden Italian Restaurant" 
-        }
-        self.known_anti_lgbt = {
-            "Chick-fil-A",
-        }
     
     def response_to_memory(self, response: requests.Response) -> None:
         print(response.text)

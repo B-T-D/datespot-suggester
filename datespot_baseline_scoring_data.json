@@ -1,0 +1,27 @@
+{
+    "trait_weights": {
+        "fast food": -25,
+            "lodging": -5,
+            "pizza": -10,
+            "chain": -5,
+            "unromantic chain": -15,
+            "bar": 5,
+            "cafe": 5
+    },
+    "brand_reputations": {
+        "brandrep_fast_foods":  [
+            "Chipotle Mexican Grill",
+            "Subway",
+            "Arby's",
+            "Chick-fil-A",
+            "Popeyes Louisiana Kitchen"
+        ],
+        "brandrep_unromantic_chains": [
+            "Outback Steakhouse",
+            "Olive Garden Italian Restaurant"
+        ],
+        "brandrep_anti_lgbt": [
+            "Chick-fil-A"
+        ]
+    }
+}

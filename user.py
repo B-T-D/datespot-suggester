@@ -14,6 +14,9 @@ class User(metaclass=DatespotAppType):
         self.name = name
         self.currentLocation = currentLocation
         self.homeLocation = homeLocation
+        # todo homeLocation defaults to the currentLocation in the DB (not necessarily in a user object instance), then is honed over time based on 
+        #   other info about the user (chat mentions of where they live, and absent that, a weighted centroid of their current locations).
+
         self.likes = [] # features of a date location that would make the user like it
         self.dislikes = [] # features of a date location that would make the user dislike it
         self.travelPropensity= None #  todo placeholder. Integer indicating how willing the user is to travel, relative to other users. 

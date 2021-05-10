@@ -20,6 +20,9 @@ class Match(metaclass=DatespotAppType):
         if self.user1.currentLocation and self.user2.currentLocation:
             self._compute_midpoint()
             self._compute_distance()
+
+        # todo use home location for datespot finding if home location known, else use current location. 
+            # todo infer some kind of approx home location over time from the user's usage pattern. 
     
         self.chat_logs = None # todo. Text of chats between the users, for running various restaurant-suggestor NLP algorithms on. 
                                 # todo is this needed here or can it just be in users? Chats between
@@ -45,6 +48,11 @@ class Match(metaclass=DatespotAppType):
         self.midpoint = geo_utils.midpoint(self.user1.currentLocation, self.user2.currentLocation)
 
     def get_joint_datespot_score(self, datespot):
+        # Intuition/hypothesis is that it won't make sense to try do better than a simple mean of the two users scores on that restaurant
+        #   any time soon, if ever. 
+        # To suggest a Datespot for a Match, you get the *initial queryset* based on the midpoint (and, at most, other stuff like price range (min, or based on confident
+        #   prediction as to who is paying), hours based on Users' schedule). But once that initial set of restaurants is hand, all further qualitative filtering should be 
+        #   based on scoring them for each User in isolation, then averaging--for now. Need to prune complexity anywhere possible, initially. 
         """
         Args:
             datespot (datespot.Datespot object): A datespot object.
