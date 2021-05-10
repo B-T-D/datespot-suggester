@@ -38,7 +38,7 @@ class DatabaseAPI:
 
     # Todo: All keys need to be ints in externally passable JSON.
     #   Also the restaurant tuples as keys might end up adding duplicates, if google maps has slightly different lat lon in the response sometimes. 
-    def get(self, object_type, id) -> int:
+    def get_obj(self, object_type, id) -> int:
     
         """
 
@@ -47,6 +47,8 @@ class DatabaseAPI:
             id (int): primary key of an object in the database.
         """
         pass
+
+    def get_datespot_by_location
 
     def get_datespots_near(self, location: tuple, radius: int) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters

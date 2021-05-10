@@ -71,6 +71,10 @@ class DatespotAPI:
             "price_range": json_dict["price_range"],
             "hours": json_dict["hours"]
         }
+
+        # todo create it as a Datespot object, in order to call Datespot's higher-order NLP algorithms.
+        #   I.e. right now, to apply the brand reputations and store them in the DB. 
+
         self._write_json()
         return new_id
 
