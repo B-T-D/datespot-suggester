@@ -97,6 +97,15 @@ class TestHelloWorldThings(unittest.TestCase):
         terrezanos_data = self.api.data[self.terrezanos_id]
         for key, expected_type in [("location", tuple), ("name", str), ("traits", list), ("price_range", int), ("hours", list)]:
             self.assertIsInstance(terrezanos_data[key], expected_type)
+    
+    def test_update_datespot_traits(self):
+        """Are traits updates written to the stored JSON file as expected?"""
+        new_terrezanos_trait = "not at a Terrezano's"
+        # update with a single string:
+        self.api.update_datespot(self.terrezanos_id, traits=new_terrezanos_trait)
+        self.assertIn(new_terrezanos_trait, self.api.data[self.terrezanos_id]["traits"]) # self.api.data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
+
+        # update with a list:
 
 if __name__ == '__main__':
     unittest.main() # todo the other ones need this for unittest to run them without pytest.

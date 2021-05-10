@@ -1,6 +1,10 @@
 """
 Interface between the database and the Datespot model.
+
+All validation other than checking ids should be handled in the main DatabaseAPI. 
 """
+# ^ Rationale: this module has plenty to do with its reads/writes of the json files. Handling those persistent
+#   files are these helper APIs' "do one thing and do it well".
 
 import json
 import datespot
@@ -43,34 +47,6 @@ class DatespotAPI:
         with open(self._datafile, 'w') as fobj:
             json.dump(self.data, fobj)
             fobj.seek(0)
-
-    # todo delete once not needed for json syntax reference:
-    """
-    def _load_db(self): # todo DRY--write a JSON handler utility so this and 
-                        #   UserAPI can share same code.
-        print(f"_load_db was called")
-        allJson = None
-    
-        try:
-            with open(self._master_datafile, 'r') as fobj:
-                allJson = json.load(fobj)
-                fobj.seek(0) # reset position to start of the file
-        except FileNotFoundError:
-            print(f"File {self._datafile} not found.")
-            
-        # the jsonMap file doesn't actually contain all the JSON, just the filenames
-        #   for where to get it.
-        self._datafile = allJson["datespot_data"]
-        datespotJson = None
-        try:
-            with open(self._datafile, 'r') as fobj:
-                datespotJson = json.load(fobj)
-                fobj.seek(0)
-        except (FileNotFoundError, json.decoder.JSONDecodeError): # create it and/or add "{}" string
-            with open(self._datafile, 'w') as fobj: #todo this isn't actually working to write the blank dict
-                json.dump(str(dict()), fobj)
-            return # todo cleanup, this was quick hack
-    """
     
     def create_datespot(self, json_data: str) -> int:
         """
@@ -96,34 +72,6 @@ class DatespotAPI:
         }
         self._write_json()
         return new_id
-
-    def create_datespot_from_individual_strings(self, location: tuple, name: str, traits: list, price_range: int, hours: list=[]): # todo any reason for this to exist and not just accept only JSON?
-        """
-        Returns the location key. 
-        """
-        if len(location) < 3:
-            # make new tuple with the third vertical dimension coordinate:
-            three_coord_location = [element for element in location] 
-            three_coord_location.append(0)
-            location = tuple(three_coord_location)
-
-            # todo: YAGNI? Is it really all that likely for two restaurants to have 
-            #   identical lat lon, given that each coordinate is specified to 6+ decimal
-            #   places? Consult google API docs--is collision possible at all in the
-            #   response data? Google must've faced the X-Y collision issue too.
-            #   If collision is possible, is it probable enough to justify the convolutedness
-            #   of this DIY elevation coordinate?
-
-        newDatespot = datespot.Datespot(
-            location,
-            name,
-            traits,
-            price_range,
-            hours
-        )
-        self.data[location] = self._serialize_datespot(newDatespot) # todo json won't accept a tuple key. Figure out best way to handle.
-        self._update_json()
-        return location
 
     def _serialize_datespot(self, datespot) -> dict:
         datespotDict = {
@@ -172,10 +120,6 @@ class DatespotAPI:
         """Return the datespot object corresponding to key "id"."""
         self._validate_datespot(id)
         datespot_data = self.data[id]
-        print("-------")
-        print(type(datespot_data))
-        print(datespot_data)
-        print("-------")
         return datespot.Datespot(
             location = id,
             name = datespot_data["name"],
@@ -183,26 +127,59 @@ class DatespotAPI:
             price_range = datespot_data["price_range"],
             hours = datespot_data["hours"]
         )
+
     
     def update_datespot(self, id: int, **kwargs): # Stored JSON is the single source of truth. We want a bunch of little, super fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
 
         self._read_json() # sync the API instance's native Python dictionary to match the latest known state of the stored JSON
-        self._validate_datespot(id)
-        datespot_data = self._data[id] # the data to modify is in the native Python dictionary. No need to instantiate a Datespot object with that data.
+        datespot_data = self.data[id] # the data to modify is in the native Python dictionary. No need to instantiate a Datespot object with that data.
 
-        # parse kwargs for which fields to update:
 
         for field in self._valid_model_fields:
             if field in kwargs:
                 new_value = kwargs[field]
-                if self._validate_parameter(new_value):
+                if field == "traits": # todo what if you want to clear the list? YAGNI for now
+                    if isinstance(new_value, list):
+                        datespot_data[field].extend(new_value)
+                    else:
+                        datespot_data[field].append(new_value)
+                else: # Any field other than the traits list can just be overwritten entirely
                     datespot_data[field] = new_value
-                else:
-                    raise ValueError(f"Invalid value for parameter '{field}': '{new_value}'")
+
         
         # Sync the stored JSON:
         self._write_json()
+    
+    def query_datespots_near(self, location, radius=2000): # Todo hasty implementation. This is the most important query logic so better to get something working sooner. 
+        pass
+
+        
+
+    def query(self, field:str, operator:str, operand:str): # todo for now, complex/joined queries (and, or) only supported through using python and/or between multiple calls to this query method
+
+        # See https://stackoverflow.com/questions/18591778/how-to-pass-an-operator-to-a-python-function
+
+        """
+        Args:
+            field (str): Any of the valid model fields; "distance".
+            operator(str): for traits: "all", "in", "not in", "or"; for locations: +, -, *, //, <, <=, ==, =>, >
+        """
+        # parse field and operators, and call appropriate subroutine:
+        pass
+
+    def _query_traits(self):
+        pass
+        # Complicated to implement properly, and may not be needed all that often by the app's core logic.
+        #   The typical use case is more likely "Look at *all* traits of restaurant R, and process each of those
+        #   traits relative to the matched users' preferences." Rather than "find all restaurants with trait X
+        #   but not trait Y."
+
+        # Todo: If the restaurant queries get complex ("all restaurants with X, Y, but not Z traits, open at T time
+        #   on each of Wed/Thurs/Fri"), then that could indicate SQL is a better fit. Restaurant data seemed like the 
+        #   closest to being better off with SQL at the first round of designing. 
+
+
         
     def delete_datespot(self, id: int) -> None:
         self._read_json()

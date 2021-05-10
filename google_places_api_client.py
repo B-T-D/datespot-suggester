@@ -36,6 +36,7 @@ class Client:
         self._allow_live_requests = allow_live_requests
         self._gmp_nearby_search_base_url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?key={GOOGLE_MAPS_API_KEY}" # "gmp" for "google maps places"
         self._gmp_next_page_token = None
+        self.parser = Parser()
 
     # todo NB the next_page_token. https://developers.google.com/maps/documentation/places/web-service/search#nearby-search-and-text-search-responses
         # You make further requests for the same results by attaching the token, until you've gotten up to 60 results total. Not clear if they count for pricing.
@@ -95,10 +96,44 @@ class Client:
         if place_type:
             url.extend(f"&type={place_type}")
 
+        page_token = None
+        if "page_token" in kwargs:
+            page_token = kwargs["page_token"]
+            url.extend(f"&pagetoken={page_token}")
+
         return ''.join(url)
 
-
     def request_gmp_nearby_search(self, location: tuple, **kwargs) -> str:
+        """Return the concatenated internal-app-shaped JSON from all three response pages (i.e. 60 places)."""
+        self._validate_location_parameter(location)
+        next_page_token = None
+        results_dicts = []
+        
+        i = 0
+        while next_page_token or not results_dicts:
+            print(f"i = {i}")
+            full_response_dict = None
+            if next_page_token:
+                full_response_dict = json.loads(self._http_get_gmp_nearby_search(location, page_token = next_page_token, **kwargs).text)
+            else:
+                full_response_dict = json.loads(self._http_get_gmp_nearby_search(location, **kwargs).text)
+            print("---------from this time through while loop:-----------------")
+            print(full_response_dict)
+            print("------------------------------------------------------------")
+            for result in full_response_dict["results"]:
+                results_dicts.append(self.parser._datespot_to_internal_json(result))
+            if "next_page_token" in full_response_dict:
+                next_page_token = full_response_dict["next_page_token"]
+                print(f"\nset next page token to {next_page_token}")
+            else:
+                print(f"\ndidn't find next_page_token")
+                next_page_token = None
+            print(f"\nresults dicts = {results_dicts}\n")
+            i += 1
+        
+        return json.dumps(results_dicts)
+
+    def _http_get_gmp_nearby_search(self, location: tuple, **kwargs) -> requests.Response:
         # Todo for unit testing, just have it request to a non-billable url? Or at that point is it basically unit testing the requests library?
         """
         Returns the requests.models.Response object's "text" attribute.
@@ -107,7 +142,8 @@ class Client:
             location (tuple): Pair of latitude, longitude coordinate floats.
         
         Supported **kwargs:
-            radius (int): Search radius, in meters.
+            radius (int): Search radius, in meters
+            page_token (str): Next page token provided by the first page's response.
         """
         # todo most extensible to just support all of the query parameters listed at https://developers.google.com/maps/documentation/places/web-service/search
 
@@ -118,9 +154,8 @@ class Client:
         
         response = None
 
-        self._validate_location_parameter(location)
-
         url = self._concatenate_gmp_nearby_search_querystring(location, **kwargs)
+        print(f"url was {url}")
             
         if self._allow_live_requests:
             response = requests.get(url)
@@ -158,6 +193,8 @@ class Parser:
         
         
     def _datespot_to_internal_json(self, result: dict) -> str:# todo: Messy. This is a dict as parsed elsewhere, then putting it back to string...
+        # Todo..."internal json" isn't different wrt what's string vs int, quotes vs double quotes etc; it just means discarding the fields the app
+        #   doesn't care about and interpreting data from google's labels to the app's corresponding labels
         """
         Convert entry in the GM response to a JSON string in the format expected by the database API.
         """
@@ -166,9 +203,12 @@ class Parser:
             "location": (result["geometry"]["location"]["lat"], result["geometry"]["location"]["lng"]),
             "name": result["name"],
             "traits": result["types"],
+            "hours": None
         }
         if "price_level" in result:
-            result_dict["price_level"] = result["price_level"]
+            result_dict["price_range"] = result["price_level"]
+        else:
+            result_dict["price_range"] = None
         return json.dumps(result_dict)
 
     def add_datespots(self): # todo need to update existing ones, not overwrite. First check if the datespot is already in the DB.
@@ -177,26 +217,6 @@ class Parser:
         for result in self.NS_response_data: # todo slice is debug
             result_json = self._datespot_to_internal_json(result)
             db.add("datespot", result_json)
-
-
-    def _traits_from_name(self, name: str, traits: list) -> list:
-        additional_traits = []
-
-        # todo the parser shouldn't be editorializing like this. No reason this has to be done here, instead of somewhere else down the line.
-            # Makes more sense for this to live in the main Datespot model. 
-
-        # todo rationalize handling of casing. Don't want to be too tied to the exact names and casings Google happens to use (e.g. "Olive Garden Italian Restaurant")
-        # todo see if can detect sufficient spanish words to confidently tag as Mexican genre
-        if name in self.known_fast_foods: # some fast foods don't have that as their google maps "type"
-            additional_traits.append("fast food")
-        if name in self.known_unromantic_chains:
-            additional_traits.append("unromantic chain")
-        if "steakhouse" in name.lower():  # todo hardcoded ones like these aren't good enough for general case where the Datespot might not be a restaurant
-            additional_traits.append("steak")
-            additional_traits.append("steakhouse")
-        if "thai" in name.lower():
-            additional_traits.append("thai")
-        return additional_traits
 
 
 def main():
@@ -211,16 +231,15 @@ def main():
     else:
         myClient = Client()
 
-    myParser = Parser()
-    #myParser.response_to_memory(myClient.request_gmp_nearby_search(test_location))
-    myParser.parse()
-    myParser.add_datespots()
-    
-    #print("---------")
-    #print(type(myParser.NS_response_data))
-    #print(myParser.NS_response_data)
-    #print(len(myParser.NS_response_data))
-    #print("---------")
+    db = database_api.DatabaseAPI()
+    results_json_str = myClient.request_gmp_nearby_search(test_location)
+
+    results_json_dict = json.loads(results_json_str)
+    print(len(results_json_dict))
+
+    if len(results_json_dict) <= 60:
+        for result in results_json_dict:
+            print(f"***{result}***")
 
 
 if __name__ == '__main__':
