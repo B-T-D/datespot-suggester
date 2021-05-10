@@ -13,13 +13,41 @@ class DatespotAPI:
         self._master_datafile = datafile_name
         self._datafile = None
         self.data = {}
-        self._load_db() # todo bad practice? https://softwareengineering.stackexchange.com/questions/48932/constructor-should-generally-not-call-methods
+        self._valid_model_fields = ["name", "location", "traits", "price_range", "hours"]
 
-        # todo: refactor to a bunch of small read-writes, like in the user api.
+    def _set_datafile(self): # Todo: Worthwhile to refactor to an abstract base class that all three model-apis can inherit methods like this from?
+        """Set the filename of the specific file containing the match data JSON.""" 
+        with open(self._master_datafile, 'r') as fobj:
+            json_map = json.load(fobj)
+            fobj.seek(0)
+        self._datafile = json_map["datespot_data"]
+    
+    def _read_json(self): # Todo: Another method that could go to an ABC
+        """Read the stored JSON models into the API instance's native Python dictionary."""
+        # We want object literals, rather than strings, as the native Python dict values for query purposes. Convert everything to the "real" type
+        #   once, here, so that e.g. arithmetic queries can operate on the "location" key's value's literals.
+        if not self._datafile:
+            self._set_datafile()
+        json_data = {}
+        with open(self._datafile, 'r') as fobj: # todo there's a way to get keys to parse to native ints in one pass, consult docs.
+            json_data = json.load(fobj)
+            fobj.seek(0)
+        for key in json_data: # todo: For now, forcing every key back to int here
+            self.data[int(key)] = json_data[key]
+    
+    def _write_json(self):
+        """Overwrite the stored JSON to exactly match current state of the API instance's native Python dictionary."""
+        # Todo: Any kind of safety rails that make sense to reduce risk of undesired overwrites of good data?
+        if not self._datafile:
+            self._set_datafile()
+        with open(self._datafile, 'w') as fobj:
+            json.dump(self.data, fobj)
+            fobj.seek(0)
 
+    # todo delete once not needed for json syntax reference:
+    """
     def _load_db(self): # todo DRY--write a JSON handler utility so this and 
                         #   UserAPI can share same code.
-        """Load stored JSON into memory."""
         print(f"_load_db was called")
         allJson = None
     
@@ -42,28 +70,32 @@ class DatespotAPI:
             with open(self._datafile, 'w') as fobj: #todo this isn't actually working to write the blank dict
                 json.dump(str(dict()), fobj)
             return # todo cleanup, this was quick hack
-    
-    def _update_json(self):
-        print(f"self.data in _update_json = \n{self.data}")
-        with open(self._datafile, 'w') as fobj:
-            json.dump(self.data, fobj)
-            fobj.seek(0)
+    """
     
     def create_datespot(self, json_data: str) -> int:
         """
         Returns the location's key.
         """
-        datespot_dict = json.loads(json_data)
-        # key is the hash of the two-coordinate location, for now. TBD if lat lon in the google response are stable enough to hash
-        #   to same thing consistently and be useable for lookup.
-        location_tuple = tuple(datespot_dict["location"])
-        datespot_id = hash(location_tuple)
-
-        self.data[datespot_id] = json_data
-        print(self.data)
-        self._update_json()
-        return datespot_id
-
+        self._read_json()
+        json_dict = json.loads(json_data)
+        for key in json_dict:
+            if not key in self._valid_model_fields:
+                raise ValueError(f"Bad JSON in call to create_datespot(): \n{key}")
+        location_tuple = tuple(json_dict["location"])
+        new_id = hash(location_tuple) # primary key is the hash of the two coordinate location tuple. TBD if the tuples from GM API are stable enough to hash to same thing every time.
+                                        #   Todo might make more sense to just use the GM place id. Or its hash.
+        
+        
+        # Todo need to validate the values for each
+        self.data[new_id] = {
+            "location": location_tuple,
+            "name": json_dict["name"],
+            "traits": json_dict["traits"],
+            "price_range": json_dict["price_range"],
+            "hours": json_dict["hours"]
+        }
+        self._write_json()
+        return new_id
 
     def create_datespot_from_individual_strings(self, location: tuple, name: str, traits: list, price_range: int, hours: list=[]): # todo any reason for this to exist and not just accept only JSON?
         """
@@ -104,12 +136,12 @@ class DatespotAPI:
         }
         return datespotDict
 
-    def _validate_datespot(self, key: tuple) -> None:
+    def _validate_datespot(self, id: int) -> None:
         """
-        Raise KeyError if location_key isn't in the database.
+        Raise KeyError if id isn't in the database.
         """
-        if not key in self.data: # todo--mess with tuples vs string supported as keys
-            raise KeyError(f"Restaurant with location-key {location_key} not found.")
+        if not id in self.data: # todo--mess with tuples vs string supported as keys
+            raise KeyError(f"Restaurant with id-key {key} not found.")
     
     def _validate_new_datespot(self):
     # todo query the db by name and location to avoid duplicates. I.e. does a restaurant with that name 
@@ -135,26 +167,45 @@ class DatespotAPI:
         values = [float(substring) for substring in stripped.split(sep=',')]
         return tuple(values)
 
-    def lookup_datespot(self, id: int) -> datespot.Datespot:
+    def lookup_datespot(self, id: int) -> datespot.Datespot: # The main code that uses actual model object instances is other database API code, or the models' internal code
+                                                                # ...(e.g. Datespot uses a User instance to score a restaurant; Match uses two Users and a heap of Datespots).
         """Return the datespot object corresponding to key "id"."""
         self._validate_datespot(id)
-
-    def load_datespot(self, location_key: tuple) -> datespot.Datespot: # todo deprecated, remove from tests etc.
-        self._validate_datespot(location_key)
-        datespotData = self.data[location_key]
-        datespotObj = datespot.Datespot(
-            location = location_key,
-            name = datespotData["name"],
-            traits = datespotData["traits"],
-            price_range = datespotData["price_range"],
-            hours = datespotData["hours"]
+        datespot_data = self.data[id]
+        print("-------")
+        print(type(datespot_data))
+        print(datespot_data)
+        print("-------")
+        return datespot.Datespot(
+            location = id,
+            name = datespot_data["name"],
+            traits = datespot_data["traits"],
+            price_range = datespot_data["price_range"],
+            hours = datespot_data["hours"]
         )
-        return datespotObj
     
-    def update_datespot(self, location_key: tuple, *args, **kwargs):
-        pass
+    def update_datespot(self, id: int, **kwargs): # Stored JSON is the single source of truth. We want a bunch of little, super fast read-writes. 
+                                                    # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
 
-    def delete_datespot(self, location_key: tuple) -> None:
-        self._validate_datespot(location_key)
+        self._read_json() # sync the API instance's native Python dictionary to match the latest known state of the stored JSON
+        self._validate_datespot(id)
+        datespot_data = self._data[id] # the data to modify is in the native Python dictionary. No need to instantiate a Datespot object with that data.
+
+        # parse kwargs for which fields to update:
+
+        for field in self._valid_model_fields:
+            if field in kwargs:
+                new_value = kwargs[field]
+                if self._validate_parameter(new_value):
+                    datespot_data[field] = new_value
+                else:
+                    raise ValueError(f"Invalid value for parameter '{field}': '{new_value}'")
+        
+        # Sync the stored JSON:
+        self._write_json()
+        
+    def delete_datespot(self, id: int) -> None:
+        self._read_json()
+        self._validate_datespot(id)
         del self.data[location_key]
-        self._update_json()
+        self._write_json()

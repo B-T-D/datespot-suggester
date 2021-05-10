@@ -1,4 +1,5 @@
 from app_object_type import DatespotAppType
+import user
 
 import json
 
@@ -24,7 +25,6 @@ class Datespot(metaclass=DatespotAppType):
             hours (List[List[int]]): ...
 
         """
-        assert type(location) == tuple
         self.location = location
         self.name = name
         
@@ -40,22 +40,13 @@ class Datespot(metaclass=DatespotAppType):
 
         self.baseline_dateworthiness = 50 # Todo: What's the best scoring scale? -1 to 1? 0 to 1? 0 to 99?
 
-        self.traits = traits
-        if self.traits:
-            self.traits = set(self.traits)
-            self._update_dateworthiness() # check if any traits affect the baseline_dateworthiness score
-                # todo call this when external caller requests a restaurant recc.
+        self.traits = traits # Todo: Need these to parse in as a hash set in a single O(n) pass...
+        if self.traits:     #    ...Rather than one pass by json.load(), then another pass by set()
+            self.traits = set(self.traits) # Probably almost no IRL performance gain from putting them into a set, because lookup only happens once.
+                                            #   Hash set likely only improves speed if json can decode it into a native hash set in a single pass. 
         
-        # todo need these to parse in as a hash set with only one O(n) pass. Rather than one O(n) pass by 
-        #   json.load(), then another by casting the list to a set.
-        
-        # cast each non-associative array to a hash set for faster lookup:
-        for key in self.brand_reputations:
+        for key in self.brand_reputations: # cast each non-associative array to a hash set for faster lookup
             self.brand_reputations[key] = set(self.brand_reputations[key])
-
-    # todo: Should the "how much would X user like Y restaurant?" method be in user, or in datespot? Or in match? Or in some other model?
-        # If this "baseline_dateworthiness" is a key part of an overall score, then makes some sense for datespot model to own the core 
-        #   restaurant suggestor, right?
 
     # todo is_open queries might be better handled by direct DB queries, i.e. outside this module.
     #   One of the DB APIs will be able to do stuff like "check if we already know the hours for this restaurant recently enough,
@@ -72,7 +63,7 @@ class Datespot(metaclass=DatespotAppType):
             if self.name in tagged_restaurants:
                 self.traits.add(reputational_label)
 
-    def _update_dateworthiness(self): # 
+    def _update_dateworthiness(self):
         """
         Update the location's baseline dateworthiness score based on the current traits.
         """
@@ -83,6 +74,23 @@ class Datespot(metaclass=DatespotAppType):
         for trait in self.baseline_trait_weights:
             if trait in self.traits:
                 self.baseline_dateworthiness = max(0, self.baseline_dateworthiness + trait_weights[trait])
+
+    def score(self, user: user.User) -> float:
+        # Externally callable wrapper
+        return self._score(user)
+
+    def _score(self, user:user.User) -> float:
+        # Make sure all brand-related traits have been applied before updating the baseline dateworthiness.
+        self._apply_brand_reputations() # These probably never get called more than once in the lifetime of a single Datespot instance.
+        self._update_dateworthiness() #  ...In practice, Datespot objects will be instantiated solely so that this method can be called. Then they're garbage-collected.
+        score = 0.0
+        for trait in self.traits:
+            if trait in user.likes: # todo user.likes is an array, not a hash set as of this writing
+                score += 1
+            elif trait in self.dislikes:
+                score -= 1
+        return score
+
 
 def main():
 

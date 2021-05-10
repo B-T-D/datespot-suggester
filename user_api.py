@@ -34,7 +34,7 @@ class UserAPI:
                                                 #   to ints correctly.
             jsonData = json.load(fobj)
             fobj.seek(0)
-        print(f"--------------------jsonData:-------------------------------\n{jsonData}")
+        #print(f"--------------------jsonData:-------------------------------\n{jsonData}")
         for key in jsonData: # force every key back to int...
             self.data[int(key)] = jsonData[key]
     
@@ -77,12 +77,12 @@ class UserAPI:
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
         or raises error if not found.
         """
-        print(f"\n user id in load user = {user_id} {type(user_id)}")
-        print("load user before read call:")
-        print(f"\n{self.data}")
+        #print(f"\n user id in load user = {user_id} {type(user_id)}")
+        #print("load user before read call:")
+        #print(f"\n{self.data}")
         self._read_json()
-        print("load user after read call:")
-        print(f"\n{self.data}")
+        #print("load user after read call:")
+        #print(f"\n{self.data}")
         userData = self.data[user_id]
         assert type(userData) == dict
         userObj = user.User(

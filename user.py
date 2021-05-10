@@ -1,6 +1,5 @@
 from app_object_type import DatespotAppType
 
-from datespot import *
 
 class User(metaclass=DatespotAppType):
 
@@ -41,48 +40,11 @@ class User(metaclass=DatespotAppType):
             "dislikes": self.dislikes
         }
         return "User" + str(userDict)
-    
-    def datespot_score(self, datespot) -> int:
-        # Wrapper for external calls
-        """
-        Takes a datespot object and returns the score for how well this user matches with that datespot.
-
-        Args:
-
-            datespot (datespot.Datespot object): An instance of the Datespot class.
-        """
-        return self._get_datespot_score(datespot)
-
-    def _get_datespot_score(self, datespot) -> int:
-        
-        score = 0
-        for trait in datespot.traits: # todo this is O(n^2); should likes and/or traits be hash sets?
-            if trait in self.likes:
-                score += 1
-            elif trait in self.dislikes:
-                score -= 1
-        return score
-
-    def _validate_location(self, location: tuple) -> bool:
-        """
-        Return True if location is valid lat-lon coordinate pair, else False.
-        """
-        # todo is it cluttering for the validator to live here instead of some 
-        #   shallower layer?
-        if len(location) != 2:
-            return False
-        lat, lon = location[0], location[1]
-        if not (isinstance(lat, float) and isinstance(lon, float)):
-            return False
-        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
-            return False
-        return True
 
     def update_current_location(self, location: tuple) -> int:
         """
         Update the user's current location and return a status-code int to caller.
         """
-        if not self._validate_location(location):
-            return 1
+        # todo validate at the DB layer
         self.currentLocation = location
         return 0
