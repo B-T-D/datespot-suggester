@@ -67,9 +67,6 @@ class TestHelloWorldThings(unittest.TestCase):
                 "hours" : self.terrezanos_hours,
             })
         )
-        print("*******************************")
-        print(self.terrezanos_id)
-        print("*******************************")
         assert self.terrezanos_id in self.api.data
         
     def test_instantiation(self):
@@ -93,7 +90,6 @@ class TestHelloWorldThings(unittest.TestCase):
         domenicos_key = self.api.create_datespot(domenicos_json)
         self.assertIsInstance(domenicos_key, int)
         domenicos = self.api.lookup_datespot(domenicos_key)
-        #self.assertIsInstance(domenicos, Datespot) # Todo cannot get this to work, even with the metaclass thing
         self.assertEqual(str(type(domenicos)), "DatespotObj")
     
     def test_native_python_dict_value_types(self):
