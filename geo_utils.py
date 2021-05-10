@@ -8,10 +8,10 @@ def is_valid_lat_lon(location: tuple) -> bool:
     return (-90 <= lat <= 90) and (-180 <= lon <= 180)
 
 # todo: Use numpy if distance computations are intensive enough to become a bottleneck.
-def haversine(lat1, lon1, lat2, lon2) -> float: # more testable if outside the class
+def haversine(location1: tuple, location2: tuple) -> float:
     """Return the great circle distance between the two lat lon points, in meters."""
-    # convert lat lon decimal degrees to radians:
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    # Unpack tuples and convert lat lon decimal degrees to radians:
+    lat1, lon1, lat2, lon2 = map(radians, [location1[0], location1[1], location2[0], location2[1]])
 
     # https://en.wikipedia.org/wiki/Haversine_formula
     lonDistance = lon2 - lon1

@@ -37,9 +37,7 @@ class Match(metaclass=DatespotAppType):
         """
         Compute the distance between the two users, in meters.
         """
-        lat1, lon1 = self.user1.currentLocation
-        lat2, lon2 = self.user2.currentLocation
-        self.distance = geo_utils.haversine(lat1, lon1, lat2, lon2)
+        self.distance = geo_utils.haversine(self.user1.currentLocation, self.user2.currentLocation)
 
     def _compute_midpoint(self) -> None:
         """

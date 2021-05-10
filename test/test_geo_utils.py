@@ -42,13 +42,13 @@ class TestHaversine(unittest.TestCase):
         expectedGCDistanceNYCtoLondon = 5567 * 1000
         londonLatLon = (51.5074, -0.1278)
         NYCLatLon = (40.7128, -74.0060)
-        actual = haversine(londonLatLon[0], londonLatLon[1], NYCLatLon[0], NYCLatLon[1])
+        actual = haversine(londonLatLon, NYCLatLon)
         expected = expectedGCDistanceNYCtoLondon
         self.assertAlmostEqual(actual, expected, delta=expected*maxDelta)
 
         expectedGCDistanceNYCtoToronto = 574 * 1000
         torontoLatLon = (43.678720190872674, -79.63110274333383)
-        actual = haversine(torontoLatLon[0], torontoLatLon[1], NYCLatLon[0], NYCLatLon[1])
+        actual = haversine(torontoLatLon, NYCLatLon)
         expected = expectedGCDistanceNYCtoToronto
         self.assertAlmostEqual(actual, expected, delta=expected*maxDelta)
 

@@ -48,6 +48,15 @@ class DatabaseAPI:
         """
         pass
 
+    def get_datespots_near(self, location: tuple, radius: int) -> list:
+        """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
+        of location."""
+
+        datespots_db = datespot_api.DatespotAPI()
+        # todo validate the location and radius here?
+        results = datespots_db.query_datespots_near(location, radius)
+        return results
+
     def find(self, object_type: str, field: str, *args) -> str:
         """
         Returns JSON string of the corresponding object(s).

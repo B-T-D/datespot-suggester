@@ -108,6 +108,11 @@ class Client:
         self._validate_location_parameter(location)
         next_page_token = None
         results_dicts = []
+
+        # todo: The page_token problem is something more than just a stupidly written while loop. The url is formed correctly, s/t it 
+        #   opens the next page of results when pasted into the browser. Yet that exact same url string is getting back an "invalid response"
+        #   when requested by this script. It might be an issue of requests too close together, but probably not--because then the error
+        #   response would say something about QPS / over-quota, rather than just "invalid response".
         
         i = 0
         while next_page_token or not results_dicts:

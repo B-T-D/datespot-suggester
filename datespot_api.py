@@ -8,6 +8,7 @@ All validation other than checking ids should be handled in the main DatabaseAPI
 
 import json
 import datespot
+import geo_utils
 
 JSON_DB_NAME = "jsonMap.json"
 
@@ -150,9 +151,28 @@ class DatespotAPI:
         
         # Sync the stored JSON:
         self._write_json()
-    
-    def query_datespots_near(self, location, radius=2000): # Todo hasty implementation. This is the most important query logic so better to get something working sooner. 
-        pass
+
+    def query_num_datespots(self): # Todo hasty, more code-elegant ways to do this
+        """Return the number of datespots in this API instance's data."""
+        self._read_json()
+        return len(self.data)
+
+    def query_datespots_near(self, location, radius=2000): # Todo hasty implementation. This is the most important query logic so better to get something working sooner.
+        """Return list of the datespots in the DB within radius meters of location, sorted from nearest to farthest.""" 
+        if not geo_utils.is_valid_lat_lon(location): # todo best architectural place for validating this?
+            raise ValueError(f"Bad lat lon location: {location}")
+        self._read_json()
+        #matches_dict = {} #{ int id : {datespot JSON}}
+        query_results = [] # list of two element tuples of (distance_from_query_location, serialized_datespot_dict). I.e. list[tuple[int, dict]]
+        for id_key in self.data:
+            place = self.data[id_key]
+            place_loc = place["location"]
+            distance = geo_utils.haversine(location, place_loc)
+            if distance < radius:
+                query_results.append((distance, place)) # append as tuple with distance as the tuple's first element
+        query_results.sort() # Todo no reason to heap-sort yet, not sure if this method's caller will actually want it as a heap.
+                                # More likely, the caller heapifies these results internally. 
+        return query_results
 
         
 
@@ -178,7 +198,6 @@ class DatespotAPI:
         # Todo: If the restaurant queries get complex ("all restaurants with X, Y, but not Z traits, open at T time
         #   on each of Wed/Thurs/Fri"), then that could indicate SQL is a better fit. Restaurant data seemed like the 
         #   closest to being better off with SQL at the first round of designing. 
-
 
         
     def delete_datespot(self, id: int) -> None:

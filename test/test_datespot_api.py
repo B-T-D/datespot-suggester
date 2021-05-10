@@ -107,5 +107,44 @@ class TestHelloWorldThings(unittest.TestCase):
 
         # update with a list:
 
+class TestQueriesOnPersistentDB(unittest.TestCase):
+    """Tests using a persistent "real" DB rather than a separate DB initialized solely for testing purposes."""
+
+    def setUp(self):
+        self.api = DatespotAPI() # let it use the default DB file
+        self.test_location = (40.74491605331198, -74.00333467806617)
+        self.test_radius = 2000
+    
+    def test_init(self):
+        self.assertIsInstance(self.api, DatespotAPI)
+    
+    def test_api_has_data(self):
+        self.assertGreater(self.api.query_num_datespots(), 0)
+        self.assertEqual(self.api.query_num_datespots(), 60) # todo hardcoded to 60 for expediency
+    
+    def test_query_datespots_near_return_type(self):
+        returned_obj = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
+        self.assertIsInstance(returned_obj, list)
+
+    def test_query_datespots_near_returns_locations_within_radius(self):
+        """Is the distance between the test location each query result <= the query radius?"""
+        query_results = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
+        print(f"\n------------------------------------")
+        for result in query_results:
+            print(f"{result[0]}\t|\t{result[1]}")
+        print(f"------------------------------------\n")
+        for result in query_results:
+            distance = result[0]
+            self.assertLessEqual(distance, self.test_radius)
+    
+    def test_query_datespots_returns_nonincreasing_values(self):
+        """Are the elements in the query result non-increasing, i.e. sorted nearest to farthest?"""
+        query_results = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
+
+        for i in range(1, len(query_results)):
+            self.assertGreaterEqual(query_results[i], query_results[i-1])
+
+    # todo robust, general case test confirming that the distances are correct. 
+
 if __name__ == '__main__':
     unittest.main() # todo the other ones need this for unittest to run them without pytest.
