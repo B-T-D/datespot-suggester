@@ -18,13 +18,14 @@ BASELINE_SCORING_DATA = "datespot_baseline_scoring_data.json"
 
 class Datespot(metaclass=DatespotAppType):
 
-    def __init__(self, location: tuple, name: str, traits: list, price_range: int, hours: list=[]):
+    def __init__(self, datespot_id: int, location: tuple, name: str, traits: list, price_range: int, hours: list=[]):
         """
         Args:
             traits (List[str]): ... 
             hours (List[List[int]]): ...
 
         """
+        self.id = datespot_id # "id" is name of Python builtin function
         self.location = location
         self.name = name
         
@@ -59,7 +60,7 @@ class Datespot(metaclass=DatespotAppType):
         """
         Add traits associated with known brand reputation (traits confidently addable based on restaurant's name).
         """
-        for reputational_label, tagged_restaurants in self.brand_reputations:
+        for reputational_label, tagged_restaurants in self.brand_reputations.items():
             if self.name in tagged_restaurants:
                 self.traits.add(reputational_label)
 
@@ -73,7 +74,7 @@ class Datespot(metaclass=DatespotAppType):
 
         for trait in self.baseline_trait_weights:
             if trait in self.traits:
-                self.baseline_dateworthiness = max(0, self.baseline_dateworthiness + trait_weights[trait])
+                self.baseline_dateworthiness = max(0, self.baseline_dateworthiness + self.baseline_trait_weights[trait])
 
     def score(self, user: user.User) -> float:
         # Externally callable wrapper
@@ -87,7 +88,7 @@ class Datespot(metaclass=DatespotAppType):
         for trait in self.traits:
             if trait in user.likes: # todo user.likes is an array, not a hash set as of this writing
                 score += 1
-            elif trait in self.dislikes:
+            elif trait in user.dislikes:
                 score -= 1
         return score
 

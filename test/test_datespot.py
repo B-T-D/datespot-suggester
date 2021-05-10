@@ -8,12 +8,15 @@ class TestHelloWorldThings(unittest.TestCase):
     def setUp(self):
 
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
+        self.terrezanos_id = hash(self.terrezanos_location) # need to manually create the key, since intializing a Datespot directly from the model, rather than via the helper API. 
+            # todo set an environment variable designating the hash function to use? Function will probably change.
         self.terrezanos_name = "Terrezano's"
         self.terrezanos_traits = ["italian", "wine", "pasta", "NOT FROM PIZZA HUT", "authentic", "warehouse"]
         self.terrezanos_price_range = 3
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
 
         self.terrezanos = Datespot(
+            datespot_id=self.terrezanos_id,
             location=self.terrezanos_location,
             name=self.terrezanos_name,
             traits=self.terrezanos_traits,

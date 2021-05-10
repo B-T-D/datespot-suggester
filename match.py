@@ -9,6 +9,10 @@ class Match(metaclass=DatespotAppType):
 
     # todo conform code style wrt underscores for "private" methods and attributes. 
     def __init__(self, user1, user2):
+
+        # Todo: Think about the (public) attributes in terms of what we want written to the persistent JSON representation of a Match
+        #   object. 
+
         """
         Args:
             user1 (UserObj): A user object.
@@ -59,47 +63,50 @@ class Match(metaclass=DatespotAppType):
         self.midpoint = geo_utils.midpoint(self.user1.currentLocation, self.user2.currentLocation)
 
     def get_suggestions(self) -> None: # todo if it's external then it returns something
+        db = database_api.DatabaseAPI()
         suggestions_heap = self._score_nearby_datespots()
         # pop each from the heap and add to the main queue until queue is the desired length
         while suggestions_heap and len(self.suggestions_queue) < self._max_suggestions_queue_length:
-            suggestion = heapq.heappop(suggestions_heap)
-            self.suggestions_queue.append(suggestion) # todo this is still the Datespot object literal.
-                                                        # maybe that's fine, and the api just serializes it for return to the external caller?
-                                                        #   Whole point of the domain layer is to make convenient use of the object literals, right?
+            suggestion_key = heapq.heappop(suggestions_heap)[1] # [0] is the score that was used for the sort. 
+            self.suggestions_queue.append(db.get_obj("datespot", suggestion_key)) # todo should the externally returned thing still have the object literals?
         return self.suggestions_queue
 
 
     def _get_datespots_by_geography(self) -> list:
         """Return a proximity sorted list of the the datespots within self.default_query_radius of this Match's geographical midpoint."""
-        self.midpoint = self._compute_midpoint()
-        self.distance = self._compute_distance()
         self.query_radius = self.distance / 2
 
         db = database_api.DatabaseAPI()
 
-        query_results = db.get_datespots_near(self.midpoint, self.query_radius)
+        query_results = db.get_datespots_near(location=self.midpoint, radius=self.query_radius)
         return query_results
 
 
     def _score_nearby_datespots(self):
         """Compute the joint datespot score for each result, and push it to a max heap sorted on score."""
-        geo_results = heapq.heapify(self._get_datespots_by_geography()) # min heap sorted on distance
+        geo_results = self._get_datespots_by_geography()
+        heapq.heapify(geo_results) # min heap sorted on distance
+        print(f"geo_results in match.py = \n{geo_results}")
         suggestions_heap = []
 
         db = database_api.DatabaseAPI() # todo rationalize. Make sense to have one for whole lifetime of Match object?
 
         while geo_results:
-            candidate = heapq.heappop(geo_results) # todo it'd be simpler if this list had the id along with the other data.
+            candidate = heapq.heappop(geo_results)[1] # todo it'd be simpler if this list had the id along with the other data.
+            # elements in the heap are tuples, element[0] is the distance "key", element[1] is the actual object
+            print(f"\n*****type candidate = {type(candidate)}\n\ncandidate = {candidate}\n*********\n")
+            print(f"id type is {type(candidate['id'])}")
             candidate_obj = db.get_obj("datespot", candidate["id"])
-            score = self.get_joint_datespot_score(candidate)
+            print(type(candidate_obj))
+            score = self.get_joint_datespot_score(candidate_obj)
             # negate score then use it as first element "key" in tuple for max heap
-            heapq.heappush(suggestions_heap, (-score, candidate_obj)) # todo object literals vs. dicts on the heap?
+            heapq.heappush(suggestions_heap, (-score, candidate_obj.id)) # The object id pk is the heap key's value.
                                                                         # Intuition = this heap is only used inside this Match instance's lifetime, so no reason not to use the object literals,
                                                                             # having already gone through the motions of instantiating them from the db via their keys.
         
         return suggestions_heap # todo this doesn't write directly back to the main queue, it returns to the supervisor external method which constructs that quue
 
-    def get_joint_datespot_score(self, datespot):
+    def get_joint_datespot_score(self, datespot) -> float:
         # Intuition/hypothesis is that it won't make sense to try do better than a simple mean of the two users scores on that restaurant
         #   any time soon, if ever. 
         # To suggest a Datespot for a Match, you get the *initial queryset* based on the midpoint (and, at most, other stuff like price range (min, or based on confident

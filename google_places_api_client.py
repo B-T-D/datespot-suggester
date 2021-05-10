@@ -28,6 +28,12 @@ EXAMPLE_NS_LAST_PAGE_RESPONSE = "example_third_page_response.json"
 
 DEFAULT_NS_RADIUS = 2000  # Default number of meters to use for radius parameter in Nearby Search requests
 
+class TestClient:
+    """Mock Client that handles cached response files in original GMP JSON format."""
+
+    def __init__(self):
+        pass
+
 class Client:
 
     # todo method that makes details requests. Need details requests to get hours.
@@ -175,6 +181,8 @@ class Parser:
     def __init__(self, response_from_file=None): # todo just have it take the response object as an arg to the constructor
         if response_from_file is None and DEBUG: # default to reading non-live JSON from files in debug mode
             self.response_from_file = True
+        elif response_from_file == True: # todo hasty spaghetti
+            self.response_from_file = True
         if self.response_from_file:
             self.response_files = [EXAMPLE_NS_RESPONSE, EXAMPLE_NS_NEXT_PAGE_RESPONSE, EXAMPLE_NS_LAST_PAGE_RESPONSE]
 
@@ -232,19 +240,23 @@ def main():
         if sys.argv[1] == "--live":
             print("***Called with live mode***")
             myClient = Client(allow_live_requests=True)
+            db = database_api.DatabaseAPI()
+            results_json_str = myClient.request_gmp_nearby_search(test_location)
+
+            results_json_dict = json.loads(results_json_str)
+            print(len(results_json_dict))
+
+            if len(results_json_dict) <= 60:
+                for result in results_json_dict:
+                    print(f"***{result}***")
         
-    else:
-        myClient = Client()
+    else: # update the DB from the cached test files
+        myParser = Parser(response_from_file=True)
+        myParser.parse()
+        myParser.add_datespots()
 
-    db = database_api.DatabaseAPI()
-    results_json_str = myClient.request_gmp_nearby_search(test_location)
 
-    results_json_dict = json.loads(results_json_str)
-    print(len(results_json_dict))
-
-    if len(results_json_dict) <= 60:
-        for result in results_json_dict:
-            print(f"***{result}***")
+    
 
 
 if __name__ == '__main__':

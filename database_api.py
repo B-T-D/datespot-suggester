@@ -41,14 +41,17 @@ class DatabaseAPI:
     def get_obj(self, object_type, id) -> int:
     
         """
+        Return an internal-model object literal for the data corresponding to the key "id".
 
         Args:
             object_type (str): "user", "datespot", or "match"
             id (int): primary key of an object in the database.
         """
-        pass
-
-    def get_datespot_by_location
+        if object_type == "datespot":
+            datespot_db = datespot_api.DatespotAPI()
+            return datespot_db.lookup_datespot(id)
+        else:
+            raise NotImplementedError
 
     def get_datespots_near(self, location: tuple, radius: int) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters

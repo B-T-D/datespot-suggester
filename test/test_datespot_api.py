@@ -32,18 +32,6 @@ class TestHelloWorldThings(unittest.TestCase):
         self.api = DatespotAPI(datafile_name = TEST_JSON_DB_NAME)
 
         # make a mock restaurant
-        self.cached_location_key = (40.72289821341384, -73.97993915779077, 0.0) # location_key[2] is a vertical coordinate for resolving hypothetically possible (x, y) collisions
-        assert type(self.cached_location_key) == tuple
-        terrezanosTraits = ["italian", "wine", "pasta", "NOT FROM PIZZA HUT", "authentic", "warehouse"]
-        terrezanosHours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
-        self.mockRestaurant = Datespot(
-            location = self.cached_location_key,
-            name = "Terrezano's",
-            traits = terrezanosTraits,
-            price_range = 2,
-            hours = terrezanosHours
-            )
-        
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
         self.terrezanos_name = "Terrezano's"
         self.terrezanos_traits = ["italian", "wine", "pasta", "NOT FROM PIZZA HUT", "authentic", "warehouse"]
@@ -67,7 +55,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 "hours" : self.terrezanos_hours,
             })
         )
-        assert self.terrezanos_id in self.api.data
+        assert self.terrezanos_id in self.api._data
         
     def test_instantiation(self):
         self.assertIsInstance(self.api, DatespotAPI)
@@ -94,7 +82,7 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_native_python_dict_value_types(self):
         """Are the values in the API's native python dictionary stored as the intended types, rather than as strings?"""
-        terrezanos_data = self.api.data[self.terrezanos_id]
+        terrezanos_data = self.api._data[self.terrezanos_id]
         for key, expected_type in [("location", tuple), ("name", str), ("traits", list), ("price_range", int), ("hours", list)]:
             self.assertIsInstance(terrezanos_data[key], expected_type)
     
@@ -103,9 +91,10 @@ class TestHelloWorldThings(unittest.TestCase):
         new_terrezanos_trait = "not at a Terrezano's"
         # update with a single string:
         self.api.update_datespot(self.terrezanos_id, traits=new_terrezanos_trait)
-        self.assertIn(new_terrezanos_trait, self.api.data[self.terrezanos_id]["traits"]) # self.api.data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
+        self.assertIn(new_terrezanos_trait, self.api._data[self.terrezanos_id]["traits"]) # self.api._data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
 
         # update with a list:
+        # todo
 
 class TestQueriesOnPersistentDB(unittest.TestCase):
     """Tests using a persistent "real" DB rather than a separate DB initialized solely for testing purposes."""
@@ -114,6 +103,8 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
         self.api = DatespotAPI() # let it use the default DB file
         self.test_location = (40.74491605331198, -74.00333467806617)
         self.test_radius = 2000
+
+        self.expected_datespot_data_keys = ["id", "location", "name", "traits", "price_range", "hours"]
     
     def test_init(self):
         self.assertIsInstance(self.api, DatespotAPI)
@@ -122,6 +113,16 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
         self.assertGreater(self.api.query_num_datespots(), 0)
         self.assertEqual(self.api.query_num_datespots(), 60) # todo hardcoded to 60 for expediency
     
+    def test_api_data_has_expected_shape(self):
+        data = self.api.get_all_data()
+        self.assertIsInstance(data, dict)
+        self.assertGreater(len(data), 0)
+        for key in data:
+            self.assertIsInstance(key, int) # keys should be ints
+            datespot_dict = data[key]
+            for schema_key in self.expected_datespot_data_keys:
+                self.assertIn(schema_key, datespot_dict)
+    
     def test_query_datespots_near_return_type(self):
         returned_obj = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
         self.assertIsInstance(returned_obj, list)
@@ -129,10 +130,10 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
     def test_query_datespots_near_returns_locations_within_radius(self):
         """Is the distance between the test location each query result <= the query radius?"""
         query_results = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
-        print(f"\n------------------------------------")
-        for result in query_results:
-            print(f"{result[0]}\t|\t{result[1]}")
-        print(f"------------------------------------\n")
+        # print(f"\n------------------------------------")
+        # for result in query_results:
+        #     print(f"{result[0]}\t|\t{result[1]}")
+        # print(f"------------------------------------\n")
         for result in query_results:
             distance = result[0]
             self.assertLessEqual(distance, self.test_radius)

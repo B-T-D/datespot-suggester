@@ -17,7 +17,7 @@ class DatespotAPI:
     def __init__(self, datafile_name=JSON_DB_NAME): # takes datafile_name to simplify tests code
         self._master_datafile = datafile_name
         self._datafile = None
-        self.data = {}
+        self._data = {} # Can't be directly accessed by external callers, because it often won't be populated at the moment of the attempted access. Access with DatespotAPI.get_all_data()
         self._valid_model_fields = ["name", "location", "traits", "price_range", "hours"]
 
     def _set_datafile(self): # Todo: Worthwhile to refactor to an abstract base class that all three model-apis can inherit methods like this from?
@@ -38,7 +38,7 @@ class DatespotAPI:
             json_data = json.load(fobj)
             fobj.seek(0)
         for key in json_data: # todo: For now, forcing every key back to int here
-            self.data[int(key)] = json_data[key]
+            self._data[int(key)] = json_data[key]
     
     def _write_json(self):
         """Overwrite the stored JSON to exactly match current state of the API instance's native Python dictionary."""
@@ -46,8 +46,14 @@ class DatespotAPI:
         if not self._datafile:
             self._set_datafile()
         with open(self._datafile, 'w') as fobj:
-            json.dump(self.data, fobj)
+            json.dump(self._data, fobj)
             fobj.seek(0)
+
+    def get_all_data(self) -> dict: # todo can go in the ABC
+        """Return the API instance's data as a native Python dictionary."""
+        self._read_json()
+        return self._data
+
     
     def create_datespot(self, json_data: str) -> int:
         """
@@ -64,7 +70,8 @@ class DatespotAPI:
         
         
         # Todo need to validate the values for each
-        self.data[new_id] = {
+        self._data[new_id] = {
+            "id": new_id,
             "location": location_tuple,
             "name": json_dict["name"],
             "traits": json_dict["traits"],
@@ -78,8 +85,9 @@ class DatespotAPI:
         self._write_json()
         return new_id
 
-    def _serialize_datespot(self, datespot) -> dict:
+    def _serialize_datespot(self, datespot) -> dict: # Todo don't need the id here, right? Or is that unneccessarily confusing and should just slap the id everywhere?
         datespotDict = {
+            "id": datespot.id,
             "location": datespot.location,
             "name": datespot.name,
             "traits": list(datespot.traits),
@@ -89,12 +97,13 @@ class DatespotAPI:
         }
         return datespotDict
 
-    def _validate_datespot(self, id: int) -> None:
+    def _validate_datespot(self, object_id: int) -> None: # todo to ABC
         """
         Raise KeyError if id isn't in the database.
         """
-        if not id in self.data: # todo--mess with tuples vs string supported as keys
-            raise KeyError(f"Restaurant with id-key {key} not found.")
+        self._read_json()
+        if not object_id in self._data: # todo--mess with tuples vs string supported as keys
+            raise KeyError(f"Restaurant with id-key {object_id} not found.")
     
     def _validate_new_datespot(self):
     # todo query the db by name and location to avoid duplicates. I.e. does a restaurant with that name 
@@ -124,9 +133,10 @@ class DatespotAPI:
                                                                 # ...(e.g. Datespot uses a User instance to score a restaurant; Match uses two Users and a heap of Datespots).
         """Return the datespot object corresponding to key "id"."""
         self._validate_datespot(id)
-        datespot_data = self.data[id]
+        datespot_data = self._data[id]
         return datespot.Datespot(
-            location = id,
+            datespot_id = id,
+            location = datespot_data["location"],
             name = datespot_data["name"],
             traits = datespot_data["traits"],
             price_range = datespot_data["price_range"],
@@ -138,7 +148,7 @@ class DatespotAPI:
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
 
         self._read_json() # sync the API instance's native Python dictionary to match the latest known state of the stored JSON
-        datespot_data = self.data[id] # the data to modify is in the native Python dictionary. No need to instantiate a Datespot object with that data.
+        datespot_data = self._data[id] # the data to modify is in the native Python dictionary. No need to instantiate a Datespot object with that data.
 
 
         for field in self._valid_model_fields:
@@ -159,17 +169,17 @@ class DatespotAPI:
     def query_num_datespots(self): # Todo hasty, more code-elegant ways to do this
         """Return the number of datespots in this API instance's data."""
         self._read_json()
-        return len(self.data)
+        return len(self._data)
 
     def query_datespots_near(self, location, radius=2000): # Todo hasty implementation. This is the most important query logic so better to get something working sooner.
         """Return list of the datespots in the DB within radius meters of location, sorted from nearest to farthest.""" 
-        if not geo_utils.is_valid_lat_lon(location): # todo best architectural place for validating this?
+        if (not location) or (not geo_utils.is_valid_lat_lon(location)): # todo best architectural place for validating this?
             raise ValueError(f"Bad lat lon location: {location}")
         self._read_json()
         #matches_dict = {} #{ int id : {datespot JSON}}
         query_results = [] # list of two element tuples of (distance_from_query_location, serialized_datespot_dict). I.e. list[tuple[int, dict]]
-        for id_key in self.data:
-            place = self.data[id_key]
+        for id_key in self._data:
+            place = self._data[id_key]
             place_loc = place["location"]
             distance = geo_utils.haversine(location, place_loc)
             if distance < radius:
@@ -207,5 +217,5 @@ class DatespotAPI:
     def delete_datespot(self, id: int) -> None:
         self._read_json()
         self._validate_datespot(id)
-        del self.data[location_key]
+        del self._data[location_key]
         self._write_json()
