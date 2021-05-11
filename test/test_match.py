@@ -47,8 +47,8 @@ class TestHelloWorldThings(unittest.TestCase):
         # each "suggestion" should be a Datespot object literal:
         print(len(returned_obj))
         for element in returned_obj:
-            # print(f"element = {element}")
-            self.assertIsInstance(element, datespot.Datespot) # the heap just stores the DB primary keys
+            print(f"element = {element}: {element.name}")
+            self.assertIsInstance(element, datespot.Datespot)
     
     def test_db_user_method_returns_expected_query_results(self):
         """Does the method that calls the main database API return the expected query results, i.e. 

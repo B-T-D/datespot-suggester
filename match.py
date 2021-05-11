@@ -74,7 +74,7 @@ class Match(metaclass=DatespotAppType):
 
     def _get_datespots_by_geography(self) -> list:
         """Return a proximity sorted list of the the datespots within self.default_query_radius of this Match's geographical midpoint."""
-        self.query_radius = self.distance / 2
+        self.query_radius = self.distance / 2 # todo what if the users are next door neighbors? Don't want to query a 100m radius. Should be a more nuanced conditional min / max. 
 
         db = database_api.DatabaseAPI()
 
@@ -86,7 +86,7 @@ class Match(metaclass=DatespotAppType):
         """Compute the joint datespot score for each result, and push it to a max heap sorted on score."""
         geo_results = self._get_datespots_by_geography()
         heapq.heapify(geo_results) # min heap sorted on distance
-        print(f"geo_results in match.py = \n{geo_results}")
+        #(f"geo_results in match.py = \n{geo_results}")
         suggestions_heap = []
 
         db = database_api.DatabaseAPI() # todo rationalize. Make sense to have one for whole lifetime of Match object?
@@ -94,10 +94,10 @@ class Match(metaclass=DatespotAppType):
         while geo_results:
             candidate = heapq.heappop(geo_results)[1] # todo it'd be simpler if this list had the id along with the other data.
             # elements in the heap are tuples, element[0] is the distance "key", element[1] is the actual object
-            print(f"\n*****type candidate = {type(candidate)}\n\ncandidate = {candidate}\n*********\n")
-            print(f"id type is {type(candidate['id'])}")
+            # print(f"\n*****type candidate = {type(candidate)}\n\ncandidate = {candidate}\n*********\n")
+            # print(f"id type is {type(candidate['id'])}")
             candidate_obj = db.get_obj("datespot", candidate["id"])
-            print(type(candidate_obj))
+            # print(type(candidate_obj))
             score = self.get_joint_datespot_score(candidate_obj)
             # negate score then use it as first element "key" in tuple for max heap
             heapq.heappush(suggestions_heap, (-score, candidate_obj.id)) # The object id pk is the heap key's value.
