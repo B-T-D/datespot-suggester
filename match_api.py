@@ -8,19 +8,20 @@ import time
 
 import user_api
 
-JSON_DB_NAME = "jsonMap.json"
+import model_api_ABC
 
 # todo: For all three "api": At a given point in time, a model instance's data is either a json-legal dict,
 #   or an app-internal dict literal. Those are the only options. Should be one method that toggles between them,
 #   and should be simple and obvious to tell which way it's toggled at any given place in the code / execution.
 
-class MatchAPI:
+class MatchAPI(model_api_ABC.ModelAPI):
 
-    def __init__(self, datafile_name=JSON_DB_NAME):
-        self._master_datafile = datafile_name
-        self._datafile = None
-        self.data = {}
-        self._load_db() # todo handle better
+    def __init__(self, datafile_name=None):
+        if datafile_name:
+            super().__init__(datafile_name)
+        else:
+            super().__init__()
+
         self.user_api_instance = user_api.UserAPI(datafile_name=self._master_datafile)
     
     def _set_datafile(self):
@@ -48,21 +49,8 @@ class MatchAPI:
         jsonData = {}
         for stringKey in jsonData:
             tupleKey = self._string_key_to_tuple(stringKey)
-            self.data[tupleKey] = jsonData[stringKey]
+            self._data[tupleKey] = jsonData[stringKey]
     
-    def _update_json(self):
-        if not self._datafile:
-            self._set_datafile()
-
-        # convert each tuple key to a string:
-        jsonData = {}
-        for tupleKey in self.data:
-            stringKey = self._tuple_key_to_string(tupleKey)
-            jsonData[stringKey] = self.data[tupleKey]
-        
-        with open(self._datafile, 'w') as fobj:
-            json.dump(jsonData, fobj)
-            fobj.seek(0)
 
     def _tuple_key_to_string(self, tuple_key: tuple) -> str:
         return str(tuple_key)
@@ -72,27 +60,24 @@ class MatchAPI:
         values = [float(substring) for substring in stripped.split(sep=',')]
         return tuple(values)
     
-    def create_match(self, userid_1: int, userid_2: int):
-        matchKey = (userid_1, userid_2) # hashable tuple of (int, int)
-        self.data[matchKey] = {"users": [userid_1, userid_2]}
-        self._update_json()
+    def create_match(self, userid_1: int, userid_2: int): # todo the create methods can probably be abstracted to the ABC too
+        self._read_json()
+        matchKey = hash((userid_1, userid_2)) # hashable tuple of (int, int)
+        self._data[matchKey] = {"users": [userid_1, userid_2]}
+        self._write_json()
         return matchKey
     
-    def load_match(self, matchKey: tuple):
-        """
-        Return a match object corresponding to those user ids.
-        """
-        matchData = self.data[(matchKey)]
-        userid_1, userid_2 = matchKey[0], matchKey[1]
-        print(f"\n--------------------user id 1 = {userid_1} {type(userid_1)}")
-        user1 = self.user_api_instance.load_user(userid_1)
-        user2 = self.user_api_instance.load_user(userid_2)
-        matchObj = match.Match(user1, user2)
-        return matchObj
+    def lookup_match(self, match_id: int):
+        self._read_json()
+        self._validate_object_id(match_id)
+        match_data = self._data[match_id] # todo the three lines through the end of this one could easily go to a helper method in the ABC. E.g. _get_data_for_id
+        print(f"match_data = {match_data}")
+        user_id_1, user_id_2 = match_data["users"][0], match_data["users"][1]
+        user1 = self.user_api_instance.lookup_user(user_id_1)
+        user2 = self.user_api_instance.lookup_user(user_id_2)
+        match_obj = match.Match(user1, user2)
+        return match_obj
     
     def update_match(self, data): # Todo
         # e.g. if the current location changed, meaning the Match.midpoint changed
         pass
-
-    def delete_match(self, matchKey: tuple):
-        del self.data[matchKey]

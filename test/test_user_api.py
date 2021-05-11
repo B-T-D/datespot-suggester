@@ -41,12 +41,11 @@ class TestHelloWorldThings(unittest.TestCase):
         newUser = self.api.create_user("Grort")
         self.assertIn(newUser, self.api._data)
     
-    def test_load_user(self):
-        existingUser = self.api.load_user(self.knownKey) # todo it should work with an int literal
+    def test_lookup_user(self):
+        existing_user = self.api.lookup_user(self.knownKey) # todo it should work with an int literal
         #print(type(existingUser))
         #self.assertIsInstance(existingUser, user.User) # todo this keeps failing even though it's a user instance. For namespacing reasons (?)
-        print(existingUser)
-        self.assertEqual(existingUser.name, "test_user")
+        self.assertEqual(existing_user.name, "test_user")
     
     def test_delete_user(self):
         self.api.delete(1)

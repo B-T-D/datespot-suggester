@@ -17,7 +17,6 @@ class ModelAPI:
 
     def _set_datafile(self):
         """Retrieve and set filename of this model's stored JSON."""
-        print(f"---set datafile was called---")
         with open(self._master_datafile, 'r') as fobj:
             json_map = json.load(fobj)
             fobj.seek(0)

@@ -93,6 +93,7 @@ class DatespotAPI(model_api_ABC.ModelAPI):
     def lookup_datespot(self, id: int) -> datespot.Datespot: # The main code that uses actual model object instances is other database API code, or the models' internal code
                                                                 # ...(e.g. Datespot uses a User instance to score a restaurant; Match uses two Users and a heap of Datespots).
         """Return the datespot object corresponding to key "id"."""
+        self._read_json()
         self._validate_object_id(id)
         datespot_data = self._data[id]
         return datespot.Datespot(
