@@ -42,7 +42,6 @@ class TestHelloWorldThings(unittest.TestCase):
         # Create a match for lookup
         self.userKeyMiltrudd = self.user_api.create_user("Miltrudd", force_key=3)
         self.userMiltrudd = self.user_api.load_user(self.userKeyMiltrudd)
-        assert self.user_api.is_valid_user(3)
         # match Grort with Miltrudd:
         self.knownMatchKey = self.api.create_match(self.userKeyMiltrudd, self.userKeyGrort)
 
