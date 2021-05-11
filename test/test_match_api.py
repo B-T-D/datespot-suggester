@@ -36,13 +36,12 @@ class TestHelloWorldThings(unittest.TestCase):
         # Create users in order to create a match.
         self.userKeyGrort = self.user_api.create_user("Grort", force_key=1)
         self.userKeyDrobb = self.user_api.create_user("Drobb", force_key=2)
-        self.userGrort = self.user_api.load_user(self.userKeyGrort)
-        self.userDrobb = self.user_api.load_user(self.userKeyDrobb)
+        self.userGrort = self.user_api.lookup_user(self.userKeyGrort)
+        self.userDrobb = self.user_api.lookup_user(self.userKeyDrobb)
 
         # Create a match for lookup
         self.userKeyMiltrudd = self.user_api.create_user("Miltrudd", force_key=3)
-        self.userMiltrudd = self.user_api.load_user(self.userKeyMiltrudd)
-        assert self.user_api.is_valid_user(3)
+        self.userMiltrudd = self.user_api.lookup_user(self.userKeyMiltrudd)
         # match Grort with Miltrudd:
         self.knownMatchKey = self.api.create_match(self.userKeyMiltrudd, self.userKeyGrort)
 
@@ -51,12 +50,12 @@ class TestHelloWorldThings(unittest.TestCase):
 
     def test_create_match(self):
         matchKey = self.api.create_match(userid_1 = self.userKeyGrort, userid_2 = self.userKeyDrobb)
-        self.assertIsInstance(matchKey, tuple)
-        expectedMatchKey = (self.userKeyGrort, self.userKeyDrobb) # match key should be a tuple of the two users' ids
+        self.assertIsInstance(matchKey, int)
+        expectedMatchKey = hash((self.userKeyGrort, self.userKeyDrobb)) # match key should be a tuple of the two users' ids
         self.assertEqual(matchKey, expectedMatchKey)
     
-    def test_load_match(self):
-        matchObj = self.api.load_match(self.knownMatchKey)
+    def test_lookup_match(self):
+        matchObj = self.api.lookup_match(self.knownMatchKey)
         self.assertIsInstance(matchObj, Match)
 
 if __name__ == '__main__':
