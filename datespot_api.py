@@ -10,50 +10,19 @@ import json
 import datespot
 import geo_utils
 
-JSON_DB_NAME = "jsonMap.json"
+import model_api_ABC
 
-class DatespotAPI:
 
-    def __init__(self, datafile_name=JSON_DB_NAME): # takes datafile_name to simplify tests code
-        self._master_datafile = datafile_name
-        self._datafile = None
-        self._data = {} # Can't be directly accessed by external callers, because it often won't be populated at the moment of the attempted access. Access with DatespotAPI.get_all_data()
+class DatespotAPI(model_api_ABC.ModelAPI):
+
+    def __init__(self, datafile_name=None): # The abstract base class handles setting the filename to default if none provided
+        if datafile_name: # Todo is there a one-liner for this? Ternary expression?
+            super().__init__(datafile_name)
+        else:
+            super().__init__()
+
+        self._model = "datespot"
         self._valid_model_fields = ["name", "location", "traits", "price_range", "hours"]
-
-    def _set_datafile(self): # Todo: Worthwhile to refactor to an abstract base class that all three model-apis can inherit methods like this from?
-        """Set the filename of the specific file containing the match data JSON.""" 
-        with open(self._master_datafile, 'r') as fobj:
-            json_map = json.load(fobj)
-            fobj.seek(0)
-        self._datafile = json_map["datespot_data"]
-    
-    def _read_json(self): # Todo: Another method that could go to an ABC
-        """Read the stored JSON models into the API instance's native Python dictionary."""
-        # We want object literals, rather than strings, as the native Python dict values for query purposes. Convert everything to the "real" type
-        #   once, here, so that e.g. arithmetic queries can operate on the "location" key's value's literals.
-        if not self._datafile:
-            self._set_datafile()
-        json_data = {}
-        with open(self._datafile, 'r') as fobj: # todo there's a way to get keys to parse to native ints in one pass, consult docs.
-            json_data = json.load(fobj)
-            fobj.seek(0)
-        for key in json_data: # todo: For now, forcing every key back to int here
-            self._data[int(key)] = json_data[key]
-    
-    def _write_json(self):
-        """Overwrite the stored JSON to exactly match current state of the API instance's native Python dictionary."""
-        # Todo: Any kind of safety rails that make sense to reduce risk of undesired overwrites of good data?
-        if not self._datafile:
-            self._set_datafile()
-        with open(self._datafile, 'w') as fobj:
-            json.dump(self._data, fobj)
-            fobj.seek(0)
-
-    def get_all_data(self) -> dict: # todo can go in the ABC
-        """Return the API instance's data as a native Python dictionary."""
-        self._read_json()
-        return self._data
-
     
     def create_datespot(self, json_data: str) -> int:
         """
@@ -96,14 +65,6 @@ class DatespotAPI:
             "baseline_dateworthiness": datespot.baseline_dateworthiness
         }
         return datespotDict
-
-    def _validate_datespot(self, object_id: int) -> None: # todo to ABC
-        """
-        Raise KeyError if id isn't in the database.
-        """
-        self._read_json()
-        if not object_id in self._data: # todo--mess with tuples vs string supported as keys
-            raise KeyError(f"Restaurant with id-key {object_id} not found.")
     
     def _validate_new_datespot(self):
     # todo query the db by name and location to avoid duplicates. I.e. does a restaurant with that name 
@@ -132,7 +93,7 @@ class DatespotAPI:
     def lookup_datespot(self, id: int) -> datespot.Datespot: # The main code that uses actual model object instances is other database API code, or the models' internal code
                                                                 # ...(e.g. Datespot uses a User instance to score a restaurant; Match uses two Users and a heap of Datespots).
         """Return the datespot object corresponding to key "id"."""
-        self._validate_datespot(id)
+        self._validate_object_id(id)
         datespot_data = self._data[id]
         return datespot.Datespot(
             datespot_id = id,
@@ -212,10 +173,3 @@ class DatespotAPI:
         # Todo: If the restaurant queries get complex ("all restaurants with X, Y, but not Z traits, open at T time
         #   on each of Wed/Thurs/Fri"), then that could indicate SQL is a better fit. Restaurant data seemed like the 
         #   closest to being better off with SQL at the first round of designing. 
-
-        
-    def delete_datespot(self, id: int) -> None:
-        self._read_json()
-        self._validate_datespot(id)
-        del self._data[location_key]
-        self._write_json()
