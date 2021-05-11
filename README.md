@@ -13,9 +13,13 @@ Conceptual prototype for a dating app API that suggests date locations to users.
 - [ ] Implement unified API callable by a frontend / UI layer. An internal RESTful JSON server that can serve JSON to a Node/Express web API.
 - [ ] Implement simple command line interface that simulates live interactions with the app's internal JSON-server API.
 - [ ] Refactor, rationalize architecture, simplify code, improve code quality and documentation, expand tests coverage.
+- [ ] Minimalist simulation of user chats so that chat text can be available for NLP. 
 - [ ] Improve the restaurant-suggestion algorithm with sentiment analysis on restaurant reviews and simulated user chat histories.
 - [ ] Integrate data from additional third-party APIs (Yelp?) to improve recommendation algorithm.
 - [ ] Add support for hypothetical concurrent DB interactions. In a real dating app, multiple users would sometims interact with a single DB object concurrently.
+
+### Landmark features
+- [ ] Dynamically adjust suggested dates' price level and expected duration based on sentiment analysis of a user chats. Nudge users toward investing less money and time in a date that is less likely to be successful, and more in a date that is likelier to have good chemistry.
 
 ## Priorities
 
