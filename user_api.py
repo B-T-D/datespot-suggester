@@ -50,6 +50,7 @@ class UserAPI(model_api_ABC.ModelAPI):
             name=json_dict["name"],
             current_location = location
         )
+
         self._data[user_id] = self._serialize_user(new_user)
         self._write_json()
         return user_id
@@ -74,24 +75,14 @@ class UserAPI(model_api_ABC.ModelAPI):
 
         return user_obj
 
-    def blacklist(self, current_user_id: int, other_user_id: int):  # todo can prob create a custom decorator that says "whenever this method is called, call read json right before and update json right after"
-        """
-        Add other_user_id to current_user_id user's no-match blacklist.
-        """
-        self._read_json()
-        user_data = self._data[current_user_id]
-        if not "match_blacklist" in user_data: # todo legacy, should be able to just initialize them with a blank dict
-            user_data["match_blacklist"] = {other_user_id: time.time()}
-        else:
-            user_data["match_blacklist"][other_user_id] = time.time()
-        self._write_json()
+
 
 
     def update_user(self, user_id): # todo -- updating location might be single most important thing this does. 
         pass
     
     # todo all the "query objects near" methods could probably be abstracted to the ABC.
-    def query_users_currently_near(self, location: tuple, radius=50000): # todo is the radius parameter totally unnecessary? 
+    def query_users_currently_near_location(self, location: tuple, radius=50000) -> list: # todo is the radius parameter totally unnecessary? 
         """
         Return list of serialized users whose current location is within radius meters of location.
         """
@@ -108,7 +99,70 @@ class UserAPI(model_api_ABC.ModelAPI):
             if distance < radius:
                 query_results.append((distance, user_id)) # todo no need to put the whole dict into the results, right?
         query_results.sort()
+        query_results.reverse() # Want to pop nearest candidate from end. 
         return query_results
+           
+    def query_users_near_user(self, user_id: int) -> list:
+        """Return the list of users near this user and cache that list of candidates in this user's data."""
+        self._read_json()
+        query_location = self._data[user_id]["current_location"]
+        query_results = self.query_users_currently_near_location(tuple(query_location))
+        if query_results[-1] == user_id: # Don't include the user in that user's results
+            query_results.pop()
+        # Want to fully overwrite it to the latest and greatest, even if the cache already existed:
+        self._data[user_id]["cached_candidates"] = query_results
+        self._write_json()
+
+        return query_results
+    
+
+    def _refresh_candidates(self, user_id) -> bool:
+        """Return True if this user's candidates cache is null, empty, or otherwise should be updated."""
+        user_data = self._data[user_id]
+        if not "cached_candidates" in user_data or len(user_data["cached_candidates"]) < 1:
+            return True
+        return False
+
+    def query_next_candidate(self, user_id) -> int:
+        """Return the user id of the next candidate for user user_id to swipe on."""
+        self._read_json()
+        if self._refresh_candidates(user_id): # todo check if the user's location changed by enough to warrant a new query rather than pulling from cache
+            self.query_users_near_user(user_id)
+        user_data = self._data[user_id]
+        candidate_id = user_data["cached_candidates"].pop()[1] # todo confusing code with the slice. Does the cache really need the distance?
+        blacklist = user_data["match_blacklist"]
+        while candidate_id in blacklist: # keep popping until a non blacklisted one is found
+            candidate_id = self._data[user_id]["cached_candidates"].pop()
+        self._write_json()
+        return candidate_id
+        # We can pop the candidate, because that id is coming back either as a match or as a blacklist, assuming the tinder model.
+
+    def add_to_pending_likes(self, user_id_1: int, user_id_2: int): # todo think about most intuitive and maintainable architecture for this
+        """Add a second user that this user swiped "yes" on to this user's hash map of pending likes."""
+        self._read_json()
+        user_data = self._data[user_id_1]
+        user_data["pending_likes"].add(user_id_2)
+    
+    def delete_from_pending_likes(self, current_user_id: int, other_user_id: int):
+        """Remove user2 from user1's pending likes."""
+        pass
+
+    def lookup_is_user_in_pending_likes(self, current_user_id: int, other_user_id:int):
+        """Return true if current user previously swiped "yes" on other user, else False."""
+        self._read_json()
+        return other_user_id in self._data[current_user_id]["pending_likes"] 
+
+    def blacklist(self, current_user_id: int, other_user_id: int):  # todo can prob create a custom decorator that says "whenever this method is called, call read json right before and update json right after"
+        """
+        Add other_user_id to current_user_id user's no-match blacklist.
+        """
+        self._read_json()
+        user_data = self._data[current_user_id]
+        if not "match_blacklist" in user_data: # todo legacy, should be able to just initialize them with a blank dict
+            user_data["match_blacklist"] = {other_user_id: time.time()}
+        else:
+            user_data["match_blacklist"][other_user_id] = time.time()
+        self._write_json()
 
     def _serialize_user(self, user: user.User) -> dict: # todo: superfluous?
         """
@@ -119,7 +173,10 @@ class UserAPI(model_api_ABC.ModelAPI):
             "current_location": user.current_location,
             "home_location": user.home_location,
             "likes": user.likes,
-            "dislikes": user.dislikes
+            "dislikes": user.dislikes,
+            "match_blacklist": user.match_blacklist,
+            "pending_likes": user.pending_likes,
+            "matches": user.matches
         }
         return userDict
 

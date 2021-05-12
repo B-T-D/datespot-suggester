@@ -16,7 +16,6 @@ def random_lat_lon() -> tuple:
     )
 
 
-
 def main():
     
     random.seed(1)

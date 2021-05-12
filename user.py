@@ -28,9 +28,9 @@ class User(metaclass=DatespotAppType):
     #   E.g. they ask each other where they live, and NLP is able to process 
     #       "East Village" or "72nd and amsterdam" into an approximate lat lon.
 
+        self.pending_likes = {} # Users this user swiped "accept" on, but who haven't yet swiped back
         self.matches = {} # Users this user matched with and therefore can chat with. 
         self.match_blacklist = {} # Users with whom this user should never be matched. Keys are user ids, values timestamps indicating when the blacklisting happened. 
-        self.match_queue = [] # Distance-ranked queue of users to suggest as matches. 
     
     def __str__(self):
         """
@@ -52,13 +52,3 @@ class User(metaclass=DatespotAppType):
         # todo validate at the DB layer
         self.current_location = location
         return 0
-    
-    def next_candidate(self) -> int:
-        """
-        Return the user id of this user's next potential match. I.e. get another person for this user to swipe on.
-        """
-        # todo big spaghettification risk here wrt what code pops from the queue vs just reads the current queue.
-        if self.match_queue:
-            return self.match_queue[-1] # peek, don't pop, for now.
-        else:
-            return None # todo best thing to return if the queue is empty? Refresh the queue and try again?
