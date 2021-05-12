@@ -144,13 +144,12 @@ class DatespotAPI(model_api_ABC.ModelAPI):
             place = self._data[id_key]
             place_loc = place["location"]
             distance = geo_utils.haversine(location, place_loc)
-            if distance < radius:
+            if distance < radius: # todo do we need the full object in the results dict, or would only the lookup key suffice?
                 query_results.append((distance, place)) # append as tuple with distance as the tuple's first element
         query_results.sort() # Todo no reason to heap-sort yet, not sure if this method's caller will actually want it as a heap.
                                 # More likely, the caller heapifies these results internally. 
         return query_results
 
-        
 
     def query(self, field:str, operator:str, operand:str): # todo for now, complex/joined queries (and, or) only supported through using python and/or between multiple calls to this query method
 

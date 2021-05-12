@@ -15,7 +15,7 @@ class DatabaseAPI:
     def _validate_object_type(self, object_type: str):
         return object_type.lower() in self._valid_object_types
 
-    def add(self, object_type: str, json_data: str) -> int:
+    def add(self, object_type: str, json_data: str, **kwargs) -> int:
         """
 
         Args:
@@ -24,17 +24,24 @@ class DatabaseAPI:
             json_data (str): String in correct JSON format.
 
         """
+        new_object_id = None
         object_type = object_type.lower()
         if not self._validate_object_type(object_type): # todo how best to handle? Raise exception? String message back to caller rather than just int?
             return 1
         if object_type == "user":
-            raise NotImplementedError
+            user_db = user_api.UserAPI()
+            if "force_key" in kwargs:
+                new_object_id = user_db.create_user(json_data, kwargs["force_key"])
+            else:
+                new_object_id = user_db.create_user(json_data)
         elif object_type == "datespot":
             datespot_db = datespot_api.DatespotAPI()
             datespot_db.create_datespot(json_data)
         elif object_type == "match":
             raise NotImplementedError
 
+        if new_object_id:
+            return new_object_id
 
     # Todo: All keys need to be ints in externally passable JSON.
     #   Also the restaurant tuples as keys might end up adding duplicates, if google maps has slightly different lat lon in the response sometimes. 

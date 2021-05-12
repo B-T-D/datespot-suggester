@@ -18,12 +18,14 @@ class Match(metaclass=DatespotAppType):
             user1 (UserObj): A user object.
             user2 (UserObj): A different user object.
         """
+        self.timestamp = None # timestamp of this match instance's first creation
+                                #   Todo this is more of a database thing. Shouldn't be here unless some model algorithm actually uses it for something.
         self.user1 = user1
         self.user2 = user2
         self.midpoint = None # lat lon location equidistant between the two users.
             # todo nuances wrt home vs. current location
         self.distance = None # How far apart the two user are in meters.
-        if self.user1.currentLocation and self.user2.currentLocation:
+        if self.user1.current_location and self.user2.current_location:
             self._compute_midpoint() # todo don't call them here
             self._compute_distance()
 
@@ -49,18 +51,20 @@ class Match(metaclass=DatespotAppType):
                                     # Todo: What's the max num it makes sense to store?
                                     # Todo: How often to update with fresh data? Whenever data on either user's preferences changed?
         self._max_suggestions_queue_length = 50
+
+        self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date. 
     
     def _compute_distance(self) -> None:
         """
         Compute the distance between the two users, in meters.
         """
-        self.distance = geo_utils.haversine(self.user1.currentLocation, self.user2.currentLocation)
+        self.distance = geo_utils.haversine(self.user1.current_location, self.user2.current_location)
 
     def _compute_midpoint(self) -> None:
         """
         Compute the lat lon point equidistant from the two users, in meters.
         """
-        self.midpoint = geo_utils.midpoint(self.user1.currentLocation, self.user2.currentLocation)
+        self.midpoint = geo_utils.midpoint(self.user1.current_location, self.user2.current_location)
 
     def get_suggestions(self) -> None: # todo if it's external then it returns something
         db = database_api.DatabaseAPI()

@@ -15,7 +15,7 @@ class TestHelloWorldThings(unittest.TestCase):
 
         drobbName = "Drobb"
         drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
-        userDrobb = User(name=drobbName, currentLocation = drobbCurrentLocation)
+        userDrobb = User(name=drobbName, current_location = drobbCurrentLocation)
 
         # distance should be approx 2610m
         # midpoint should be circa (40.75827478958617, -73.99310556132602)

@@ -22,7 +22,7 @@ class ModelAPI:
             fobj.seek(0)
         self._datafile = json_map[f"{self._model}_data"]
     
-    def _read_json(self):
+    def _read_json(self): #  todo this gets messy when something is a set that needs to be manually converted back to a native python set
         """Read stored JSON models into the API instance's native Python dictionary."""
         if not self._datafile:
             self._set_datafile()
@@ -46,9 +46,14 @@ class ModelAPI:
         """
         Raise KeyError if object_id not in database.
         """
-        self._read_json()
+        self._read_json() 
         if not object_id in self._data:
             raise KeyError(f"{self._model.sentence()} with id (key) {object_id} not found.")
+    
+    # todo convert all logit that uses the key-error-raiser one to use the boolean returning one?
+
+    def _is_valid_object_id(self, object_id: int) -> bool:
+        return object_id in self._data
     
     def get_all_data(self) -> dict:
         """Return the API instance's data as a native Python dictionary."""

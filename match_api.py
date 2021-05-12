@@ -62,13 +62,16 @@ class MatchAPI(model_api_ABC.ModelAPI):
     
     def create_match(self, userid_1: int, userid_2: int): # todo the create methods can probably be abstracted to the ABC too
         self._read_json()
-        matchKey = hash((userid_1, userid_2)) # hashable tuple of (int, int)
-        self._data[matchKey] = {"users": [userid_1, userid_2]}
+        match_key = hash((userid_1, userid_2)) # hashable tuple of (int, int)
+        if self._is_valid_object_id(match_key):
+            raise KeyError("match_key collision") # todo unit test confirming trying to re-match the same users causes collision
+        self._data[match_key] = {"users": [userid_1, userid_2], "timestamp": time.time()}
         self._write_json()
-        return matchKey
+        return match_key
     
     def lookup_match(self, match_id: int):
         self._read_json()
+        print(f"-----------------\nmatch_api._data:\n{self._data}\n-----------------------------")
         self._validate_object_id(match_id)
         match_data = self._data[match_id] # todo the three lines through the end of this one could easily go to a helper method in the ABC. E.g. _get_data_for_id
         print(f"match_data = {match_data}")

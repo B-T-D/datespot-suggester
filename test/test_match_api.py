@@ -2,8 +2,12 @@ import unittest
 import json
 import random
 
-from python_backend.match_api import MatchAPI
-from python_backend.user_api import UserAPI
+try:
+    from python_backend.match_api import MatchAPI
+    from python_backend.user_api import UserAPI
+except:
+    from match_api import MatchAPI
+    from user_api import UserAPI
 
 from match import Match
 
@@ -34,13 +38,19 @@ class TestHelloWorldThings(unittest.TestCase):
         self.user_api = UserAPI(datafile_name = TEST_JSON_DB_NAME)
 
         # Create users in order to create a match.
-        self.userKeyGrort = self.user_api.create_user("Grort", force_key=1)
-        self.userKeyDrobb = self.user_api.create_user("Drobb", force_key=2)
+        grortName = "Grort"
+        grortCurrentLocation = (40.746667, -74.001111)
+
+        drobbName = "Drobb"
+        drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
+
+        self.userKeyGrort = self.user_api.create_user(json.dumps({"name":grortName, "current_location": grortCurrentLocation}), force_key=1)
+        self.userKeyDrobb = self.user_api.create_user(json.dumps({"name":drobbName, "current_location": drobbCurrentLocation}), force_key=2)
         self.userGrort = self.user_api.lookup_user(self.userKeyGrort)
         self.userDrobb = self.user_api.lookup_user(self.userKeyDrobb)
 
         # Create a match for lookup
-        self.userKeyMiltrudd = self.user_api.create_user("Miltrudd", force_key=3)
+        self.userKeyMiltrudd = self.user_api.create_user(json.dumps({"name":"Miltrudd", "current_location":(41.0, -72.0)}), force_key=3)
         self.userMiltrudd = self.user_api.lookup_user(self.userKeyMiltrudd)
         # match Grort with Miltrudd:
         self.knownMatchKey = self.api.create_match(self.userKeyMiltrudd, self.userKeyGrort)

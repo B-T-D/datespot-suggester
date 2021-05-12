@@ -1,6 +1,10 @@
 import unittest
 
-from python_backend.user_api import UserAPI
+try:
+    from python_backend.user_api import UserAPI
+
+except:
+    from user_api import UserAPI
 
 class TestHelloWorld(unittest.TestCase):
 

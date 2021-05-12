@@ -2,8 +2,12 @@ import unittest
 import json
 import random
 
-from python_backend.datespot_api import DatespotAPI
-from python_backend.datespot import Datespot
+try:
+    from python_backend.datespot_api import DatespotAPI
+    from python_backend.datespot import Datespot
+except:
+    from datespot_api import DatespotAPI
+    from datespot import Datespot
 
 TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
