@@ -17,7 +17,11 @@ class User(metaclass=DatespotAppType):
         #   other info about the user (chat mentions of where they live, and absent that, a weighted centroid of their current locations).
 
         self.likes = [] # features of a date location that would make the user like it
+        if self.likes:
+            self.likes = set(self.likes)
         self.dislikes = [] # features of a date location that would make the user dislike it
+        if self.dislikes:
+            self.dislikes = set(self.dislikes)
         self.travel_tropensity= None #  todo placeholder. Integer indicating how willing the user is to travel, relative to other users. 
         self.chat_logs = None # todo you want NLP on the *user*'s chats, not just the chats for this
                                 #   one match. If user said to someone else "Terrezano's is the worst

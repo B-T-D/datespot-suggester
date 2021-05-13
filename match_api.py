@@ -76,8 +76,8 @@ class MatchAPI(model_api_ABC.ModelAPI):
         match_data = self._data[match_id] # todo the three lines through the end of this one could easily go to a helper method in the ABC. E.g. _get_data_for_id
         print(f"match_data = {match_data}")
         user_id_1, user_id_2 = match_data["users"][0], match_data["users"][1]
-        user1 = self.user_api_instance.lookup_user(user_id_1)
-        user2 = self.user_api_instance.lookup_user(user_id_2)
+        user1 = self.user_api_instance.lookup_user_obj(user_id_1)
+        user2 = self.user_api_instance.lookup_user_obj(user_id_2)
         match_obj = match.Match(user1, user2)
         return match_obj
     

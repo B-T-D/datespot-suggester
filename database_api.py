@@ -60,6 +60,23 @@ class DatabaseAPI:
         else:
             raise NotImplementedError
 
+    def get_json(self, object_type, object_id) -> str:
+        """
+        Return the JSON for the object corresponding to object_id.
+        """
+        if object_type == "user":
+            user_db = user_api.UserAPI()
+            return user_db.lookup_user_json(object_id)
+    
+    def put_json(self, object_type:str, object_id:int, new_json: str) -> None:
+        """
+        Update the stored JSON for the corresponding field of the corresponding object."""
+
+        if object_type ==  "user":
+            user_db = user_api.UserAPI()
+            user_db.update_user(object_id, new_json)
+    
+
     def get_datespots_near(self, location: tuple, radius: int) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
@@ -68,6 +85,29 @@ class DatabaseAPI:
         # todo validate the location and radius here?
         results = datespots_db.query_datespots_near(location, radius)
         return results
+    
+    def get_next_candidate(self, user_id: int) -> str:
+        """
+        Returns the stored JSON info on the next candidate.
+        """
+        user_db = user_api.UserAPI()
+        candidate_id = user_db.query_next_candidate(user_id) # This only returns the user's id key
+        candidate_json = user_db.lookup_user_json(candidate_id)
+        return candidate_json
+    
+    def post_swipe(self, user_id: int, candidate_id: int, swipe: bool) -> bool:
+        """
+        Args:
+            user_id (int): pass
+            candidate_id (int): pass
+            swipe (bool): True if user wants to match with candidate, else False.
+        
+        Returns:
+            (bool): True if candidate already wants to match with user, else False.
+        """
+        # todo case "candidate already swiped 'no'" should be handled by that candidate never
+        #   having been shown to user in the first place, confirm that's happening. 
+        
 
     def find(self, object_type: str, field: str, *args) -> str:
         """
