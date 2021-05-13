@@ -171,13 +171,14 @@ class UserAPI(model_api_ABC.ModelAPI):
         """Add a second user that this user swiped "yes" on to this user's hash map of pending likes."""
         self._read_json()
         user_data = self._data[user_id_1]
-        user_data["pending_likes"].add(user_id_2)
+        user_data["pending_likes"][user_id_2] = time.time()
+        self._write_json()
     
     def delete_from_pending_likes(self, current_user_id: int, other_user_id: int):
         """Remove user2 from user1's pending likes."""
         pass
 
-    def lookup_is_user_in_pending_likes(self, current_user_id: int, other_user_id:int):
+    def lookup_is_user_in_pending_likes(self, current_user_id: int, other_user_id:int) -> bool:
         """Return true if current user previously swiped "yes" on other user, else False."""
         self._read_json()
         return other_user_id in self._data[current_user_id]["pending_likes"] 

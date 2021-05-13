@@ -3,6 +3,8 @@ Implementation-agnostic interface between the database and JSON-using external c
 be unaffected by SQL vs. NoSQL and similar issues.
 """
 
+import json
+
 import user_api
 import datespot_api
 import match_api
@@ -76,6 +78,29 @@ class DatabaseAPI:
             user_db = user_api.UserAPI()
             user_db.update_user(object_id, new_json)
     
+    def post_swipe(self, user_id, candidate_id, outcome_json: str) -> bool:
+        """
+        Sends swipe data to the DB and returns True if the swipe completed a pending match (i.e. 
+        other user had already swiped yes).
+        
+        Args:
+            outcome_json (str): JSON in format "{'outcome': 1}" for yes or "{'outcome': 0} for no.
+        """
+        outcome = json.loads(outcome_json)["outcome"]
+        if not (outcome == 0 or outcome == 1):
+            raise ValueError
+        outcome = bool(outcome)
+        user_db = user_api.UserAPI()
+        if not outcome:
+            user_db.blacklist(user_id, candidate_id)
+        else: # todo cleaner to just send the update as JSON?
+            # first check if the other user already like the active user:
+            if user_db.lookup_is_user_in_pending_likes(user_id, candidate_id):
+                return True
+            else:
+                user_db.add_to_pending_likes(user_id, candidate_id)
+        return False
+
 
     def get_datespots_near(self, location: tuple, radius: int) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
@@ -86,27 +111,17 @@ class DatabaseAPI:
         results = datespots_db.query_datespots_near(location, radius)
         return results
     
-    def get_next_candidate(self, user_id: int) -> str:
+    def get_next_candidate(self, user_id: int) -> int:
         """
-        Returns the stored JSON info on the next candidate.
+        Returns user id of next candidate.
         """
         user_db = user_api.UserAPI()
-        candidate_id = user_db.query_next_candidate(user_id) # This only returns the user's id key
-        candidate_json = user_db.lookup_user_json(candidate_id)
-        return candidate_json
+        return user_db.query_next_candidate(user_id)
     
-    def post_swipe(self, user_id: int, candidate_id: int, swipe: bool) -> bool:
-        """
-        Args:
-            user_id (int): pass
-            candidate_id (int): pass
-            swipe (bool): True if user wants to match with candidate, else False.
-        
-        Returns:
-            (bool): True if candidate already wants to match with user, else False.
-        """
-        # todo case "candidate already swiped 'no'" should be handled by that candidate never
-        #   having been shown to user in the first place, confirm that's happening. 
+    def get_user_json(self, user_id: int) -> str:
+        """Return the stored JSON for a user."""
+        user_db = user_api.UserAPI()
+        return user_db.lookup_user_json(user_id)
         
 
     def find(self, object_type: str, field: str, *args) -> str:

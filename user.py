@@ -32,7 +32,7 @@ class User(metaclass=DatespotAppType):
     #   E.g. they ask each other where they live, and NLP is able to process 
     #       "East Village" or "72nd and amsterdam" into an approximate lat lon.
 
-        self.pending_likes = {} # Users this user swiped "accept" on, but who haven't yet swiped back
+        self.pending_likes = {} # Users this user swiped "accept" on, but who haven't yet swiped back. Keys are user ids, values are time.time() timestamps
         self.matches = {} # Users this user matched with and therefore can chat with. 
         self.match_blacklist = {} # Users with whom this user should never be matched. Keys are user ids, values timestamps indicating when the blacklisting happened. 
     
