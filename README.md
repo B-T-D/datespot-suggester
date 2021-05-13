@@ -11,7 +11,7 @@ Conceptual prototype for a dating app API that suggests date locations to users.
 - [ ] Implement HTTP client to make Nearby Search and Place Details requests in response to other internal app code.
 - [X] Implement core restaurant-suggestion algorithm as a heap/priority queue.
 - [ ] Implement unified API callable by a frontend / UI layer. An internal RESTful JSON server that can serve JSON to a Node/Express web API.
-- [ ] Implement simple command line interface that simulates live interactions with the app's internal JSON-server API.
+- [X] Implement simple command line interface that simulates live interactions with the app's internal JSON-server API.
 - [ ] Refactor, rationalize architecture, simplify code, improve code quality and documentation, expand tests coverage.
 - [ ] Minimalist simulation of user chats so that chat text can be available for NLP. 
 - [ ] Improve the restaurant-suggestion algorithm with sentiment analysis on restaurant reviews and simulated user chat histories.
