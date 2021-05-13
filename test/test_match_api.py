@@ -68,5 +68,7 @@ class TestHelloWorldThings(unittest.TestCase):
         matchObj = self.api.lookup_match(self.knownMatchKey)
         self.assertIsInstance(matchObj, Match)
 
+# todo need very thorough testing of the get_suggestions stuff. Very buggy and slapped together as of 5/13.
+
 if __name__ == '__main__':
     unittest.main()

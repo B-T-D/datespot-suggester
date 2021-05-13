@@ -128,9 +128,7 @@ class MockClient:
         
 
     def simulate_other_swipe(self, probability_yes=0.8):
-        pass
-
-        
+        pass 
     
     def main(self):
         """Main loop to run the interactive CLI."""
