@@ -35,10 +35,12 @@ class MockClient:
             self.help()
         if user_input == "status":
             self.status()
-        if user_input == "show_data":
+        if user_input == "data":
             self.show_data()
         if user_input == "next":
             self.next_candidate()
+        if user_input == "run_sim":
+            self.simulate_other_users()
     
     def help(self):
         print(self.commands)
@@ -52,6 +54,7 @@ class MockClient:
     
     def show_data(self):
         """Print the user's JSON."""
+        print(f"user_id = {self.user_id}")
         print(self.user_data)
     
     def status(self):
@@ -79,7 +82,7 @@ class MockClient:
         prompt = f"Match with {candidate_name}?\n\t{candidate_name} is {geo_utils.haversine(tuple(self.user_data['current_location']), tuple(candidate_location))}m away from you at {candidate_location}"
         user_response = self.get_input(prompt)
         outcome = None
-        if user_response.lower() in parse_to_true:
+        if user_response.lower().strip() in parse_to_true:
             outcome = True
         elif user_response.lower() in parse_to_false:
             outcome = False
@@ -101,7 +104,22 @@ class MockClient:
         Simulate other mock users' prior interactions with this user--simulate 50% of those users having swiped
         on this user's profile.
         """
-        pass
+        db = DatabaseAPI()
+        all_other_users = json.loads(db.get_all_json("user"))
+        print(all_other_users)
+        del all_other_users[str(self.user_id)] # remove the active user
+                                                # todo ongoing mess wrt when they're strings vs ints
+        for user in all_other_users:
+            db = DatabaseAPI()
+            if random.random() < 0.5: # 50% chance they've swiped either way:
+                json_outcome = {"outcome": None}
+                if random.random() < 0.8:
+                    json_outcome["outcome"] = True
+                else:
+                    json_outcome["outcome"] = False
+                db.post_swipe(int(user), self.user_id, json.dumps(json_outcome)) # todo int vs string mess
+                print(f"{all_other_users[user]['name']} swiped {json_outcome['outcome']}")
+        
 
     def simulate_other_swipe(self, probability_yes=0.8):
         pass

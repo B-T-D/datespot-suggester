@@ -62,6 +62,14 @@ class DatabaseAPI:
         else:
             raise NotImplementedError
 
+    def get_all_json(self, object_type) -> str:
+        """
+        Return JSON of all objects of the specified type.
+        """
+        if object_type == "user":
+            user_db = user_api.UserAPI()
+            return json.dumps(user_db.get_all_data())
+
     def get_json(self, object_type, object_id) -> str:
         """
         Return the JSON for the object corresponding to object_id.
