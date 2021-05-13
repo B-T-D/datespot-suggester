@@ -96,9 +96,13 @@ class MockClient:
             match_created = db.post_swipe(self.user_id, self.candidate_id, outcome_json) # returns True if candidate already liked user
             print(f"match_created = {match_created}")
             if match_created:
-                print(f"Matched with {candidate_name}")
+                
                 json_str = json.dumps({"users": [self.user_id, self.candidate_id]})
-                db.add("match", json_str)
+                match_id = db.add("match", json_str)
+                print(f"Matched with {candidate_name}, match_id = {match_id}")
+                suggestion = db.get_next_datespot(match_id)
+                suggestion_data = json.loads(suggestion)
+                print(f"You and {candidate_name} should go on a date to {suggestion_data['name']} at {suggestion_data['location']}!")
 
 
     

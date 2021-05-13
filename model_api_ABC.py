@@ -48,7 +48,7 @@ class ModelAPI:
         """
         self._read_json() 
         if not object_id in self._data:
-            raise KeyError(f"{self._model.sentence()} with id (key) {object_id} not found.")
+            raise KeyError(f"{self._model} with id (key) {object_id} not found.")
     
     # todo convert all logit that uses the key-error-raiser one to use the boolean returning one?
 

@@ -66,7 +66,12 @@ class Match(metaclass=DatespotAppType):
         """
         self.midpoint = geo_utils.midpoint(self.user1.current_location, self.user2.current_location)
 
-    def get_suggestions(self) -> None: # todo if it's external then it returns something
+    def get_suggestions(self) -> list: # todo if it's external then it returns something
+        """
+
+        Returns:
+            (list): List of Datespot objects
+        """
         db = database_api.DatabaseAPI()
         suggestions_heap = self._score_nearby_datespots()
         # pop each from the heap and add to the main queue until queue is the desired length

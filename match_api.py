@@ -7,6 +7,7 @@ import match
 import time
 
 import user_api
+import datespot_api
 
 import model_api_ABC
 
@@ -21,6 +22,8 @@ class MatchAPI(model_api_ABC.ModelAPI):
             super().__init__(datafile_name)
         else:
             super().__init__()
+
+        self._model = "match"
 
         self.user_api_instance = user_api.UserAPI(datafile_name=self._master_datafile)
     
@@ -71,16 +74,34 @@ class MatchAPI(model_api_ABC.ModelAPI):
     
     def lookup_match(self, match_id: int):
         self._read_json()
-        print(f"-----------------\nmatch_api._data:\n{self._data}\n-----------------------------")
         self._validate_object_id(match_id)
         match_data = self._data[match_id] # todo the three lines through the end of this one could easily go to a helper method in the ABC. E.g. _get_data_for_id
-        print(f"match_data = {match_data}")
         user_id_1, user_id_2 = match_data["users"][0], match_data["users"][1]
         user1 = self.user_api_instance.lookup_user_obj(user_id_1)
         user2 = self.user_api_instance.lookup_user_obj(user_id_2)
         match_obj = match.Match(user1, user2)
         return match_obj
     
+    def get_all_suggestions(self, match_id: int) -> list:
+        """Get the full list of suggested restaurants for a match."""
+        self._read_json()
+        match_obj = self.lookup_match(match_id)
+        datespots = match_obj.get_suggestions()
+        if not "suggestions_queue" in self._data[match_id]:
+            self._data[match_id]["suggestions_queue"] = [datespot.id for datespot in datespots]
+        self._write_json()
+        return datespots # todo if external code wants the full list, need to return as strings or dicts not the internal objects
+    
+    def get_next_suggestion(self, match_id: int) -> dict:
+        """
+        Return a Python native dict of the top suggestion, and update the suggestions queue in the DB.
+        """
+        self._read_json()
+        self.get_all_suggestions(match_id)
+        datespot_id = self._data[match_id]["suggestions_queue"].pop()
+        datespot_db = datespot_api.DatespotAPI()
+        return datespot_db.lookup_datespot_json(datespot_id)
+
     def update_match(self, data): # Todo
         # e.g. if the current location changed, meaning the Match.midpoint changed
         pass

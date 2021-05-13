@@ -43,7 +43,7 @@ class DatabaseAPI:
             match_db = match_api.MatchAPI()
             json_data = json.loads(json_data)
             user_id_1, user_id_2 = json_data["users"]
-            match_id = match_db.create_match(user_id_1, user_id_2)
+            new_object_id = match_db.create_match(user_id_1, user_id_2)
 
         if new_object_id:
             return new_object_id
@@ -121,6 +121,13 @@ class DatabaseAPI:
         # todo validate the location and radius here?
         results = datespots_db.query_datespots_near(location, radius)
         return results
+    
+    def get_next_datespot(self, match_id) -> str:
+        """
+        Return JSON for the next suggested date location for this match.
+        """
+        match_db = match_api.MatchAPI()
+        return match_db.get_next_suggestion(match_id)
     
     def get_next_candidate(self, user_id: int) -> int:
         """
