@@ -40,7 +40,10 @@ class DatabaseAPI:
             datespot_db = datespot_api.DatespotAPI()
             datespot_db.create_datespot(json_data)
         elif object_type == "match":
-            raise NotImplementedError
+            match_db = match_api.MatchAPI()
+            json_data = json.loads(json_data)
+            user_id_1, user_id_2 = json_data["users"]
+            match_id = match_db.create_match(user_id_1, user_id_2)
 
         if new_object_id:
             return new_object_id
@@ -103,7 +106,7 @@ class DatabaseAPI:
             user_db.blacklist(user_id, candidate_id)
         else: # todo cleaner to just send the update as JSON?
             # first check if the other user already like the active user:
-            if user_db.lookup_is_user_in_pending_likes(user_id, candidate_id):
+            if user_db.lookup_is_user_in_pending_likes(candidate_id, user_id):
                 return True
             else:
                 user_db.add_to_pending_likes(user_id, candidate_id)

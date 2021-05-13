@@ -181,7 +181,7 @@ class UserAPI(model_api_ABC.ModelAPI):
     def lookup_is_user_in_pending_likes(self, current_user_id: int, other_user_id:int) -> bool:
         """Return true if current user previously swiped "yes" on other user, else False."""
         self._read_json()
-        return other_user_id in self._data[current_user_id]["pending_likes"] 
+        return str(other_user_id) in self._data[current_user_id]["pending_likes"] # todo the keys in the pending likes dict are strings at this point in execution, very confusing
 
     def blacklist(self, current_user_id: int, other_user_id: int):  # todo can prob create a custom decorator that says "whenever this method is called, call read json right before and update json right after"
         """

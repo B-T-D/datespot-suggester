@@ -94,8 +94,11 @@ class MockClient:
             db = DatabaseAPI()
             outcome_json = json.dumps({"outcome": outcome})
             match_created = db.post_swipe(self.user_id, self.candidate_id, outcome_json) # returns True if candidate already liked user
+            print(f"match_created = {match_created}")
             if match_created:
                 print(f"Matched with {candidate_name}")
+                json_str = json.dumps({"users": [self.user_id, self.candidate_id]})
+                db.add("match", json_str)
 
 
     
@@ -106,7 +109,6 @@ class MockClient:
         """
         db = DatabaseAPI()
         all_other_users = json.loads(db.get_all_json("user"))
-        print(all_other_users)
         del all_other_users[str(self.user_id)] # remove the active user
                                                 # todo ongoing mess wrt when they're strings vs ints
         for user in all_other_users:

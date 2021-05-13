@@ -15,7 +15,7 @@ class ModelAPI:
         self._datafile = None
         self._data = {}
 
-    def _set_datafile(self):
+    def _set_datafile(self): # todo this is broken, it's not actually creating the file when the file doesn't exist.
         """Retrieve and set filename of this model's stored JSON."""
         with open(self._master_datafile, 'r') as fobj:
             json_map = json.load(fobj)
