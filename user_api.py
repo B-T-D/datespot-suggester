@@ -22,7 +22,7 @@ class UserAPI(model_api_ABC.ModelAPI):
             super().__init__()
 
         self._model = "user"
-        self._valid_model_fields = ["name", "current_location", "home_location", "likes", "dislikes", "match_blacklist"]
+        self._valid_model_fields = ["name", "current_location", "home_location", "likes", "dislikes", "match_blacklist"] # todo is this necessary, or could you just check the keys?
         
     def create_user(self, json_data: str, force_key: int=None) -> int:
         """
@@ -55,7 +55,14 @@ class UserAPI(model_api_ABC.ModelAPI):
         self._write_json()
         return user_id
 
-    def lookup_user(self, user_id: int) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
+    def lookup_user_json(self, user_id: int) -> str:
+        """
+        Return the JSON string for a user.
+        """
+        self._read_json()
+        return json.dumps(self._data[user_id])
+
+    def lookup_user_obj(self, user_id: int) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
         """
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
         or raises error if not found.
@@ -76,10 +83,33 @@ class UserAPI(model_api_ABC.ModelAPI):
         return user_obj
 
 
+    def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does. 
+        """
+        Takes JSON string, updates the native Python dict, and writes it to the stored master JSON.
 
-
-    def update_user(self, user_id): # todo -- updating location might be single most important thing this does. 
-        pass
+        Specify the field to update as the key in the new_json string. E.g. {"location": (44.01, -72.12)} specifies to update location.
+        """
+        self._read_json()
+        new_data = json.loads(new_json)
+        user_data = self._data[user_id]
+        for key in new_data:
+            if not key in self._valid_model_fields: # todo this validation isn't complete or in the smartest/clearest place. Need to check shape, make sure 100% right about append vs. overwrite
+                raise ValueError(f"Invalid user field: {key}")
+            if type(new_data[key]) != type(user_data[key]):
+                raise TypeError(f"Incorrect user data type for field {key}")
+        for key in new_data: # todo best practice on type() vs isinstance?
+            entry_type = type(user_data[key])
+            entry = user_data[key]
+            if key == "current_location": # todo location still parses as list, so make sure to overwrite, not append
+                self._data[user_id]["current_location"] = new_data[key]
+            elif entry_type == list:
+                self._data[user_id][key].extend(new_data[key])
+            elif isinstance(entry, set):
+                entry |= new_data[key] # todo this would require the new data to have been parsed to a set
+            else:
+                self._data[user_id][key] = new_data[key]
+        self._write_json()
+        return
     
     # todo all the "query objects near" methods could probably be abstracted to the ABC.
     def query_users_currently_near_location(self, location: tuple, radius=50000) -> list: # todo is the radius parameter totally unnecessary? 
@@ -141,16 +171,17 @@ class UserAPI(model_api_ABC.ModelAPI):
         """Add a second user that this user swiped "yes" on to this user's hash map of pending likes."""
         self._read_json()
         user_data = self._data[user_id_1]
-        user_data["pending_likes"].add(user_id_2)
+        user_data["pending_likes"][user_id_2] = time.time()
+        self._write_json()
     
     def delete_from_pending_likes(self, current_user_id: int, other_user_id: int):
         """Remove user2 from user1's pending likes."""
         pass
 
-    def lookup_is_user_in_pending_likes(self, current_user_id: int, other_user_id:int):
+    def lookup_is_user_in_pending_likes(self, current_user_id: int, other_user_id:int) -> bool:
         """Return true if current user previously swiped "yes" on other user, else False."""
         self._read_json()
-        return other_user_id in self._data[current_user_id]["pending_likes"] 
+        return str(other_user_id) in self._data[current_user_id]["pending_likes"] # todo the keys in the pending likes dict are strings at this point in execution, very confusing
 
     def blacklist(self, current_user_id: int, other_user_id: int):  # todo can prob create a custom decorator that says "whenever this method is called, call read json right before and update json right after"
         """

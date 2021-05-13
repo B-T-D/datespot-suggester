@@ -62,7 +62,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertIn(new_user, self.api._data)
     
     def test_lookup_user(self):
-        existing_user = self.api.lookup_user(self.knownKey) # todo it should work with an int literal
+        existing_user = self.api.lookup_user_obj(self.knownKey) # todo it should work with an int literal
         #print(type(existingUser))
         #self.assertIsInstance(existingUser, user.User) # todo this keeps failing even though it's a user instance. For namespacing reasons (?)
         self.assertEqual(existing_user.name, "test_user")
@@ -83,6 +83,23 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertIn(self.user_key_drobb, grort_blacklist)
         self.assertIsInstance(grort_blacklist, dict) # Is it a dict as expected?
 
+    def test_update_user(self):
+        """Does the update method put new JSON to a valid model field as expected?"""
+        new_data = {
+            "current_location": (40.737291166191476, -74.00704685527774),
+            "likes": ["sushi"]
+        }
+        new_json = json.dumps(new_data)
+        self.api.update_user(self.user_key_grort, new_json)
+        updated_user_json = self.api.lookup_user_json(self.user_key_grort)
+        updated_user_data = json.loads(updated_user_json) # todo this would not pass when checking the likes attribute of an "updates" User object literal--why? 
+                                                            #   Indicates something wrong with the method that looks up a user object. 
+        self.assertIn('sushi', updated_user_data["likes"])
+
+        self.assertAlmostEqual(new_data["current_location"][0], updated_user_data["current_location"][0]) # todo these aren't very comprehensive tests
+        
+
+
 class TestMatchCandidates(unittest.TestCase):
     """Tests on the persistent mock DB."""
 
@@ -93,7 +110,7 @@ class TestMatchCandidates(unittest.TestCase):
     def test_query_users_currently_near_returns_list(self):
         """Does the method that queries for users near the current location return a non-empty list
         with elements of the same type as the user ids?"""
-        user_location = self.api.lookup_user(1).current_location
+        user_location = self.api.lookup_user_obj(1).current_location
         assert isinstance(user_location, list) # todo they're not tuples here, json module has parsed them to lists
         query_results = self.api.query_users_currently_near_location(user_location)
         print(query_results)
@@ -106,7 +123,7 @@ class TestMatchCandidates(unittest.TestCase):
     
     def test_nearby_users_result_nondecreasing(self): # todo confusing wrt when it's reversed vs ascending
         """Are the elements of the list of nearby users nonincreasing? I.e. correctly sorted nearest to farthest?"""
-        user_location = self.api.lookup_user(1).current_location
+        user_location = self.api.lookup_user_obj(1).current_location
         query_results = self.api.query_users_currently_near_location(user_location)
         for i in range(1, len(query_results)): # The results are sorted descending, to support efficient popping of closest candidate.
             self.assertLessEqual(query_results[i], query_results[i-1])

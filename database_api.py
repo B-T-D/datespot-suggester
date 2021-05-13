@@ -3,6 +3,8 @@ Implementation-agnostic interface between the database and JSON-using external c
 be unaffected by SQL vs. NoSQL and similar issues.
 """
 
+import json
+
 import user_api
 import datespot_api
 import match_api
@@ -38,7 +40,10 @@ class DatabaseAPI:
             datespot_db = datespot_api.DatespotAPI()
             datespot_db.create_datespot(json_data)
         elif object_type == "match":
-            raise NotImplementedError
+            match_db = match_api.MatchAPI()
+            json_data = json.loads(json_data)
+            user_id_1, user_id_2 = json_data["users"]
+            new_object_id = match_db.create_match(user_id_1, user_id_2)
 
         if new_object_id:
             return new_object_id
@@ -60,6 +65,54 @@ class DatabaseAPI:
         else:
             raise NotImplementedError
 
+    def get_all_json(self, object_type) -> str:
+        """
+        Return JSON of all objects of the specified type.
+        """
+        if object_type == "user":
+            user_db = user_api.UserAPI()
+            return json.dumps(user_db.get_all_data())
+
+    def get_json(self, object_type, object_id) -> str:
+        """
+        Return the JSON for the object corresponding to object_id.
+        """
+        if object_type == "user":
+            user_db = user_api.UserAPI()
+            return user_db.lookup_user_json(object_id)
+    
+    def put_json(self, object_type:str, object_id:int, new_json: str) -> None:
+        """
+        Update the stored JSON for the corresponding field of the corresponding object."""
+
+        if object_type ==  "user":
+            user_db = user_api.UserAPI()
+            user_db.update_user(object_id, new_json)
+    
+    def post_swipe(self, user_id, candidate_id, outcome_json: str) -> bool:
+        """
+        Sends swipe data to the DB and returns True if the swipe completed a pending match (i.e. 
+        other user had already swiped yes).
+        
+        Args:
+            outcome_json (str): JSON in format "{'outcome': 1}" for yes or "{'outcome': 0} for no.
+        """
+        outcome = json.loads(outcome_json)["outcome"]
+        if not (outcome == 0 or outcome == 1):
+            raise ValueError
+        outcome = bool(outcome)
+        user_db = user_api.UserAPI()
+        if not outcome:
+            user_db.blacklist(user_id, candidate_id)
+        else: # todo cleaner to just send the update as JSON?
+            # first check if the other user already like the active user:
+            if user_db.lookup_is_user_in_pending_likes(candidate_id, user_id):
+                return True
+            else:
+                user_db.add_to_pending_likes(user_id, candidate_id)
+        return False
+
+
     def get_datespots_near(self, location: tuple, radius: int) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
@@ -68,6 +121,26 @@ class DatabaseAPI:
         # todo validate the location and radius here?
         results = datespots_db.query_datespots_near(location, radius)
         return results
+    
+    def get_next_datespot(self, match_id) -> str:
+        """
+        Return JSON for the next suggested date location for this match.
+        """
+        match_db = match_api.MatchAPI()
+        return match_db.get_next_suggestion(match_id)
+    
+    def get_next_candidate(self, user_id: int) -> int:
+        """
+        Returns user id of next candidate.
+        """
+        user_db = user_api.UserAPI()
+        return user_db.query_next_candidate(user_id)
+    
+    def get_user_json(self, user_id: int) -> str:
+        """Return the stored JSON for a user."""
+        user_db = user_api.UserAPI()
+        return user_db.lookup_user_json(user_id)
+        
 
     def find(self, object_type: str, field: str, *args) -> str:
         """

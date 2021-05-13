@@ -15,7 +15,7 @@ class ModelAPI:
         self._datafile = None
         self._data = {}
 
-    def _set_datafile(self):
+    def _set_datafile(self): # todo this is broken, it's not actually creating the file when the file doesn't exist.
         """Retrieve and set filename of this model's stored JSON."""
         with open(self._master_datafile, 'r') as fobj:
             json_map = json.load(fobj)
@@ -48,7 +48,7 @@ class ModelAPI:
         """
         self._read_json() 
         if not object_id in self._data:
-            raise KeyError(f"{self._model.sentence()} with id (key) {object_id} not found.")
+            raise KeyError(f"{self._model} with id (key) {object_id} not found.")
     
     # todo convert all logit that uses the key-error-raiser one to use the boolean returning one?
 
