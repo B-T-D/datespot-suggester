@@ -1,21 +1,39 @@
 import unittest
 
+import json
+
 from match import Match
 import datespot
 from user import User
+
+from database_api import DatabaseAPI
+
+TEST_JSON_MAP_FILENAME = "testing_mockJsonMap.json"
 
 class TestHelloWorldThings(unittest.TestCase):
 
     def setUp(self):
         
+        self.db = DatabaseAPI()
+
         # Need user objects to instantiate a Match
         grortName = "Grort"
         grortCurrentLocation = (40.746667, -74.001111)
-        userGrort = User(grortName, grortCurrentLocation)
+        grort_json = json.dumps({
+            "name": grortName,
+            "current_location": grortCurrentLocation
+        })
+        self.grort_user_id = self.db.post_object("user", grort_json)
+        userGrort = self.db.get_obj("user", self.grort_user_id)
 
         drobbName = "Drobb"
         drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
-        userDrobb = User(name=drobbName, current_location = drobbCurrentLocation)
+        drobb_json = json.dumps({
+            "name": drobbName,
+            "current_location": drobbCurrentLocation
+        })
+        self.drobb_user_id = self.db.post_object("user", drobb_json)
+        userDrobb = self.db.get_obj("user", self.drobb_user_id)
 
         # distance should be approx 2610m
         # midpoint should be circa (40.75827478958617, -73.99310556132602)

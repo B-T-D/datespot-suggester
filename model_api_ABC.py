@@ -10,8 +10,8 @@ class ModelAPI:
     __metaclasss__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __init__(self, datafile_name=JSON_DB_NAME):
-        self._master_datafile = datafile_name
+    def __init__(self, json_map_filename=JSON_DB_NAME):
+        self._master_datafile = json_map_filename
         self._datafile = None
         self._data = {}
         self.data = self._data #  todo what about assigning this to return of _read_json, and having that method return self._data?

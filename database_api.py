@@ -9,10 +9,24 @@ import user_api
 import datespot_api
 import match_api
 
+JSON_MAP_FILENAME = "jsonMap.json"
+
 class DatabaseAPI:
 
-    def __init__(self):
+    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME):
         self._valid_object_types = {"user", "datespot", "match"}
+        self._json_map_filename = json_map_filename
+
+    def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
+        """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.
+        if model_name == "user":
+            return user_api.UserAPI(json_map_filename=self._json_map_filename)
+        elif model_name == "datespot":
+            return datespot_api.DatespotAPI(json_map_filename=self._json_map_filename)
+        elif model_name == "match":
+            return match_api.MatchAPI(json_map_filename=self._json_map_filename)
+        else:
+            raise ValueError(f"Invalid model name: {model_name}")
 
     def _validate_object_type(self, object_type: str):
         return object_type.lower() in self._valid_object_types
@@ -25,8 +39,18 @@ class DatabaseAPI:
             
             object_type (str): "user", "datespot", or "match"
             json_data (str): String in correct JSON format.
+        
+        json_data examples:
 
-        """
+            Creating a user:
+
+                {
+                    "name": myUserName,
+                    "current_location": [40.00, -71.00],
+                    "force_key": "1"
+                }
+
+        """ # If force_key for creating a user, put that as JSON key/field.
         new_object_id = None
         object_type = object_type.lower()
         if not self._validate_object_type(object_type): # todo how best to handle? Raise exception? String message back to caller rather than just int?
@@ -51,7 +75,7 @@ class DatabaseAPI:
 
     # Todo: All keys need to be ints in externally passable JSON.
     #   Also the restaurant tuples as keys might end up adding duplicates, if google maps has slightly different lat lon in the response sometimes. 
-    def get_obj(self, object_type, id) -> int:
+    def get_obj(self, object_type, object_id) -> int:
     
         """
         Return an internal-model object literal for the data corresponding to the key "id".
@@ -60,9 +84,12 @@ class DatabaseAPI:
             object_type (str): "user", "datespot", or "match"
             id (int): primary key of an object in the database.
         """
-        if object_type == "datespot":
+        if object_type == "user":
+            user_db = self._model_interface("user")
+            return user_db.lookup_user_obj(object_id)
+        elif object_type == "datespot":
             datespot_db = datespot_api.DatespotAPI()
-            return datespot_db.lookup_datespot(id)
+            return datespot_db.lookup_datespot(object_id)
         else:
             raise NotImplementedError
 

@@ -16,9 +16,9 @@ import model_api_ABC
 
 class DatespotAPI(model_api_ABC.ModelAPI):
 
-    def __init__(self, datafile_name=None): # The abstract base class handles setting the filename to default if none provided
-        if datafile_name: # Todo is there a one-liner for this? Ternary expression?
-            super().__init__(datafile_name)
+    def __init__(self, json_map_filename=None): # The abstract base class handles setting the filename to default if none provided
+        if json_map_filename: # Todo is there a one-liner for this? Ternary expression?
+            super().__init__(json_map_filename)
         else:
             super().__init__()
 

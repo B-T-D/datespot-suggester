@@ -57,7 +57,7 @@ class Datespot(metaclass=DatespotAppType):
         for key in self.brand_reputations: # cast each non-associative array to a hash set for faster lookup
             self.brand_reputations[key] = set(self.brand_reputations[key])
 
-    def __eq__(self, other): # Must define __eq__ if you define __hash__
+    def __eq__(self, other): # Must define if defining __hash__
         """
         Return True if self should be treated as equal to other, else False.
         """

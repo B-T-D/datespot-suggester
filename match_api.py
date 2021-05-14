@@ -17,15 +17,15 @@ import model_api_ABC
 
 class MatchAPI(model_api_ABC.ModelAPI):
 
-    def __init__(self, datafile_name=None):
-        if datafile_name:
-            super().__init__(datafile_name)
+    def __init__(self, json_map_filename=None):
+        if json_map_filename:
+            super().__init__(json_map_filename)
         else:
             super().__init__()
 
         self._model = "match"
 
-        self.user_api_instance = user_api.UserAPI(datafile_name=self._master_datafile)
+        self.user_api_instance = user_api.UserAPI(json_map_filename=self._master_datafile)
     
     def _set_datafile(self):
         """Set the filename of the specific file containing the match data JSON."""
@@ -63,14 +63,30 @@ class MatchAPI(model_api_ABC.ModelAPI):
         values = [float(substring) for substring in stripped.split(sep=',')]
         return tuple(values)
     
-    def create_match(self, userid_1: int, userid_2: int): # todo the create methods can probably be abstracted to the ABC too
+    def create_match(self, user1_id: str, user2_id: str) -> str:
+        """
+        Create a Match object from the two users and return its id key.
+        """
         self._read_json()
-        match_key = hash((userid_1, userid_2)) # hashable tuple of (int, int)
-        if self._is_valid_object_id(match_key):
-            raise KeyError("match_key collision") # todo unit test confirming trying to re-match the same users causes collision
-        self._data[match_key] = {"users": [userid_1, userid_2], "timestamp": time.time()}
+        user1_obj, user2_obj = self.user_api_instance.lookup_user_obj(user1_id), self.user_api_instance.lookup_user_obj(user2_id)
+        match_obj = match.Match(user1_obj, user2_obj)
+        new_object_id = match_obj.id
+        self._data[new_object_id] = {
+            "users": [user1_id, user2_id],
+            "timestamp": time.time()
+        }
         self._write_json()
-        return match_key
+        return new_object_id
+
+    # def create_match(self, userid_1: str, userid_2: str) -> str: # todo the create methods can probably be abstracted to the ABC too
+    #     self._read_json()
+    #     match_key = hash((userid_1, userid_2)) # hashable tuple of (int, int)
+    #     # todo create a Match instance and uses hash(matchInstance) as the id
+    #     if self._is_valid_object_id(match_key):
+    #         raise KeyError("match_key collision") # todo unit test confirming trying to re-match the same users causes collision
+    #     self._data[match_key] = {"users": [userid_1, userid_2], "timestamp": time.time()}
+    #     self._write_json()
+    #     return match_key
     
     def lookup_match(self, match_id: int):
         self._read_json()

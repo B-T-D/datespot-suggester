@@ -36,7 +36,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 fobj.seek(0)
 
         # create a fake DB
-        self.api = DatespotAPI(datafile_name = TEST_JSON_DB_NAME)
+        self.api = DatespotAPI(json_map_filename = TEST_JSON_DB_NAME)
 
         # make a mock restaurant
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
@@ -121,7 +121,7 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
         self.assertEqual(self.api.query_num_datespots(), 60) # todo hardcoded to 60 for expediency
     
     def test_api_data_has_expected_shape(self):
-        data = self.api.get_all_data()
+        data = self.api._get_all_data()
         self.assertIsInstance(data, dict)
         self.assertGreater(len(data), 0)
         for key in data:

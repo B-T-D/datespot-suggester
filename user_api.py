@@ -15,9 +15,9 @@ import geo_utils
 
 class UserAPI(model_api_ABC.ModelAPI):
 
-    def __init__(self, datafile_name=None):
-        if datafile_name: # Todo is there a one-liner for this? Ternary expression?
-            super().__init__(datafile_name)
+    def __init__(self, json_map_filename=None):
+        if json_map_filename: # Todo is there a one-liner for this? Ternary expression?
+            super().__init__(json_map_filename)
         else:
             super().__init__()
 
@@ -46,6 +46,7 @@ class UserAPI(model_api_ABC.ModelAPI):
 
         # todo won't that ^ cause circular imports if the models' are using this DBAPI to instantiate other model objects?
         new_user = user.User(
+            user_id = user_id,
             name=json_dict["name"],
             current_location = tuple(json_dict["current_location"])
         )
@@ -71,6 +72,7 @@ class UserAPI(model_api_ABC.ModelAPI):
         user_data = self._data[user_id]
         assert type(user_data) == dict
         user_obj = user.User(
+            user_id = user_id,
             name=user_data["name"],
             current_location=user_data["current_location"],
             home_location=user_data["home_location"],
@@ -160,9 +162,10 @@ class UserAPI(model_api_ABC.ModelAPI):
             self.query_users_near_user(user_id)
         user_data = self._data[user_id]
         candidate_id = user_data["cached_candidates"].pop()[1] # todo confusing code with the slice. Does the cache really need the distance?
+        
         blacklist = user_data["match_blacklist"]
         while candidate_id in blacklist: # keep popping until a non blacklisted one is found
-            candidate_id = self._data[user_id]["cached_candidates"].pop()
+            candidate_id = self._data[user_id]["cached_candidates"].pop()[1] # todo again, need the slice to access the id itself rather than the list containing [distance, id]
         self._write_json()
         return candidate_id
         # We can pop the candidate, because that id is coming back either as a match or as a blacklist, assuming the tinder model.

@@ -33,11 +33,11 @@ class TestHelloWorldThings(unittest.TestCase):
                 fobj.seek(0)
 
         # create a fake DB 
-        self.api = UserAPI(datafile_name=TEST_JSON_DB_NAME)
+        self.api = UserAPI(json_map_filename=TEST_JSON_DB_NAME)
         
         # make a mock user directly in the DB with a known uuid primary key:
         self.knownKey = str(3)
-        mockUser = user.User("test_user", current_location=(0,0), home_location=(0,0))
+        mockUser = user.User(user_id=self.knownKey, name="test_user", current_location=(0,0), home_location=(0,0))
         self.api._data[self.knownKey] = self.api._serialize_user(mockUser)
         assert self.knownKey in self.api._data
 
@@ -105,7 +105,7 @@ class TestMatchCandidates(unittest.TestCase):
     def setUp(self):
         self.api = UserAPI() # Let it use default datafile name
         self.my_user_id = "1" # Key to use for the user who is doing a simulated "swiping" session
-        assert self.my_user_id in self.api.data
+        assert self.my_user_id in self.api._get_all_data()
     
     def test_query_users_currently_near_returns_list(self):
         """Does the method that queries for users near the current location return a non-empty list
@@ -113,7 +113,6 @@ class TestMatchCandidates(unittest.TestCase):
         user_location = self.api.lookup_user_obj(self.my_user_id).current_location
         assert isinstance(user_location, list) # todo they're not tuples here, json module has parsed them to lists
         query_results = self.api.query_users_currently_near_location(user_location)
-        print(query_results)
         self.assertIsInstance(query_results, list)
         self.assertGreater(len(query_results), 0)
         for element in query_results:
@@ -131,7 +130,7 @@ class TestMatchCandidates(unittest.TestCase):
     def test_nearby_users_cached(self):
         """Are the results of a nearby users query cached in the querying user's data as expected?"""
         query_results = self.api.query_users_near_user(self.my_user_id)
-        user_data = self.api.get_all_data()[self.my_user_id] # return the full dict for this user id
+        user_data = self.api._get_all_data()[self.my_user_id] # return the full dict for this user id
         cached_data = user_data["cached_candidates"]
         self.assertEqual(len(query_results), len(cached_data))
         for i in range(len(query_results)):
@@ -148,7 +147,7 @@ class TestMatchCandidates(unittest.TestCase):
         id_to_blacklist = "2"
         self.api.blacklist(self.my_user_id, id_to_blacklist)
         self.api.query_users_near_user(self.my_user_id)
-        user_data = self.api.get_all_data()[self.my_user_id] # return the full dict for this user id
+        user_data = self.api._get_all_data()[self.my_user_id] # return the full dict for this user id
         cached_data = user_data["cached_candidates"]
         self.assertNotIn(id_to_blacklist, cached_data)
     
