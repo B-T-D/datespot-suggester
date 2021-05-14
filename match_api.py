@@ -18,12 +18,13 @@ import model_api_ABC
 class MatchAPI(model_api_ABC.ModelAPI):
 
     def __init__(self, json_map_filename=None):
+        self._model = "match"
         if json_map_filename:
             super().__init__(json_map_filename)
         else:
             super().__init__()
 
-        self._model = "match"
+        
 
         self.user_api_instance = user_api.UserAPI(json_map_filename=self._master_datafile)
     

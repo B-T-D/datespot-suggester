@@ -16,12 +16,12 @@ import geo_utils
 class UserAPI(model_api_ABC.ModelAPI):
 
     def __init__(self, json_map_filename=None):
+        self._model = "user" # Initialization order matters e.g. if defining self.data to init to the read-in json.
         if json_map_filename: # Todo is there a one-liner for this? Ternary expression?
             super().__init__(json_map_filename)
         else:
             super().__init__()
 
-        self._model = "user"
         self._valid_model_fields = ["name", "current_location", "home_location", "likes", "dislikes", "match_blacklist"] # todo is this necessary, or could you just check the keys?
         
     def create_user(self, json_data: str, force_key: int=None) -> int:

@@ -17,12 +17,11 @@ import model_api_ABC
 class DatespotAPI(model_api_ABC.ModelAPI):
 
     def __init__(self, json_map_filename=None): # The abstract base class handles setting the filename to default if none provided
+        self._model = "datespot"
         if json_map_filename: # Todo is there a one-liner for this? Ternary expression?
             super().__init__(json_map_filename)
         else:
             super().__init__()
-
-        self._model = "datespot"
         self._valid_model_fields = ["name", "location", "traits", "price_range", "hours"]
     
     def create_datespot(self, json_data: str) -> int:
