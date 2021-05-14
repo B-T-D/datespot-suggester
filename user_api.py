@@ -34,13 +34,12 @@ class UserAPI(model_api_ABC.ModelAPI):
         for key in json_dict:
             if not key in self._valid_model_fields:
                 raise ValueError(f"Bad JSON in call to create_user: \n{key}")
-        location = tuple(json_dict["current_location"])
         if force_key: # Don't allow force-creating a key that's already taken
             if force_key in self._data:
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
             user_id = force_key
         else:
-            user_id  = uuid.uuid1().int
+            user_id  = str(uuid.uuid1().int)
         # todo rationale for instantiating here is that the model may have algorithms it runs that add data.
         #   E.g. for restaurants, instantiating a datespot and running the apply-brand-reps method will add 
         #   traits that can then be included in the initial db write. Not sure if this is actually good architecture.
@@ -48,7 +47,7 @@ class UserAPI(model_api_ABC.ModelAPI):
         # todo won't that ^ cause circular imports if the models' are using this DBAPI to instantiate other model objects?
         new_user = user.User(
             name=json_dict["name"],
-            current_location = location
+            current_location = tuple(json_dict["current_location"])
         )
 
         self._data[user_id] = self._serialize_user(new_user)
@@ -62,12 +61,13 @@ class UserAPI(model_api_ABC.ModelAPI):
         self._read_json()
         return json.dumps(self._data[user_id])
 
-    def lookup_user_obj(self, user_id: int) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
+    def lookup_user_obj(self, user_id: str) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
         """
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
         or raises error if not found.
         """
         self._read_json()
+        self._validate_object_id(user_id)
         user_data = self._data[user_id]
         assert type(user_data) == dict
         user_obj = user.User(
@@ -96,7 +96,7 @@ class UserAPI(model_api_ABC.ModelAPI):
             if not key in self._valid_model_fields: # todo this validation isn't complete or in the smartest/clearest place. Need to check shape, make sure 100% right about append vs. overwrite
                 raise ValueError(f"Invalid user field: {key}")
             if type(new_data[key]) != type(user_data[key]):
-                raise TypeError(f"Incorrect user data type for field {key}")
+                raise TypeError(f"Incorrect user data type for field {key}.\nExpected type {type(user_data[key])}")
         for key in new_data: # todo best practice on type() vs isinstance?
             entry_type = type(user_data[key])
             entry = user_data[key]

@@ -56,38 +56,6 @@ class DatespotAPI(model_api_ABC.ModelAPI):
         self._write_json()
         return new_object_id
 
-    
-    # def create_datespot(self, json_data: str) -> int:
-    #     """
-    #     Returns the location's key.
-    #     """
-    #     self._read_json()
-    #     json_dict = json.loads(json_data)
-    #     for key in json_dict:
-    #         if not key in self._valid_model_fields:
-    #             raise ValueError(f"Bad JSON in call to create_datespot(): \n{key}")
-    #     location_tuple = tuple(json_dict["location"])
-    #     new_id = hash(location_tuple) # primary key is the hash of the two coordinate location tuple. TBD if the tuples from GM API are stable enough to hash to same thing every time.
-    #                                     #   Todo might make more sense to just use the GM place id. Or its hash.
-        
-        
-    #     # Todo need to validate the values for each
-    #     self._data[new_id] = {
-    #         "id": new_id,
-    #         "location": location_tuple,
-    #         "name": json_dict["name"],
-    #         "traits": json_dict["traits"],
-    #         "price_range": json_dict["price_range"],
-    #         "hours": json_dict["hours"]
-    #     }
-
-    #     # todo create it as a Datespot object, in order to call Datespot's higher-order NLP algorithms.
-    #     #   I.e. right now, to apply the brand reputations and store them in the DB. 
-
-    #     self._write_json()
-    #     return new_id
-    
-
     def _serialize_datespot(self, datespot) -> dict: # Todo don't need the id here, right? Or is that unneccessarily confusing and should just slap the id everywhere?
         datespotDict = {
             "id": datespot.id,
