@@ -31,7 +31,7 @@ class ModelAPI:
             json_data = json.load(fobj)
             fobj.seek(0)
         for key in json_data: # todo for now, forcing every key back to int here
-            self._data[int(key)] = json_data[key]
+            self._data[key] = json_data[key]
 
     def _write_json(self):
         """Overwrite stored JSON for this model to exactly match current state of the API instance's native Python dictionary."""

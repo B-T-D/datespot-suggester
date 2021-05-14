@@ -1,1 +1,1 @@
-{"3": {"name": "test_user", "current_location": [0, 0], "home_location": [0, 0], "likes": [], "dislikes": [], "match_blacklist": {}, "pending_likes": {}, "matches": {}}, "1": {"name": "Grort", "current_location": [40.737291166191476, -74.00704685527774], "home_location": null, "likes": ["sushi"], "dislikes": [], "match_blacklist": {}, "pending_likes": {}, "matches": {}}, "2": {"name": "Drobb", "current_location": [40.767376158866554, -73.98615327558278], "home_location": null, "likes": [], "dislikes": [], "match_blacklist": {}, "pending_likes": {}, "matches": {}}}
+{}

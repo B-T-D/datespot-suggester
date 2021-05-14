@@ -3,7 +3,10 @@ import user
 
 import json
 
+import hashlib, struct
+
 BASELINE_SCORING_DATA = "datespot_baseline_scoring_data.json"
+MAX_LATLON_COORD_DECIMAL_PLACES = 8
 
 ##### DB schema #####
 
@@ -18,15 +21,20 @@ BASELINE_SCORING_DATA = "datespot_baseline_scoring_data.json"
 
 class Datespot(metaclass=DatespotAppType):
 
-    def __init__(self, datespot_id: int, location: tuple, name: str, traits: list, price_range: int, hours: list=[]):
+    def __init__(self, location: tuple, name: str, traits: list=[], price_range: int=None, hours: list=[]):
         """
         Args:
             traits (List[str]): ... 
             hours (List[List[int]]): ...
 
         """
-        self.id = datespot_id # "id" is name of Python builtin function
-        self.location = location
+        assert isinstance(location, tuple)
+        self._location = ( # External code shouldn't mess with this, e.g. e.g. inadvertently casting to string or changing number of decimal places
+            round(location[0], MAX_LATLON_COORD_DECIMAL_PLACES),
+            round(location[1], MAX_LATLON_COORD_DECIMAL_PLACES)
+            )
+        self.location = self._location
+        self.id = self._id() # todo confirm this is correct and good practice
         self.name = name
         
         self.price_range = price_range
@@ -48,6 +56,23 @@ class Datespot(metaclass=DatespotAppType):
         
         for key in self.brand_reputations: # cast each non-associative array to a hash set for faster lookup
             self.brand_reputations[key] = set(self.brand_reputations[key])
+
+    def __eq__(self, other): # Must define __eq__ if you define __hash__
+        """
+        Return True if self should be treated as equal to other, else False.
+        """
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(self._location)
+
+    def _id(self) -> str:
+        """
+        Return this Datespot's id key to an external caller.
+        """
+        hex_str = str(hex(self.__hash__())) # todo can/should you just just "hash(self)"?
+        return hex_str[2:] # strip the "0x"
+
 
     # todo is_open queries might be better handled by direct DB queries, i.e. outside this module.
     #   One of the DB APIs will be able to do stuff like "check if we already know the hours for this restaurant recently enough,

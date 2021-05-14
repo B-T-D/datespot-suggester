@@ -13,6 +13,7 @@ import geo_utils
 import model_api_ABC
 
 
+
 class DatespotAPI(model_api_ABC.ModelAPI):
 
     def __init__(self, datafile_name=None): # The abstract base class handles setting the filename to default if none provided
@@ -26,33 +27,66 @@ class DatespotAPI(model_api_ABC.ModelAPI):
     
     def create_datespot(self, json_data: str) -> int:
         """
-        Returns the location's key.
+        Creates a new Datespot object, serializes it to the persistent JSON, and returns its id key.
         """
         self._read_json()
         json_dict = json.loads(json_data)
+        # Validate fields
         for key in json_dict:
-            if not key in self._valid_model_fields:
-                raise ValueError(f"Bad JSON in call to create_datespot(): \n{key}")
+            if not key in self._valid_model_fields: # todo validate the values
+                raise ValueError(f"Bad JSON in call to create_datespot(): {key}")
         location_tuple = tuple(json_dict["location"])
-        new_id = hash(location_tuple) # primary key is the hash of the two coordinate location tuple. TBD if the tuples from GM API are stable enough to hash to same thing every time.
-                                        #   Todo might make more sense to just use the GM place id. Or its hash.
-        
-        
-        # Todo need to validate the values for each
-        self._data[new_id] = {
-            "id": new_id,
-            "location": location_tuple,
-            "name": json_dict["name"],
-            "traits": json_dict["traits"],
-            "price_range": json_dict["price_range"],
-            "hours": json_dict["hours"]
-        }
+        # Instantiate an object with the data
+        datespot_obj = datespot.Datespot(
+            location = location_tuple,
+            name = json_dict["name"]
+        )
+        if "traits" in json_dict:
+            datespot_obj.traits = json_dict["traits"]
+        if "price_range" in json_dict and json_dict["price_range"] is not None:
+            datespot_obj.price_range = int(json_dict["price_range"])
+        if "hours" in json_dict: # todo better handling when hours format is made realistic
+            datespot_obj.hours = json_dict["hours"]
 
-        # todo create it as a Datespot object, in order to call Datespot's higher-order NLP algorithms.
-        #   I.e. right now, to apply the brand reputations and store them in the DB. 
+        # Hash that object
+        new_object_id = datespot_obj.id
 
+        # Save the object's data to the DB using that hash as the key
+        self._data[new_object_id] = self._serialize_datespot(datespot_obj)
         self._write_json()
-        return new_id
+        return new_object_id
+
+    
+    # def create_datespot(self, json_data: str) -> int:
+    #     """
+    #     Returns the location's key.
+    #     """
+    #     self._read_json()
+    #     json_dict = json.loads(json_data)
+    #     for key in json_dict:
+    #         if not key in self._valid_model_fields:
+    #             raise ValueError(f"Bad JSON in call to create_datespot(): \n{key}")
+    #     location_tuple = tuple(json_dict["location"])
+    #     new_id = hash(location_tuple) # primary key is the hash of the two coordinate location tuple. TBD if the tuples from GM API are stable enough to hash to same thing every time.
+    #                                     #   Todo might make more sense to just use the GM place id. Or its hash.
+        
+        
+    #     # Todo need to validate the values for each
+    #     self._data[new_id] = {
+    #         "id": new_id,
+    #         "location": location_tuple,
+    #         "name": json_dict["name"],
+    #         "traits": json_dict["traits"],
+    #         "price_range": json_dict["price_range"],
+    #         "hours": json_dict["hours"]
+    #     }
+
+    #     # todo create it as a Datespot object, in order to call Datespot's higher-order NLP algorithms.
+    #     #   I.e. right now, to apply the brand reputations and store them in the DB. 
+
+    #     self._write_json()
+    #     return new_id
+    
 
     def _serialize_datespot(self, datespot) -> dict: # Todo don't need the id here, right? Or is that unneccessarily confusing and should just slap the id everywhere?
         datespotDict = {
@@ -104,15 +138,13 @@ class DatespotAPI(model_api_ABC.ModelAPI):
         self._validate_object_id(id)
         datespot_data = self._data[id]
         return datespot.Datespot(
-            datespot_id = id,
-            location = datespot_data["location"],
+            location = tuple(datespot_data["location"]),
             name = datespot_data["name"],
             traits = datespot_data["traits"],
             price_range = datespot_data["price_range"],
             hours = datespot_data["hours"]
         )
 
-    
     def update_datespot(self, id: int, **kwargs): # Stored JSON is the single source of truth. We want a bunch of little, super fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
 
