@@ -1,7 +1,6 @@
-"""Abstract base class for the helper APIs that interface between the database and the models."""
+"""Abstract base class to be instantiated by model-data interface concrete classes (one concrete class for each model)."""
 
 import abc
-
 import json
 
 JSON_DB_NAME = "jsonMap.json"

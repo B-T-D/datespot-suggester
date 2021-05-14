@@ -11,10 +11,6 @@ import datespot_api
 
 import model_api_ABC
 
-# todo: For all three "api": At a given point in time, a model instance's data is either a json-legal dict,
-#   or an app-internal dict literal. Those are the only options. Should be one method that toggles between them,
-#   and should be simple and obvious to tell which way it's toggled at any given place in the code / execution.
-
 class MatchAPI(model_api_ABC.ModelAPI):
 
     def __init__(self, json_map_filename=None):
@@ -23,8 +19,6 @@ class MatchAPI(model_api_ABC.ModelAPI):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-
-        
 
         self.user_api_instance = user_api.UserAPI(json_map_filename=self._master_datafile)
     
@@ -54,7 +48,6 @@ class MatchAPI(model_api_ABC.ModelAPI):
         for stringKey in jsonData:
             tupleKey = self._string_key_to_tuple(stringKey)
             self._data[tupleKey] = jsonData[stringKey]
-    
 
     def _tuple_key_to_string(self, tuple_key: tuple) -> str:
         return str(tuple_key)
@@ -78,16 +71,6 @@ class MatchAPI(model_api_ABC.ModelAPI):
         }
         self._write_json()
         return new_object_id
-
-    # def create_match(self, userid_1: str, userid_2: str) -> str: # todo the create methods can probably be abstracted to the ABC too
-    #     self._read_json()
-    #     match_key = hash((userid_1, userid_2)) # hashable tuple of (int, int)
-    #     # todo create a Match instance and uses hash(matchInstance) as the id
-    #     if self._is_valid_object_id(match_key):
-    #         raise KeyError("match_key collision") # todo unit test confirming trying to re-match the same users causes collision
-    #     self._data[match_key] = {"users": [userid_1, userid_2], "timestamp": time.time()}
-    #     self._write_json()
-    #     return match_key
     
     def lookup_obj(self, match_id: int) -> match.Match:
         self._read_json()

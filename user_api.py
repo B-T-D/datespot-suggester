@@ -40,11 +40,6 @@ class UserAPI(model_api_ABC.ModelAPI):
             user_id = force_key
         else:
             user_id  = str(uuid.uuid1().int)
-        # todo rationale for instantiating here is that the model may have algorithms it runs that add data.
-        #   E.g. for restaurants, instantiating a datespot and running the apply-brand-reps method will add 
-        #   traits that can then be included in the initial db write. Not sure if this is actually good architecture.
-
-        # todo won't that ^ cause circular imports if the models' are using this DBAPI to instantiate other model objects?
         new_user = user.User(
             user_id = user_id,
             name=json_dict["name"],
@@ -62,7 +57,7 @@ class UserAPI(model_api_ABC.ModelAPI):
         self._read_json()
         return json.dumps(self._data[user_id])
 
-    def lookup_obj(self, user_id: str) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
+    def lookup_obj(self, user_id: str) -> user.User:
         """
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
         or raises error if not found.
@@ -83,7 +78,6 @@ class UserAPI(model_api_ABC.ModelAPI):
             user_obj.match_blacklist = user_data["match_blacklist"]
 
         return user_obj
-
 
     def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does. 
         """
@@ -131,7 +125,7 @@ class UserAPI(model_api_ABC.ModelAPI):
             if distance < radius:
                 query_results.append((distance, user_id)) # todo no need to put the whole dict into the results, right?
         query_results.sort()
-        query_results.reverse() # Want to pop nearest candidate from end. 
+        query_results.reverse() # Put nearest candidate at end, for performant pop() calls. 
         return query_results
            
     def query_users_near_user(self, user_id: int) -> list:
@@ -141,12 +135,11 @@ class UserAPI(model_api_ABC.ModelAPI):
         query_results = self.query_users_currently_near_location(tuple(query_location))
         if query_results[-1] == user_id: # Don't include the user in that user's results
             query_results.pop()
-        # Want to fully overwrite it to the latest and greatest, even if the cache already existed:
-        self._data[user_id]["cached_candidates"] = query_results
+        
+        self._data[user_id]["cached_candidates"] = query_results # Fully overwrite to latest and greatest, even the cache already existed:
         self._write_json()
 
         return query_results
-    
 
     def _refresh_candidates(self, user_id) -> bool:
         """Return True if this user's candidates cache is null, empty, or otherwise should be updated."""
@@ -158,7 +151,7 @@ class UserAPI(model_api_ABC.ModelAPI):
     def query_next_candidate(self, user_id) -> int:
         """Return the user id of the next candidate for user user_id to swipe on."""
         self._read_json()
-        if self._refresh_candidates(user_id): # todo check if the user's location changed by enough to warrant a new query rather than pulling from cache
+        if self._refresh_candidates(user_id): # todo check if user's location changed by enough to warrant new query rather than pulling from cache
             self.query_users_near_user(user_id)
         user_data = self._data[user_id]
         candidate_id = user_data["cached_candidates"].pop()[1] # todo confusing code with the slice. Does the cache really need the distance?
@@ -213,11 +206,3 @@ class UserAPI(model_api_ABC.ModelAPI):
             "matches": user.matches
         }
         return userDict
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()

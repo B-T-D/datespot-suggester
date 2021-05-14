@@ -69,7 +69,7 @@ class DatabaseAPI:
         if new_object_id:
             return new_object_id
 
-    def get_obj(self, object_type, object_id) -> int:
+    def get_obj(self, object_type, object_id):
     
         """
         Return an internal-model object literal for the data corresponding to the key "id".
@@ -77,6 +77,9 @@ class DatabaseAPI:
         Args:
             object_type (str): "user", "datespot", or "match"
             id (int): primary key of an object in the database.
+        
+        Returns:
+            (model object): Instance of one of the app's custom model classes.
         """
         self._validate_model_name(object_type) # todo rename "object_type" arg to "model_name"
         model_db = self._model_interface(object_type)
@@ -158,6 +161,7 @@ class DatabaseAPI:
         return user_db.query_next_candidate(user_id)    
 
     def find(self, object_type: str, field: str, *args) -> str:
+        # See https://stackoverflow.com/questions/18591778/how-to-pass-an-operator-to-a-python-function
         """
         Returns JSON string of the corresponding object(s).
 

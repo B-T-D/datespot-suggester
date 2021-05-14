@@ -13,7 +13,6 @@ import geo_utils
 import model_api_ABC
 
 
-
 class DatespotAPI(model_api_ABC.ModelAPI):
 
     def __init__(self, json_map_filename=None): # The abstract base class handles setting the filename to default if none provided
@@ -72,7 +71,6 @@ class DatespotAPI(model_api_ABC.ModelAPI):
     #   already exist at approximately that location in the db?
         pass
 
-
     # todo try using the object_hook arg to json.load to handle the tuple vs string 
     #   thing in a more code-concise way. 
     def _tuple_loc_key_to_string(self, location_key: tuple) -> str:
@@ -98,8 +96,7 @@ class DatespotAPI(model_api_ABC.ModelAPI):
         datespot_obj = self.lookup_obj(id)
         return json.dumps(self._serialize_datespot(datespot_obj))
 
-    def lookup_obj(self, id: int) -> datespot.Datespot: # The main code that uses actual model object instances is other database API code, or the models' internal code
-                                                                # ...(e.g. Datespot uses a User instance to score a restaurant; Match uses two Users and a heap of Datespots).
+    def lookup_obj(self, id: int) -> datespot.Datespot:
         """Return the datespot object corresponding to key "id"."""
         self._read_json()
         self._validate_object_id(id)
@@ -112,12 +109,10 @@ class DatespotAPI(model_api_ABC.ModelAPI):
             hours = datespot_data["hours"]
         )
 
-    def update_datespot(self, id: int, **kwargs): # Stored JSON is the single source of truth. We want a bunch of little, super fast read-writes. 
+    def update_datespot(self, id: int, **kwargs): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
-
-        self._read_json() # sync the API instance's native Python dictionary to match the latest known state of the stored JSON
-        datespot_data = self._data[id] # the data to modify is in the native Python dictionary. No need to instantiate a Datespot object with that data.
-
+        self._read_json()
+        datespot_data = self._data[id]
 
         for field in self._valid_model_fields:
             if field in kwargs:
@@ -130,8 +125,6 @@ class DatespotAPI(model_api_ABC.ModelAPI):
                 else: # Any field other than the traits list can just be overwritten entirely
                     datespot_data[field] = new_value
 
-        
-        # Sync the stored JSON:
         self._write_json()
 
     def query_num_datespots(self): # Todo hasty, more code-elegant ways to do this
@@ -144,7 +137,6 @@ class DatespotAPI(model_api_ABC.ModelAPI):
         if (not location) or (not geo_utils.is_valid_lat_lon(location)): # todo best architectural place for validating this?
             raise ValueError(f"Bad lat lon location: {location}")
         self._read_json()
-        #matches_dict = {} #{ int id : {datespot JSON}}
         query_results = [] # list of two element tuples of (distance_from_query_location, serialized_datespot_dict). I.e. list[tuple[int, dict]]
         for id_key in self._data:
             place = self._data[id_key]
@@ -152,30 +144,5 @@ class DatespotAPI(model_api_ABC.ModelAPI):
             distance = geo_utils.haversine(location, place_loc)
             if distance < radius: # todo do we need the full object in the results dict, or would only the lookup key suffice?
                 query_results.append((distance, place)) # append as tuple with distance as the tuple's first element
-        query_results.sort() # Todo no reason to heap-sort yet, not sure if this method's caller will actually want it as a heap.
-                                # More likely, the caller heapifies these results internally. 
+        query_results.sort() # Todo no reason to heap-sort yet, this method's caller won't necessarily want it as a heap. 
         return query_results
-
-
-    def query(self, field:str, operator:str, operand:str): # todo for now, complex/joined queries (and, or) only supported through using python and/or between multiple calls to this query method
-
-        # See https://stackoverflow.com/questions/18591778/how-to-pass-an-operator-to-a-python-function
-
-        """
-        Args:
-            field (str): Any of the valid model fields; "distance".
-            operator(str): for traits: "all", "in", "not in", "or"; for locations: +, -, *, //, <, <=, ==, =>, >
-        """
-        # parse field and operators, and call appropriate subroutine:
-        pass
-
-    def _query_traits(self):
-        pass
-        # Complicated to implement properly, and may not be needed all that often by the app's core logic.
-        #   The typical use case is more likely "Look at *all* traits of restaurant R, and process each of those
-        #   traits relative to the matched users' preferences." Rather than "find all restaurants with trait X
-        #   but not trait Y."
-
-        # Todo: If the restaurant queries get complex ("all restaurants with X, Y, but not Z traits, open at T time
-        #   on each of Wed/Thurs/Fri"), then that could indicate SQL is a better fit. Restaurant data seemed like the 
-        #   closest to being better off with SQL at the first round of designing. 
