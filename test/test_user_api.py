@@ -62,7 +62,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertIn(new_user, self.api._data)
     
     def test_lookup_user(self):
-        existing_user = self.api.lookup_user_obj(self.knownKey) # todo it should work with an int literal
+        existing_user = self.api.lookup_obj(self.knownKey) # todo it should work with an int literal
         #print(type(existingUser))
         #self.assertIsInstance(existingUser, user.User) # todo this keeps failing even though it's a user instance. For namespacing reasons (?)
         self.assertEqual(existing_user.name, "test_user")
@@ -91,7 +91,7 @@ class TestHelloWorldThings(unittest.TestCase):
         }
         new_json = json.dumps(new_data)
         self.api.update_user(self.user_key_grort, new_json)
-        updated_user_json = self.api.lookup_user_json(self.user_key_grort)
+        updated_user_json = self.api.lookup_json(self.user_key_grort)
         updated_user_data = json.loads(updated_user_json) # todo this would not pass when checking the likes attribute of an "updates" User object literal--why? 
                                                             #   Indicates something wrong with the method that looks up a user object. 
         self.assertIn('sushi', updated_user_data["likes"])
@@ -110,7 +110,7 @@ class TestMatchCandidates(unittest.TestCase):
     def test_query_users_currently_near_returns_list(self):
         """Does the method that queries for users near the current location return a non-empty list
         with elements of the same type as the user ids?"""
-        user_location = self.api.lookup_user_obj(self.my_user_id).current_location
+        user_location = self.api.lookup_obj(self.my_user_id).current_location
         assert isinstance(user_location, list) # todo they're not tuples here, json module has parsed them to lists
         query_results = self.api.query_users_currently_near_location(user_location)
         self.assertIsInstance(query_results, list)
@@ -122,7 +122,7 @@ class TestMatchCandidates(unittest.TestCase):
     
     def test_nearby_users_result_nondecreasing(self): # todo confusing wrt when it's reversed vs ascending
         """Are the elements of the list of nearby users nonincreasing? I.e. correctly sorted nearest to farthest?"""
-        user_location = self.api.lookup_user_obj(self.my_user_id).current_location
+        user_location = self.api.lookup_obj(self.my_user_id).current_location
         query_results = self.api.query_users_currently_near_location(user_location)
         for i in range(1, len(query_results)): # The results are sorted descending, to support efficient popping of closest candidate.
             self.assertLessEqual(query_results[i], query_results[i-1])

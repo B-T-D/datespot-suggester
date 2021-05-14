@@ -84,7 +84,7 @@ class TestHelloWorldThings(unittest.TestCase):
 
         domenicos_key = self.api.create_datespot(domenicos_json)
         self.assertIsInstance(domenicos_key, DATESPOT_ID_TYPE)
-        domenicos = self.api.lookup_datespot(domenicos_key)
+        domenicos = self.api.lookup_obj(domenicos_key)
         self.assertEqual(str(type(domenicos)), "DatespotObj")
     
     def test_native_python_dict_value_types(self):

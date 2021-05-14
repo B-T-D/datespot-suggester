@@ -92,14 +92,14 @@ class DatespotAPI(model_api_ABC.ModelAPI):
         values = [float(substring) for substring in stripped.split(sep=',')]
         return tuple(values)
 
-    def lookup_datespot_json(self, id: int) -> str:
+    def lookup_json(self, id: int) -> str:
         """
         Return the JSON string for a Datespot in the DB.
         """
-        datespot_obj = self.lookup_datespot(id)
+        datespot_obj = self.lookup_obj(id)
         return json.dumps(self._serialize_datespot(datespot_obj))
 
-    def lookup_datespot(self, id: int) -> datespot.Datespot: # The main code that uses actual model object instances is other database API code, or the models' internal code
+    def lookup_obj(self, id: int) -> datespot.Datespot: # The main code that uses actual model object instances is other database API code, or the models' internal code
                                                                 # ...(e.g. Datespot uses a User instance to score a restaurant; Match uses two Users and a heap of Datespots).
         """Return the datespot object corresponding to key "id"."""
         self._read_json()

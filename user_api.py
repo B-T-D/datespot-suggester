@@ -55,14 +55,14 @@ class UserAPI(model_api_ABC.ModelAPI):
         self._write_json()
         return user_id
 
-    def lookup_user_json(self, user_id: int) -> str:
+    def lookup_json(self, user_id: int) -> str:
         """
         Return the JSON string for a user.
         """
         self._read_json()
         return json.dumps(self._data[user_id])
 
-    def lookup_user_obj(self, user_id: str) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
+    def lookup_obj(self, user_id: str) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
         """
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
         or raises error if not found.

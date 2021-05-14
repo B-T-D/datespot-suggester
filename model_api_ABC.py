@@ -34,7 +34,6 @@ class ModelAPI:
         for key in json_data:
             self._data[key] = json_data[key]
 
-
     def _write_json(self):
         """Overwrite stored JSON for this model to exactly match current state of the API instance's native Python dictionary."""
         # Todo: Any safeguards that make sense to reduce risk of accidentally overwriting good data?
@@ -70,4 +69,3 @@ class ModelAPI:
         self._validate_object_id(object_id)
         del self._data[object_id]
         self._write_json()
-    
