@@ -17,8 +17,9 @@ class DatabaseAPI:
     def _validate_object_type(self, object_type: str):
         return object_type.lower() in self._valid_object_types
 
-    def add(self, object_type: str, json_data: str, **kwargs) -> int:
+    def post_object(self, object_type: str, json_data: str, **kwargs) -> int:
         """
+        Add data for a new object to the database.
 
         Args:
             
