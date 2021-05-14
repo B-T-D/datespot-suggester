@@ -18,10 +18,11 @@ class Match(metaclass=DatespotAppType):
             user1 (UserObj): A user object.
             user2 (UserObj): A different user object.
         """
-        self.timestamp = None # timestamp of this match instance's first creation
-                                #   Todo this is more of a database thing. Shouldn't be here unless some model algorithm actually uses it for something.
+        
         self.user1 = user1
         self.user2 = user2
+        self.id = self._id() # can't be called before the self.user1 and self.user2 attributes are initialized
+        
         self.midpoint = None # lat lon location equidistant between the two users.
             # todo nuances wrt home vs. current location
         self.distance = None # How far apart the two user are in meters.
@@ -54,6 +55,19 @@ class Match(metaclass=DatespotAppType):
 
         self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date. 
     
+    def __eq__(self, other): # Must define if defining __hash__
+        return hash(self) == hash(other)
+    
+    def __hash__(self): # Hash is the hash of the two users' ids
+        return hash((self.user1.id, self.user2.id))
+    
+    def _id(self) -> str:
+        """
+        Return this Match's id key string.
+        """
+        hex_str = str(hex(hash(self)))
+        return hex_str[2:] # strip "0x" from beginning
+
     def _compute_distance(self) -> None:
         """
         Compute the distance between the two users, in meters.

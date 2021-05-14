@@ -9,13 +9,27 @@ import user_api
 import datespot_api
 import match_api
 
+JSON_MAP_FILENAME = "jsonMap.json"
+
 class DatabaseAPI:
 
-    def __init__(self):
-        self._valid_object_types = {"user", "datespot", "match"}
+    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME):
+        self._valid_model_names = {"user", "datespot", "match"}
+        self._json_map_filename = json_map_filename
 
-    def _validate_object_type(self, object_type: str):
-        return object_type.lower() in self._valid_object_types
+    def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
+        """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.
+        self._validate_model_name(model_name)
+        if model_name == "user":
+            return user_api.UserAPI(json_map_filename=self._json_map_filename)
+        elif model_name == "datespot":
+            return datespot_api.DatespotAPI(json_map_filename=self._json_map_filename)
+        elif model_name == "match":
+            return match_api.MatchAPI(json_map_filename=self._json_map_filename)
+
+    def _validate_model_name(self, model_name):
+        if not model_name in self._valid_model_names:
+            raise ValueError(f"Invalid model name: {model_name}")
 
     def post_object(self, object_type: str, json_data: str, **kwargs) -> int:
         """
@@ -25,23 +39,29 @@ class DatabaseAPI:
             
             object_type (str): "user", "datespot", or "match"
             json_data (str): String in correct JSON format.
+        
+        json_data examples:
 
-        """
+            Creating a user with forced key:
+                {"name": myUserName,
+                "current_location": [40.00, -71.00],
+                "force_key": "1"}
+
+        """ # If force_key for creating a user, put that as JSON key/field.
+        self._validate_model_name(object_type)
         new_object_id = None
         object_type = object_type.lower()
-        if not self._validate_object_type(object_type): # todo how best to handle? Raise exception? String message back to caller rather than just int?
-            return 1
         if object_type == "user":
-            user_db = user_api.UserAPI()
+            user_db = self._model_interface("user")
             if "force_key" in kwargs:
                 new_object_id = user_db.create_user(json_data, kwargs["force_key"])
             else:
                 new_object_id = user_db.create_user(json_data)
         elif object_type == "datespot":
-            datespot_db = datespot_api.DatespotAPI()
+            datespot_db = self._model_interface("datespot")
             datespot_db.create_datespot(json_data)
         elif object_type == "match":
-            match_db = match_api.MatchAPI()
+            match_db = self._model_interface("match")
             json_data = json.loads(json_data)
             user_id_1, user_id_2 = json_data["users"]
             new_object_id = match_db.create_match(user_id_1, user_id_2)
@@ -49,9 +69,7 @@ class DatabaseAPI:
         if new_object_id:
             return new_object_id
 
-    # Todo: All keys need to be ints in externally passable JSON.
-    #   Also the restaurant tuples as keys might end up adding duplicates, if google maps has slightly different lat lon in the response sometimes. 
-    def get_obj(self, object_type, id) -> int:
+    def get_obj(self, object_type, object_id):
     
         """
         Return an internal-model object literal for the data corresponding to the key "id".
@@ -59,28 +77,34 @@ class DatabaseAPI:
         Args:
             object_type (str): "user", "datespot", or "match"
             id (int): primary key of an object in the database.
+        
+        Returns:
+            (model object): Instance of one of the app's custom model classes.
         """
-        if object_type == "datespot":
-            datespot_db = datespot_api.DatespotAPI()
-            return datespot_db.lookup_datespot(id)
-        else:
-            raise NotImplementedError
-
-    def get_all_json(self, object_type) -> str:
-        """
-        Return JSON of all objects of the specified type.
-        """
-        if object_type == "user":
-            user_db = user_api.UserAPI()
-            return json.dumps(user_db.get_all_data())
+        self._validate_model_name(object_type) # todo rename "object_type" arg to "model_name"
+        model_db = self._model_interface(object_type)
+        return model_db.lookup_obj(object_id)
+    
+    def get_all_obj(self, object_type, object_id) -> str:
+        self._validate_model_name(object_type)
+        model_db = self._model_interface(object_type)
+        return model_db._get_all_data() # todo don't use an internal method
 
     def get_json(self, object_type, object_id) -> str:
         """
         Return the JSON for the object corresponding to object_id.
         """
-        if object_type == "user":
-            user_db = user_api.UserAPI()
-            return user_db.lookup_user_json(object_id)
+        self._validate_model_name(object_type)
+        model_db = self._model_interface(object_type)
+        return model_db.lookup_json(object_id) # todo not implemented for match model interface
+
+    def get_all_json(self, object_type) -> str:
+        """
+        Return JSON of all objects of the specified type.
+        """
+        self._validate_model_name(object_type)
+        model_db = self._model_interface(object_type)
+        return json.dumps(model_db._get_all_data()) # todo meant to be an internal method. Goal is to implement s/t can use model_db.data public attribute.
     
     def put_json(self, object_type:str, object_id:int, new_json: str) -> None:
         """
@@ -113,7 +137,6 @@ class DatabaseAPI:
                 user_db.add_to_pending_likes(user_id, candidate_id)
         return False
 
-
     def get_datespots_near(self, location: tuple, radius: int) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
@@ -135,15 +158,10 @@ class DatabaseAPI:
         Returns user id of next candidate.
         """
         user_db = user_api.UserAPI()
-        return user_db.query_next_candidate(user_id)
-    
-    def get_user_json(self, user_id: int) -> str:
-        """Return the stored JSON for a user."""
-        user_db = user_api.UserAPI()
-        return user_db.lookup_user_json(user_id)
-        
+        return user_db.query_next_candidate(user_id)    
 
     def find(self, object_type: str, field: str, *args) -> str:
+        # See https://stackoverflow.com/questions/18591778/how-to-pass-an-operator-to-a-python-function
         """
         Returns JSON string of the corresponding object(s).
 
@@ -160,6 +178,3 @@ class DatabaseAPI:
 
         """
         pass
-
-
-

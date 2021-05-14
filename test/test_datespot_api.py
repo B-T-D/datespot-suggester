@@ -9,6 +9,9 @@ except:
     from datespot_api import DatespotAPI
     from datespot import Datespot
 
+# todo, style--define global constants before or after imports?
+
+DATESPOT_ID_TYPE = str
 TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
 
@@ -33,7 +36,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 fobj.seek(0)
 
         # create a fake DB
-        self.api = DatespotAPI(datafile_name = TEST_JSON_DB_NAME)
+        self.api = DatespotAPI(json_map_filename = TEST_JSON_DB_NAME)
 
         # make a mock restaurant
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
@@ -80,8 +83,8 @@ class TestHelloWorldThings(unittest.TestCase):
         })
 
         domenicos_key = self.api.create_datespot(domenicos_json)
-        self.assertIsInstance(domenicos_key, int)
-        domenicos = self.api.lookup_datespot(domenicos_key)
+        self.assertIsInstance(domenicos_key, DATESPOT_ID_TYPE)
+        domenicos = self.api.lookup_obj(domenicos_key)
         self.assertEqual(str(type(domenicos)), "DatespotObj")
     
     def test_native_python_dict_value_types(self):
@@ -118,11 +121,11 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
         self.assertEqual(self.api.query_num_datespots(), 60) # todo hardcoded to 60 for expediency
     
     def test_api_data_has_expected_shape(self):
-        data = self.api.get_all_data()
+        data = self.api._get_all_data()
         self.assertIsInstance(data, dict)
         self.assertGreater(len(data), 0)
         for key in data:
-            self.assertIsInstance(key, int) # keys should be ints
+            self.assertIsInstance(key, DATESPOT_ID_TYPE) # keys should be ints
             datespot_dict = data[key]
             for schema_key in self.expected_datespot_data_keys:
                 self.assertIn(schema_key, datespot_dict)
@@ -134,10 +137,6 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
     def test_query_datespots_near_returns_locations_within_radius(self):
         """Is the distance between the test location each query result <= the query radius?"""
         query_results = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
-        # print(f"\n------------------------------------")
-        # for result in query_results:
-        #     print(f"{result[0]}\t|\t{result[1]}")
-        # print(f"------------------------------------\n")
         for result in query_results:
             distance = result[0]
             self.assertLessEqual(distance, self.test_radius)

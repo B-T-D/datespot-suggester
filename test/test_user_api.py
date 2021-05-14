@@ -10,7 +10,7 @@ except:
 
 
 TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
-USER_ID_TYPE = int
+USER_ID_TYPE = str
 
 class TestHelloWorldThings(unittest.TestCase):
     """Quick replacement of the manual tests."""
@@ -33,11 +33,11 @@ class TestHelloWorldThings(unittest.TestCase):
                 fobj.seek(0)
 
         # create a fake DB 
-        self.api = UserAPI(datafile_name=TEST_JSON_DB_NAME)
+        self.api = UserAPI(json_map_filename=TEST_JSON_DB_NAME)
         
         # make a mock user directly in the DB with a known uuid primary key:
-        self.knownKey = 3
-        mockUser = user.User("test_user", current_location=(0,0), home_location=(0,0))
+        self.knownKey = str(3)
+        mockUser = user.User(user_id=self.knownKey, name="test_user", current_location=(0,0), home_location=(0,0))
         self.api._data[self.knownKey] = self.api._serialize_user(mockUser)
         assert self.knownKey in self.api._data
 
@@ -50,8 +50,8 @@ class TestHelloWorldThings(unittest.TestCase):
         drobbName = "Drobb"
         drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
 
-        self.user_key_grort = self.api.create_user(json.dumps({"name":grortName, "current_location": grortCurrentLocation}), force_key=1)
-        self.user_key_drobb = self.api.create_user(json.dumps({"name":drobbName, "current_location": drobbCurrentLocation}), force_key=2)
+        self.user_key_grort = self.api.create_user(json.dumps({"name":grortName, "current_location": grortCurrentLocation}), force_key="1")
+        self.user_key_drobb = self.api.create_user(json.dumps({"name":drobbName, "current_location": drobbCurrentLocation}), force_key="2")
     
     def test_create_user(self):
         json_data = json.dumps({
@@ -62,14 +62,14 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertIn(new_user, self.api._data)
     
     def test_lookup_user(self):
-        existing_user = self.api.lookup_user_obj(self.knownKey) # todo it should work with an int literal
+        existing_user = self.api.lookup_obj(self.knownKey) # todo it should work with an int literal
         #print(type(existingUser))
         #self.assertIsInstance(existingUser, user.User) # todo this keeps failing even though it's a user instance. For namespacing reasons (?)
         self.assertEqual(existing_user.name, "test_user")
     
     def test_delete_user(self):
-        self.api.delete(1)
-        self.assertNotIn(1, self.api._data)
+        self.api.delete("1")
+        self.assertNotIn("1", self.api._data)
     
     def test_key_types(self):
         for key in self.api._data:
@@ -91,7 +91,7 @@ class TestHelloWorldThings(unittest.TestCase):
         }
         new_json = json.dumps(new_data)
         self.api.update_user(self.user_key_grort, new_json)
-        updated_user_json = self.api.lookup_user_json(self.user_key_grort)
+        updated_user_json = self.api.lookup_json(self.user_key_grort)
         updated_user_data = json.loads(updated_user_json) # todo this would not pass when checking the likes attribute of an "updates" User object literal--why? 
                                                             #   Indicates something wrong with the method that looks up a user object. 
         self.assertIn('sushi', updated_user_data["likes"])
@@ -99,21 +99,20 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertAlmostEqual(new_data["current_location"][0], updated_user_data["current_location"][0]) # todo these aren't very comprehensive tests
         
 
-
 class TestMatchCandidates(unittest.TestCase):
     """Tests on the persistent mock DB."""
 
     def setUp(self):
         self.api = UserAPI() # Let it use default datafile name
-        self.my_user_id = 1 # Key to use for the user who is doing a simulated "swiping" session
+        self.my_user_id = "1" # Key to use for the user who is doing a simulated "swiping" session
+        assert self.my_user_id in self.api._get_all_data()
     
     def test_query_users_currently_near_returns_list(self):
         """Does the method that queries for users near the current location return a non-empty list
         with elements of the same type as the user ids?"""
-        user_location = self.api.lookup_user_obj(1).current_location
+        user_location = self.api.lookup_obj(self.my_user_id).current_location
         assert isinstance(user_location, list) # todo they're not tuples here, json module has parsed them to lists
         query_results = self.api.query_users_currently_near_location(user_location)
-        print(query_results)
         self.assertIsInstance(query_results, list)
         self.assertGreater(len(query_results), 0)
         for element in query_results:
@@ -123,15 +122,15 @@ class TestMatchCandidates(unittest.TestCase):
     
     def test_nearby_users_result_nondecreasing(self): # todo confusing wrt when it's reversed vs ascending
         """Are the elements of the list of nearby users nonincreasing? I.e. correctly sorted nearest to farthest?"""
-        user_location = self.api.lookup_user_obj(1).current_location
+        user_location = self.api.lookup_obj(self.my_user_id).current_location
         query_results = self.api.query_users_currently_near_location(user_location)
         for i in range(1, len(query_results)): # The results are sorted descending, to support efficient popping of closest candidate.
             self.assertLessEqual(query_results[i], query_results[i-1])
     
     def test_nearby_users_cached(self):
         """Are the results of a nearby users query cached in the querying user's data as expected?"""
-        query_results = self.api.query_users_near_user(1)
-        user_data = self.api.get_all_data()[1] # return the full dict for this user id
+        query_results = self.api.query_users_near_user(self.my_user_id)
+        user_data = self.api._get_all_data()[self.my_user_id] # return the full dict for this user id
         cached_data = user_data["cached_candidates"]
         self.assertEqual(len(query_results), len(cached_data))
         for i in range(len(query_results)):
@@ -145,10 +144,10 @@ class TestMatchCandidates(unittest.TestCase):
         self.assertIn(candidate, self.api._data)
 
     def test_query_next_candidate_skips_blacklisted(self):
-        id_to_blacklist = 2
+        id_to_blacklist = "2"
         self.api.blacklist(self.my_user_id, id_to_blacklist)
-        self.api.query_users_near_user(1)
-        user_data = self.api.get_all_data()[1] # return the full dict for this user id
+        self.api.query_users_near_user(self.my_user_id)
+        user_data = self.api._get_all_data()[self.my_user_id] # return the full dict for this user id
         cached_data = user_data["cached_candidates"]
         self.assertNotIn(id_to_blacklist, cached_data)
     

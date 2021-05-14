@@ -15,13 +15,13 @@ import geo_utils
 
 class UserAPI(model_api_ABC.ModelAPI):
 
-    def __init__(self, datafile_name=None):
-        if datafile_name: # Todo is there a one-liner for this? Ternary expression?
-            super().__init__(datafile_name)
+    def __init__(self, json_map_filename=None):
+        self._model = "user" # Initialization order matters e.g. if defining self.data to init to the read-in json.
+        if json_map_filename: # Todo is there a one-liner for this? Ternary expression?
+            super().__init__(json_map_filename)
         else:
             super().__init__()
 
-        self._model = "user"
         self._valid_model_fields = ["name", "current_location", "home_location", "likes", "dislikes", "match_blacklist"] # todo is this necessary, or could you just check the keys?
         
     def create_user(self, json_data: str, force_key: int=None) -> int:
@@ -34,43 +34,40 @@ class UserAPI(model_api_ABC.ModelAPI):
         for key in json_dict:
             if not key in self._valid_model_fields:
                 raise ValueError(f"Bad JSON in call to create_user: \n{key}")
-        location = tuple(json_dict["current_location"])
         if force_key: # Don't allow force-creating a key that's already taken
             if force_key in self._data:
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
             user_id = force_key
         else:
-            user_id  = uuid.uuid1().int
-        # todo rationale for instantiating here is that the model may have algorithms it runs that add data.
-        #   E.g. for restaurants, instantiating a datespot and running the apply-brand-reps method will add 
-        #   traits that can then be included in the initial db write. Not sure if this is actually good architecture.
-
-        # todo won't that ^ cause circular imports if the models' are using this DBAPI to instantiate other model objects?
+            user_id  = str(uuid.uuid1().int)
         new_user = user.User(
+            user_id = user_id,
             name=json_dict["name"],
-            current_location = location
+            current_location = tuple(json_dict["current_location"])
         )
 
         self._data[user_id] = self._serialize_user(new_user)
         self._write_json()
         return user_id
 
-    def lookup_user_json(self, user_id: int) -> str:
+    def lookup_json(self, user_id: int) -> str:
         """
         Return the JSON string for a user.
         """
         self._read_json()
         return json.dumps(self._data[user_id])
 
-    def lookup_user_obj(self, user_id: int) -> user.User: # todo the keys in the dict are ending up as string, not ints. Not obvious why.
+    def lookup_obj(self, user_id: str) -> user.User:
         """
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
         or raises error if not found.
         """
         self._read_json()
+        self._validate_object_id(user_id)
         user_data = self._data[user_id]
         assert type(user_data) == dict
         user_obj = user.User(
+            user_id = user_id,
             name=user_data["name"],
             current_location=user_data["current_location"],
             home_location=user_data["home_location"],
@@ -81,7 +78,6 @@ class UserAPI(model_api_ABC.ModelAPI):
             user_obj.match_blacklist = user_data["match_blacklist"]
 
         return user_obj
-
 
     def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does. 
         """
@@ -96,7 +92,7 @@ class UserAPI(model_api_ABC.ModelAPI):
             if not key in self._valid_model_fields: # todo this validation isn't complete or in the smartest/clearest place. Need to check shape, make sure 100% right about append vs. overwrite
                 raise ValueError(f"Invalid user field: {key}")
             if type(new_data[key]) != type(user_data[key]):
-                raise TypeError(f"Incorrect user data type for field {key}")
+                raise TypeError(f"Incorrect user data type for field {key}.\nExpected type {type(user_data[key])}")
         for key in new_data: # todo best practice on type() vs isinstance?
             entry_type = type(user_data[key])
             entry = user_data[key]
@@ -129,7 +125,7 @@ class UserAPI(model_api_ABC.ModelAPI):
             if distance < radius:
                 query_results.append((distance, user_id)) # todo no need to put the whole dict into the results, right?
         query_results.sort()
-        query_results.reverse() # Want to pop nearest candidate from end. 
+        query_results.reverse() # Put nearest candidate at end, for performant pop() calls. 
         return query_results
            
     def query_users_near_user(self, user_id: int) -> list:
@@ -139,12 +135,11 @@ class UserAPI(model_api_ABC.ModelAPI):
         query_results = self.query_users_currently_near_location(tuple(query_location))
         if query_results[-1] == user_id: # Don't include the user in that user's results
             query_results.pop()
-        # Want to fully overwrite it to the latest and greatest, even if the cache already existed:
-        self._data[user_id]["cached_candidates"] = query_results
+        
+        self._data[user_id]["cached_candidates"] = query_results # Fully overwrite to latest and greatest, even the cache already existed:
         self._write_json()
 
         return query_results
-    
 
     def _refresh_candidates(self, user_id) -> bool:
         """Return True if this user's candidates cache is null, empty, or otherwise should be updated."""
@@ -156,13 +151,14 @@ class UserAPI(model_api_ABC.ModelAPI):
     def query_next_candidate(self, user_id) -> int:
         """Return the user id of the next candidate for user user_id to swipe on."""
         self._read_json()
-        if self._refresh_candidates(user_id): # todo check if the user's location changed by enough to warrant a new query rather than pulling from cache
+        if self._refresh_candidates(user_id): # todo check if user's location changed by enough to warrant new query rather than pulling from cache
             self.query_users_near_user(user_id)
         user_data = self._data[user_id]
         candidate_id = user_data["cached_candidates"].pop()[1] # todo confusing code with the slice. Does the cache really need the distance?
+        
         blacklist = user_data["match_blacklist"]
         while candidate_id in blacklist: # keep popping until a non blacklisted one is found
-            candidate_id = self._data[user_id]["cached_candidates"].pop()
+            candidate_id = self._data[user_id]["cached_candidates"].pop()[1] # todo again, need the slice to access the id itself rather than the list containing [distance, id]
         self._write_json()
         return candidate_id
         # We can pop the candidate, because that id is coming back either as a match or as a blacklist, assuming the tinder model.
@@ -210,11 +206,3 @@ class UserAPI(model_api_ABC.ModelAPI):
             "matches": user.matches
         }
         return userDict
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()

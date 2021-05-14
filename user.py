@@ -3,13 +3,13 @@ from app_object_type import DatespotAppType
 
 class User(metaclass=DatespotAppType):
 
-    # todo no camel case in the constructor arg names
-    def __init__(self, name:  str, current_location: tuple=None, home_location: tuple=None, likes: list=None, dislikes: list=None):
+    def __init__(self, user_id: str, name: str, current_location: tuple=None, home_location: tuple=None, likes: list=None, dislikes: list=None):
         """
         Args:
             current_location (tuple[int]): Tuple of two ints representing 2D coordinates.
             homeLocation (tuple[int]): Tuple of two ints representing 2D coordinates.
         """
+        self.id = user_id # Unlike Datespot and Match, the id isn't a function of hashing some attribute of the object; it comes from the chronological creation order in the DB
         self.name = name
         self.current_location = current_location
         self.home_location = home_location
@@ -36,6 +36,12 @@ class User(metaclass=DatespotAppType):
         self.matches = {} # Users this user matched with and therefore can chat with. 
         self.match_blacklist = {} # Users with whom this user should never be matched. Keys are user ids, values timestamps indicating when the blacklisting happened. 
     
+    def __eq__(self, other): # must define if defining __hash__
+        return hash(self) == hash(other) # todo DRY into ABC? Identical code for all three of User, Datespot, and Match
+    
+    def __hash__(self):
+        return hash(self.id)
+
     def __str__(self):
         """
         Return the string representation of a dictionary containing all the user's info.
