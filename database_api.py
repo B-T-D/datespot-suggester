@@ -42,13 +42,10 @@ class DatabaseAPI:
         
         json_data examples:
 
-            Creating a user:
-
-                {
-                    "name": myUserName,
-                    "current_location": [40.00, -71.00],
-                    "force_key": "1"
-                }
+            Creating a user with forced key:
+                {"name": myUserName,
+                "current_location": [40.00, -71.00],
+                "force_key": "1"}
 
         """ # If force_key for creating a user, put that as JSON key/field.
         self._validate_model_name(object_type)
@@ -72,8 +69,6 @@ class DatabaseAPI:
         if new_object_id:
             return new_object_id
 
-    # Todo: All keys need to be ints in externally passable JSON.
-    #   Also the restaurant tuples as keys might end up adding duplicates, if google maps has slightly different lat lon in the response sometimes. 
     def get_obj(self, object_type, object_id) -> int:
     
         """
@@ -86,6 +81,11 @@ class DatabaseAPI:
         self._validate_model_name(object_type) # todo rename "object_type" arg to "model_name"
         model_db = self._model_interface(object_type)
         return model_db.lookup_obj(object_id)
+    
+    def get_all_obj(self, object_type, object_id) -> str:
+        self._validate_model_name(object_type)
+        model_db = self._model_interface(object_type)
+        return model_db._get_all_data() # todo don't use an internal method
 
     def get_json(self, object_type, object_id) -> str:
         """
@@ -174,6 +174,3 @@ class DatabaseAPI:
 
         """
         pass
-
-
-
