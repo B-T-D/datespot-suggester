@@ -9,6 +9,8 @@ import user_api
 import datespot_api
 import match_api
 
+# todo: The models should serialize. That will expand reusability of the model interfaces. 
+
 JSON_MAP_FILENAME = "jsonMap.json"
 
 class DatabaseAPI:
