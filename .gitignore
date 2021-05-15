@@ -131,3 +131,4 @@ dmypy.json
 # ad hoc
 example*.json
 /data_utils
+/nlp_sandbox
