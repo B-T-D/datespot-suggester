@@ -20,10 +20,11 @@ class TestHelloWorldThings(unittest.TestCase):
 
     def setUp(self):
 
-        dataMap = {
+        dataMap = { # todo DRY, this is repeated in every model interface's tests module
             "user_data": "test/testing_mockUserDB.json",
             "datespot_data": "test/testing_mockDatespotDB.json",
-            "match_data": "test/testing_mockMatchData.json"
+            "match_data": "test/testing_mockMatchData.json",
+            "review_data": "test/testing_mockReviewData.json"
             }
         with open(TEST_JSON_DB_NAME, 'w') as fobj:
             json.dump(dataMap, fobj)

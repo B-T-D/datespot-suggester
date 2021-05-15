@@ -23,14 +23,14 @@ class DatespotAPI(model_api_ABC.ModelAPI):
             super().__init__()
         self._valid_model_fields = ["name", "location", "traits", "price_range", "hours"]
     
-    def create_datespot(self, json_data: str) -> int:
+    def create_datespot(self, json_data: str) -> str:
         """
         Creates a new Datespot object, serializes it to the persistent JSON, and returns its id key.
         """
         self._read_json()
         json_dict = json.loads(json_data)
         # Validate fields
-        for key in json_dict:
+        for key in json_dict: # todo refactor to use the inherited _validate_fields method
             if not key in self._valid_model_fields: # todo validate the values
                 raise ValueError(f"Bad JSON in call to create_datespot(): {key}")
         location_tuple = tuple(json_dict["location"])

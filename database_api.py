@@ -33,9 +33,9 @@ class DatabaseAPI:
         if not model_name in self._valid_model_names:
             raise ValueError(f"Invalid model name: {model_name}")
 
-    def post_object(self, object_type: str, json_data: str, **kwargs) -> int:
+    def post_object(self, object_type: str, json_data: str, **kwargs) -> str:
         """
-        Add data for a new object to the database.
+        Add data for a new object to the database and return its id string.
 
         Args:
             

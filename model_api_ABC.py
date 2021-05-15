@@ -57,6 +57,12 @@ class ModelAPI:
     def _is_valid_object_id(self, object_id: int) -> bool:
         return object_id in self._data
     
+    def _validate_json_fields(self, json_dict: dict) -> None:
+        """Raise ValueError if any key in json_dict isn't a valid field for this model."""
+        for key in json_dict:
+            if not key in self._valid_model_fields:
+                raise ValueError(f"Invalid field in call to model interface create method: {key}")
+    
     def _get_all_data(self) -> dict: # todo access this with the public attribute "self.data", not this method
         """Return the API instance's data as a native Python dictionary."""
         self._read_json()
