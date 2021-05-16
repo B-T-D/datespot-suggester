@@ -22,7 +22,7 @@ class UserAPI(model_api_ABC.ModelAPI):
         else:
             super().__init__()
 
-        self._valid_model_fields = ["name", "current_location", "home_location", "likes", "dislikes", "match_blacklist"] # todo is this necessary, or could you just check the keys?
+        self._valid_model_fields = ["name", "current_location", "home_location", "likes", "dislikes", "match_blacklist", "force_key"] # todo is this necessary, or could you just check the keys?
         
     def create_user(self, json_data: str, force_key: int=None) -> int:
         """

@@ -3,6 +3,9 @@ from app_object_type import DatespotAppType
 import nltk
 from vaderSentiment import vaderSentiment as vs
 
+SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC shared by Review, Message, and any other
+                                #   code that calls VSA methods that return floats.
+
 class Review(metaclass=DatespotAppType):
 
     def __init__(self, datespot_id: str, text:str):
@@ -57,7 +60,7 @@ class Review(metaclass=DatespotAppType):
                 word = word.rstrip('.,;:/').lower() # todo very hacky, will miss lots of cases. Use isletter on the first and last character
                 if word in self._date_related_words:
                     date_words_count += 1
-        self._relevance = round(date_words_count / len(self.text), 4) # todo starting point is to at least normalize it better, this will never get close to 1.0
+        self._relevance = round(date_words_count / len(self.text), SENTIMENT_DECIMAL_PLACES) # todo starting point is to at least normalize it better, this will never get close to 1.0
         return self._relevance
     
     def serialize(self) -> dict:
