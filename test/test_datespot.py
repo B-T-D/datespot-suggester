@@ -1,6 +1,11 @@
-import unittest
+import unittest, json
 
 from datespot import Datespot
+
+from database_api import DatabaseAPI
+
+TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
+DATESPOT_SCORE_DECIMAL_PLACES = 4
 
 class TestHelloWorldThings(unittest.TestCase):
     """Quick non-brokenness tests."""
@@ -29,6 +34,21 @@ class TestHelloWorldThings(unittest.TestCase):
             price_range=self.terrezanos_price_range,
             hours=self.terrezanos_hours
         )
+
+        # Make mock user to test scoring:
+        
+        self.db = DatabaseAPI(json_map_filename=TEST_JSON_DB_NAME)
+
+        grortName = "Grort"
+        grortCurrentLocation = (40.746667, -74.001111)
+        grort_json = json.dumps({
+            "name": grortName,
+            "current_location": grortCurrentLocation,
+            "tastes": {"italian": [0.1, 1]}
+        })
+        self.grort_user_id = self.db.post_object("user", grort_json)
+        self.user_grort = self.db.get_obj("user", self.grort_user_id)
+
     
     def test_baseline_scoring_data_read_from_json(self):
         """Did the universal baseline scoring data read in from the persistent JSON as expected?"""
@@ -40,3 +60,9 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertIsInstance(self.terrezanos.brand_reputations, dict)
         for tagged_restaurants in self.terrezanos.brand_reputations.values():
             self.assertIsInstance(tagged_restaurants, set)
+
+    def test_score(self):
+        """Does the internal scorer method return a score as expected?"""
+        expected_score = round(0.1 * (2/3), DATESPOT_SCORE_DECIMAL_PLACES) # todo hardcoded. NB for "gameplay" balance, this (2/3) is the score you get if it matches a genre you like and you know nothing else about the restaurant.
+        actual_score = self.terrezanos._score(self.user_grort)
+        self.assertAlmostEqual(expected_score, actual_score)

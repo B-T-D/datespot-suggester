@@ -1,7 +1,10 @@
 from app_object_type import DatespotAppType
 
+import json # to read in the keywords only
 import nltk
 from vaderSentiment import vaderSentiment as vs
+
+TASTES_KEYWORDS = "tastes_keywords.txt"
 
 SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC shared by Review, Message, and any other
                                 #   code that calls VSA methods that return floats.
@@ -26,6 +29,14 @@ class Message(metaclass=DatespotAppType):
         self.text = text
 
         self.id = self._id()
+
+        self._tastes_keywords =  None
+
+        with open(TASTES_KEYWORDS, 'r') as fobj:
+            self._tastes_keywords = json.load(fobj)
+        assert isinstance(self._tastes_keywords, list)
+        self._tastes_keywords.sort() # for binary search
+
         self._sentences = []
         self._sentimient_avg = None
         self.sentiment_avg = self._analyze_sentiment() # Sentence-wise mean sentiment from VADER
@@ -69,6 +80,11 @@ class Message(metaclass=DatespotAppType):
         analyzer = vs.SentimentIntensityAnalyzer()
         for sentence in self._sentences:
             sentiments_sum += analyzer.polarity_scores(sentence)["compound"]
+            for word in sentence: # todo time complexity terrible
+                    # todo implement binary search
+                if word in self._tastes_keywords:
+                    pass # todo update the sender user object literal's tastes data. MessageModelInterface is responsible for writing the changes to both the 
+                        #   message data and the user data.
         self._sentiment_avg = round(sentiments_sum / len(self._sentences), SENTIMENT_DECIMAL_PLACES)
         return self._sentiment_avg
 
