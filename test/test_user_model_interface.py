@@ -2,10 +2,10 @@ import unittest
 import json
 
 try:
-    from python_backend.user_api import UserAPI
+    from python_backend.model_interfaces import UserModelInterface
     from python_backend import user
 except:
-    from user_api import UserAPI
+    from model_interfaces import UserModelInterface
     import user
 
 
@@ -33,7 +33,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 fobj.seek(0)
 
         # create a fake DB 
-        self.api = UserAPI(json_map_filename=TEST_JSON_DB_NAME)
+        self.api = UserModelInterface(json_map_filename=TEST_JSON_DB_NAME)
         
         # make a mock user directly in the DB with a known uuid primary key:
         self.knownKey = str(3)
@@ -103,7 +103,7 @@ class TestMatchCandidates(unittest.TestCase):
     """Tests on the persistent mock DB."""
 
     def setUp(self):
-        self.api = UserAPI() # Let it use default datafile name
+        self.api = UserModelInterface() # Let it use default datafile name
         self.my_user_id = "1" # Key to use for the user who is doing a simulated "swiping" session
         assert self.my_user_id in self.api._get_all_data()
     

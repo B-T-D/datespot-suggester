@@ -5,9 +5,7 @@ be unaffected by SQL vs. NoSQL and similar issues.
 
 import json
 
-import user_api
-import datespot_api
-import match_api
+import model_interfaces
 
 # todo: The models should serialize. That will expand reusability of the model interfaces. 
 
@@ -23,11 +21,11 @@ class DatabaseAPI:
         """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.
         self._validate_model_name(model_name)
         if model_name == "user":
-            return user_api.UserAPI(json_map_filename=self._json_map_filename)
+            return model_interfaces.UserModelInterface(json_map_filename=self._json_map_filename)
         elif model_name == "datespot":
-            return datespot_api.DatespotAPI(json_map_filename=self._json_map_filename)
+            return model_interfaces.DatespotModelInterface(json_map_filename=self._json_map_filename)
         elif model_name == "match":
-            return match_api.MatchAPI(json_map_filename=self._json_map_filename)
+            return model_interfaces.MatchModelInterface(json_map_filename=self._json_map_filename)
 
     def _validate_model_name(self, model_name):
         if not model_name in self._valid_model_names:
@@ -113,7 +111,7 @@ class DatabaseAPI:
         Update the stored JSON for the corresponding field of the corresponding object."""
 
         if object_type ==  "user":
-            user_db = user_api.UserAPI()
+            user_db = self._model_interface()
             user_db.update_user(object_id, new_json)
     
     def post_swipe(self, user_id, candidate_id, outcome_json: str) -> bool:
@@ -143,7 +141,7 @@ class DatabaseAPI:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
 
-        datespots_db = datespot_api.DatespotAPI()
+        datespots_db = self._model_interface("datespot")
         # todo validate the location and radius here?
         results = datespots_db.query_datespots_near(location, radius)
         return results
@@ -152,14 +150,14 @@ class DatabaseAPI:
         """
         Return JSON for the next suggested date location for this match.
         """
-        match_db = match_api.MatchAPI()
+        match_db = self._model_interface("match")
         return match_db.get_next_suggestion(match_id)
     
     def get_next_candidate(self, user_id: int) -> int:
         """
         Returns user id of next candidate.
         """
-        user_db = user_api.UserAPI()
+        user_db = self._model_interface("user")
         return user_db.query_next_candidate(user_id)    
 
     def find(self, object_type: str, field: str, *args) -> str:

@@ -3,10 +3,10 @@ import json
 import random
 
 try:
-    from python_backend.datespot_api import DatespotAPI
+    from python_backend.model_interfaces import DatespotModelInterface
     from python_backend.datespot import Datespot
 except:
-    from datespot_api import DatespotAPI
+    from model_interfaces import DatespotModelInterface
     from datespot import Datespot
 
 # todo, style--define global constants before or after imports?
@@ -37,7 +37,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 fobj.seek(0)
 
         # create a fake DB
-        self.api = DatespotAPI(json_map_filename = TEST_JSON_DB_NAME)
+        self.api = DatespotModelInterface(json_map_filename = TEST_JSON_DB_NAME)
 
         # make a mock restaurant
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
@@ -66,7 +66,7 @@ class TestHelloWorldThings(unittest.TestCase):
         assert self.terrezanos_id in self.api._data
         
     def test_instantiation(self):
-        self.assertIsInstance(self.api, DatespotAPI)
+        self.assertIsInstance(self.api, DatespotModelInterface)
     
     def test_create_datespot(self):
         domenicos_location = (40.723889184134926, -73.97613846772394)
@@ -108,14 +108,14 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
     """Tests using a persistent "real" DB rather than a separate DB initialized solely for testing purposes."""
 
     def setUp(self):
-        self.api = DatespotAPI() # let it use the default DB file
+        self.api = DatespotModelInterface() # let it use the default DB file
         self.test_location = (40.74491605331198, -74.00333467806617)
         self.test_radius = 2000
 
         self.expected_datespot_data_keys = ["id", "location", "name", "traits", "price_range", "hours"]
     
     def test_init(self):
-        self.assertIsInstance(self.api, DatespotAPI)
+        self.assertIsInstance(self.api, DatespotModelInterface)
     
     def test_api_has_data(self):
         self.assertGreater(self.api.query_num_datespots(), 0)

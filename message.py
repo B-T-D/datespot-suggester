@@ -28,7 +28,6 @@ class Message(metaclass=DatespotAppType):
         self.sentiment_avg = self._analyze_sentiment() # Sentence-wise mean sentiment from VADER
         # Todo: Better for documentation not to just have a sentiment getter method with its own docstring?
 
-
     def __eq__(self, other):
         return hash(self) == hash(other)
     

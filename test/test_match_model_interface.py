@@ -3,11 +3,9 @@ import json
 import random
 
 try:
-    from python_backend.match_api import MatchAPI
-    from python_backend.user_api import UserAPI
+    from python_backend.model_interfaces import MatchModelInterface, UserModelInterface
 except:
-    from match_api import MatchAPI
-    from user_api import UserAPI
+    from model_interfaces import MatchModelInterface, UserModelInterface
 
 from match import Match
 
@@ -34,8 +32,8 @@ class TestHelloWorldThings(unittest.TestCase):
                 json.dump({}, fobj)
                 fobj.seek(0)
 
-        self.api = MatchAPI(json_map_filename = TEST_JSON_DB_NAME)
-        self.user_api = UserAPI(json_map_filename = TEST_JSON_DB_NAME)
+        self.api = MatchModelInterface(json_map_filename = TEST_JSON_DB_NAME)
+        self.user_api = UserModelInterface(json_map_filename = TEST_JSON_DB_NAME)
 
         # Create users in order to create a match.
         grortName = "Grort"
@@ -57,7 +55,7 @@ class TestHelloWorldThings(unittest.TestCase):
         assert isinstance(self.knownMatchKey, str)
 
     def test_instantiation(self):
-        self.assertIsInstance(self.api, MatchAPI)
+        self.assertIsInstance(self.api, MatchModelInterface)
 
     def test_create_match(self):
         matchKey = self.api.create_match(user1_id = self.userKeyGrort, user2_id = self.userKeyDrobb)

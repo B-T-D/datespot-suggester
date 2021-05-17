@@ -1,7 +1,8 @@
 import unittest
 import json
 
-from review_api import ReviewAPI
+from model_interfaces import ReviewModelInterface
+
 from database_api import DatabaseAPI
 
 TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
@@ -28,7 +29,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 json.dump({}, fobj)
                 fobj.seek(0)
 
-        self.api = ReviewAPI(json_map_filename = TEST_JSON_DB_NAME)
+        self.api = ReviewModelInterface(json_map_filename = TEST_JSON_DB_NAME)
 
         # Make mock restaurant
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
@@ -54,7 +55,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.expected_relevance = round(1 / len(self.mock_text_positive_relevant), 4) # i.e. "date" appears once.
     
     def test_instantiation(self):
-        self.assertIsInstance(self.api, ReviewAPI)
+        self.assertIsInstance(self.api, ReviewModelInterface)
     
     def test_create_review(self):
         review_json = json.dumps({
