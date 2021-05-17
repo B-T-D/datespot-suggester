@@ -1,12 +1,12 @@
 {
     "trait_weights": {
-        "fast food": -25,
-            "lodging": -5,
-            "pizza": -10,
-            "chain": -5,
-            "unromantic chain": -15,
-            "bar": 5,
-            "cafe": 5
+        "fast food": -0.25,
+            "lodging": -0.05,
+            "pizza": -0.1,
+            "chain": -0.05,
+            "unromantic chain": -0.15,
+            "bar": 0.05,
+            "cafe": 0.05
     },
     "brand_reputations": {
         "brandrep_fast_foods":  [

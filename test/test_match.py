@@ -14,7 +14,7 @@ class TestHelloWorldThings(unittest.TestCase):
 
     def setUp(self):
         
-        self.db = DatabaseAPI()
+        self.db = DatabaseAPI() # Testing on the real DB, to have restaurants
 
         # Need user objects to instantiate a Match
         grortName = "Grort"

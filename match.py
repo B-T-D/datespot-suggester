@@ -109,11 +109,9 @@ class Match(metaclass=DatespotAppType):
         """Compute the joint datespot score for each result, and push it to a max heap sorted on score."""
         geo_results = self._get_datespots_by_geography()
         heapq.heapify(geo_results) # min heap sorted on distance
-        #(f"geo_results in match.py = \n{geo_results}")
         suggestions_heap = []
 
-        db = database_api.DatabaseAPI() # todo rationalize. Make sense to have one for whole lifetime of Match object?
-
+        db = database_api.DatabaseAPI() # todo we don't want to do it this way if at all avoidable, because i.a. makes a mess in testing wrt which JSON map is used when.
         while geo_results:
             candidate = heapq.heappop(geo_results)[1] # todo it'd be simpler if this list had the id along with the other data.
             # elements in the heap are tuples, element[0] is the distance "key", element[1] is the actual object

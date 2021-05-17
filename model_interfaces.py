@@ -304,44 +304,14 @@ class DatespotModelInterface(ModelInterfaceABC):
         new_object_id = datespot_obj.id # todo refactor to the uniform approach: create the object, then call its id method.
 
         # Save the object's data to the DB using that hash as the key
-        self._data[new_object_id] = self._serialize_datespot(datespot_obj)
+        self._data[new_object_id] = datespot_obj.serialize()
         self._write_json()
         return new_object_id
-
-    def _serialize_datespot(self, datespot) -> dict: # Todo don't need the id here, right? Or is that unneccessarily confusing and should just slap the id everywhere?
-        datespotDict = {
-            "id": datespot.id,
-            "location": datespot.location,
-            "name": datespot.name,
-            "traits": list(datespot.traits),
-            "price_range": datespot.price_range,
-            "hours": datespot.hours,
-            "baseline_dateworthiness": datespot.baseline_dateworthiness
-        }
-        return datespotDict
     
     def _validate_new_datespot(self):
     # todo query the db by name and location to avoid duplicates. I.e. does a restaurant with that name 
     #   already exist at approximately that location in the db?
         pass
-
-    # todo try using the object_hook arg to json.load to handle the tuple vs string 
-    #   thing in a more code-concise way. 
-    def _tuple_loc_key_to_string(self, location_key: tuple) -> str:
-        """
-        Convert a tuple literal to a string representation that Python json library
-        defaults accept as a key.
-        """
-        return str(location_key)
-    
-    def _string_loc_key_to_tuple(self, location_key_string: str) -> tuple:
-        """
-        Convert a string representation of the three-element tuple to a literal
-        three-element tuple object.
-        """
-        stripped = location_key_string.strip('()') # todo one-liner means fewer copies right?
-        values = [float(substring) for substring in stripped.split(sep=',')]
-        return tuple(values)
 
     def lookup_json(self, id: int) -> str:
         """
@@ -363,20 +333,41 @@ class DatespotModelInterface(ModelInterfaceABC):
             hours = datespot_data["hours"]
         )
 
-    def update_datespot(self, id: str, **kwargs): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
+    def update_datespot(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
         self._read_json()
-        datespot_data = self._data[id]
+        datespot_data = self._data[id] # Todo: kwargs isn't the "standard" way the other MIs have been doing it. Take JSON.
+        json_data = json.loads(update_json)
+        self._validate_json_fields(json_data)
 
-        for field in self._valid_model_fields:
-            if field in kwargs:
-                new_value = kwargs[field]
-                if field == "traits": # todo what if you want to clear the list? YAGNI for now
-                    if isinstance(new_value, list):
-                        datespot_data[field].extend(new_value)
-                    else:
-                        datespot_data[field].append(new_value)
-                else: # Any field other than the traits list can just be overwritten entirely
+        for field in self._valid_model_fields: # Todo: SRP--make separate helper to do the hard-to-follow dict updates?
+            if field in json_data: # i.e. the keys in the dict
+                new_value = json_data[field]
+                if field == "traits": # todo what if you want to clear the dict?
+                    assert isinstance(new_value, dict)
+                    for update_key in new_value: # the "value" is a nested dict
+                        # if not already in the restaurants traits, initialize it with 1 datapoint:
+                        score, data_info = update_key[0], update_key[1] # todo for now, just pretend they're sending in a datapoints count
+                        discrete = update_key[1] == "discrete" # todo the discrete vs. continuous thing seems needlessly complex, surely a better way
+                        if not update_key in datespot_data["traits"]:
+                            datespot_data["traits"][update_key] = [update_key]
+                            if discrete:
+                                datespot_data["traits"][update_key].append("discrete")
+                            else:
+                                datespot_data["traits"][update_key].append(1) # this was the first datapoint
+                        elif not discrete:
+                            trait_data = datespot_data["traits"][update_key]
+                            stored_score = trait_data[0]
+                            stored_num_datapoints = trait_data[1]
+                            stored_score = (stored_score * stored_num_datapoints + score) / stored_num_datapoints + 1
+                            stored_num_datapoints += 1
+
+                        # if discrete and already in data, do nothing. E.g. we already knew it's an Italian restaurant, nothing to update.
+
+
+                        # todo the caller only sends the label and the intensity (if applicable), not a datapoints count
+
+                else: # Any field other than the traits dict can just be overwritten entirely
                     datespot_data[field] = new_value
 
         self._write_json()
@@ -621,7 +612,7 @@ class ChatModelInterface(ModelInterfaceABC):
         self._write_json()
         return new_obj_id
 
-    def update_chat(self, object_id: str, update_json): # Todo will need more sophisticated interface for adding/removing from lists. Same in other models that have running-list data.
+    def update_chat(self, object_id: str, update_json: str): # Todo will need more sophisticated interface for adding/removing from lists. Same in other models that have running-list data.
         self._read_json()
         self._validate_object_id
         
