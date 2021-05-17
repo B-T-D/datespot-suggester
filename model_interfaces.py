@@ -123,6 +123,9 @@ class UserModelInterface(ModelInterfaceABC):
             name=json_dict["name"],
             current_location = tuple(json_dict["current_location"])
         )
+        if "tastes" in json_dict:
+            print(f"*****adding tastes*****")
+            new_user.tastes = json_dict["tastes"]
 
         self._data[user_id] = new_user.serialize()
         self._write_json()

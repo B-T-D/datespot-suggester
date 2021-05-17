@@ -7,6 +7,7 @@ import hashlib, struct
 
 BASELINE_SCORING_DATA = "datespot_baseline_scoring_data.json"
 MAX_LATLON_COORD_DECIMAL_PLACES = 8
+DATESPOT_SCORE_DECIMAL_PLACES = 4
 
 ##### DB schema #####
 
@@ -60,7 +61,7 @@ class Datespot(metaclass=DatespotAppType):
             self.baseline_trait_weights = all_json["trait_weights"]
             self.brand_reputations = all_json["brand_reputations"]
 
-        self.baseline_dateworthiness = 50 # Todo: What's the best scoring scale? -1 to 1? 0 to 1? 0 to 99?
+        self.baseline_dateworthiness = 0.0 # Todo: What's the best scoring scale? -1 to 1? 0 to 1? 0 to 99?
 
         self.traits = traits  
         
@@ -82,7 +83,6 @@ class Datespot(metaclass=DatespotAppType):
         """
         hex_str = str(hex(self.__hash__())) # todo can/should you just just "hash(self)"?
         return hex_str[2:] # strip the "0x"
-
 
     # todo is_open queries might be better handled by direct DB queries, i.e. outside this module.
     #   One of the DB APIs will be able to do stuff like "check if we already know the hours for this restaurant recently enough,
@@ -128,7 +128,7 @@ class Datespot(metaclass=DatespotAppType):
         for trait in self.traits:
             if trait in user.tastes:
                 datapoints += 1
-                score += self.traits[trait] * user.tastes[trait] # i.e. if user is negative on that trait, this will reduce the score
+                score += self.traits[trait][0] * user.tastes[trait][0] # user.tastes[trait][0] is the actual score, [1] is the datapoints counter
         if datapoints: # Don't divide by zero
             score /= datapoints # Divide the score by the number of data points to scale it back to -1.0 to 1.0.
                                 # Todo check the math and business logic on this...
@@ -140,7 +140,7 @@ class Datespot(metaclass=DatespotAppType):
                             # Todo: Goal is to weight user tastes data heavily if we have it, but otherwise defer to the baseline dateworthiness. Make
                             #   sure the formula here does that. 
 
-        return score
+        return round(score, DATESPOT_SCORE_DECIMAL_PLACES)
     
     def serialize(self) -> dict:
         """Return data about this object that should be stored."""
@@ -151,10 +151,3 @@ class Datespot(metaclass=DatespotAppType):
             "price_range": self.price_range,
             "hours": self.hours
         }
-
-def main():
-
-    pass
-
-if __name__ == '__main__':
-    main()
