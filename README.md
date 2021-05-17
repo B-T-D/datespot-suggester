@@ -18,7 +18,8 @@ Conceptual prototype for a dating app API that suggests date locations to users.
 - [ ] Integrate data from additional third-party APIs (Yelp?) to improve recommendation algorithm.
 - [ ] Add support for hypothetical concurrent DB interactions. In a real dating app, multiple users would sometims interact with a single DB object concurrently.
 
-### Landmark features
+### Milestone features
+- [ ] Analyze user chats to find keywords relevant to date-location preferences, and tailor that user's suggestions accordingly.
 - [ ] Dynamically adjust suggested dates' price level and expected duration based on sentiment analysis of a user chats. Nudge users toward investing less money and time in a date that is less likely to be successful, and more in a date that is likelier to have good chemistry.
 
 ## Priorities
@@ -33,3 +34,8 @@ Conceptual prototype for a dating app API that suggests date locations to users.
   
 ### Computing the distance between two latitude-longitude coordinate pairs.
   This required a bit more math than I anticipated this app needing (the simple Euclidean distance isn't useful when the "coordinates" are lat lon decimals), but it was straightforward with the correct formulae.
+  
+### Efficient lookup of keyword strings: binary search vs. hash tables
+  As part of analyzing user chats to learn restaurant preferences, I wanted to look up each word in a chat message in a list of known relevant keywords--e.g. "Thai", "vegetarian", "coffee"--and then use the net sentiment of the sentence containing the keyword as a proxy for the user's feelings toward that keyword ("I love Thai food" boosts Thai restaurants in that user's suggestions). In a real dating app, each of the thousands of users would send dozens or hundreds of messages daily, so the performance of the keyword lookup would be important. 
+  
+  My first instinct was to store the keywords in a hash set, for average-case O(1) time lookup. But the Python JSON encode/decode library doesn't decode to a Python set object by default; doing so would require creating a custom encoder (https://stackoverflow.com/questions/8230315/how-to-json-serialize-sets). So until I had time to write the custom encoder, I decided to store the keyword strings in a lexicographically sorted Python list (i.e. array) and look them up with binary search in worst-case O(log(n)) time. I expected this data to be quite static (i.e. not gaining new keywords very often), so I was not concerned about the time complexity of sorting the array or inserting new elements.
