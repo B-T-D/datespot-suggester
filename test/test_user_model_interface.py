@@ -17,55 +17,59 @@ class TestHelloWorldThings(unittest.TestCase):
 
     def setUp(self):
 
-        dataMap = {
+        data_map = { # todo DRY, this is repeated in every model interface's tests module
             "user_data": "test/testing_mockUserDB.json",
             "datespot_data": "test/testing_mockDatespotDB.json",
-            "match_data": "test/testing_mockMatchData.json"
+            "match_data": "test/testing_mockMatchData.json",
+            "review_data": "test/testing_mockReviewData.json",
+            "message_data": "test/testing_mockMessageData.json",
+            "chat_data": "test/testing_mockChatData.json"
             }
         with open(TEST_JSON_DB_NAME, 'w') as fobj:
-            json.dump(dataMap, fobj)
+            json.dump(data_map, fobj)
             fobj.seek(0)
 
         # make sure all the test-mock JSONs exist
-        for filename in dataMap:
-            with open(dataMap[filename], 'w') as fobj:
+        for filename in data_map:
+            with open(data_map[filename], 'w') as fobj:
                 json.dump({}, fobj)
                 fobj.seek(0)
 
         # create a fake DB 
         self.api = UserModelInterface(json_map_filename=TEST_JSON_DB_NAME)
+
+        # create mock users
+        self.azura_name = "Azura"
+        self.azura_location = (40.73517750328247, -74.00683227856715)
+        self.azura_id = "1"
+        azura_json = json.dumps({
+            "name": self.azura_name,
+            "current_location": self.azura_location,
+        })
+        assert self.api.create_user(azura_json, force_key=self.azura_id) == self.azura_id # It should return the id
+
+        self.boethiah_name = "Boethiah"
+        self.boethiah_location = (40.76346250260515, -73.98013893542904)
+        self.boethiah_id = "2"
+        boethiah_json = json.dumps({
+            "name": self.boethiah_name,
+            "current_location": self.boethiah_location
+        })
+        assert self.api.create_user(boethiah_json, force_key=self.boethiah_id) == self.boethiah_id
         
-        # make a mock user directly in the DB with a known uuid primary key:
-        self.knownKey = str(3)
-        mockUser = user.User(user_id=self.knownKey, name="test_user", current_location=(0,0), home_location=(0,0))
-        self.api._data[self.knownKey] = self.api._serialize_user(mockUser)
-        assert self.knownKey in self.api._data
-
-        self.grort_location = (40.746667, -74.001111)
-
-        # Make mock users for testing blacklisting:
-        grortName = "Grort"
-        grortCurrentLocation = (40.746667, -74.001111)
-
-        drobbName = "Drobb"
-        drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
-
-        self.user_key_grort = self.api.create_user(json.dumps({"name":grortName, "current_location": grortCurrentLocation}), force_key="1")
-        self.user_key_drobb = self.api.create_user(json.dumps({"name":drobbName, "current_location": drobbCurrentLocation}), force_key="2")
-    
     def test_create_user(self):
         json_data = json.dumps({
             "name": "Grort",
-            "current_location": self.grort_location
+            "current_location": (40.76346250260515, -73.98013893542904)
         })
         new_user = self.api.create_user(json_data)
         self.assertIn(new_user, self.api._data)
     
     def test_lookup_user(self):
-        existing_user = self.api.lookup_obj(self.knownKey) # todo it should work with an int literal
+        existing_user = self.api.lookup_obj(self.azura_id) # todo it should work with an int literal
         #print(type(existingUser))
         #self.assertIsInstance(existingUser, user.User) # todo this keeps failing even though it's a user instance. For namespacing reasons (?)
-        self.assertEqual(existing_user.name, "test_user")
+        self.assertEqual(existing_user.name, self.azura_name)
     
     def test_delete_user(self):
         self.api.delete("1")
@@ -77,27 +81,27 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_blacklist(self):
         """Does the blacklist method add a second user to the user's blacklist as expected?"""
-        self.api.blacklist(self.user_key_grort, self.user_key_drobb)
+        self.api.blacklist(self.azura_id, self.boethiah_id)
         # todo also need to add the other way right? or is one blacklist enough to prevent there ever being a match?
-        grort_blacklist = self.api._data[self.user_key_grort]["match_blacklist"]
-        self.assertIn(self.user_key_drobb, grort_blacklist)
-        self.assertIsInstance(grort_blacklist, dict) # Is it a dict as expected?
+        azura_blacklist = self.api._data[self.azura_id]["match_blacklist"]
+        self.assertIn(self.boethiah_id, azura_blacklist)
+        self.assertIsInstance(azura_blacklist, dict) # Is it a dict as expected?
 
     def test_update_user(self):
         """Does the update method put new JSON to a valid model field as expected?"""
         new_data = {
             "current_location": (40.737291166191476, -74.00704685527774),
-            "likes": ["sushi"]
         }
         new_json = json.dumps(new_data)
-        self.api.update_user(self.user_key_grort, new_json)
-        updated_user_json = self.api.lookup_json(self.user_key_grort)
+        self.api.update_user(self.azura_id, new_json)
+        updated_user_json = self.api.lookup_json(self.azura_id)
         updated_user_data = json.loads(updated_user_json) # todo this would not pass when checking the likes attribute of an "updates" User object literal--why? 
                                                             #   Indicates something wrong with the method that looks up a user object. 
-        self.assertIn('sushi', updated_user_data["likes"])
 
         self.assertAlmostEqual(new_data["current_location"][0], updated_user_data["current_location"][0]) # todo these aren't very comprehensive tests
         
+    # todo add test for current logic wrt tastes (updating the weighted average)
+
 
 class TestMatchCandidates(unittest.TestCase):
     """Tests on the persistent mock DB."""
@@ -150,8 +154,3 @@ class TestMatchCandidates(unittest.TestCase):
         user_data = self.api._get_all_data()[self.my_user_id] # return the full dict for this user id
         cached_data = user_data["cached_candidates"]
         self.assertNotIn(id_to_blacklist, cached_data)
-    
-
-
-    
-

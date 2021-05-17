@@ -62,8 +62,10 @@ class ModelInterfaceABC: # Abstract base class
     def _is_valid_object_id(self, object_id: int) -> bool:
         return object_id in self._data
     
-    def _validate_json_fields(self, json_dict: dict) -> None:
-        """Raise ValueError if any key in json_dict isn't a valid field for this model."""
+    def _validate_json_fields(self, json_dict: dict) -> None: # todo seems like too much code (needing to list the valid model fields for each child class). 
+                                                                #   But under current architecture, can't just check against the keys from an arbitrary JSON object in the dict, 
+                                                                #   because sometimes the DB is empty (esp in testing)
+        """Raise ValueError if any key in json_dict isn't a valid field for this model.""" # todo do we need to check if data is none here, or would that be superfluous?
         for key in json_dict:
             if not key in self._valid_model_fields:
                 raise ValueError(f"Invalid field in call to model interface create method: {key}")
@@ -88,17 +90,28 @@ class UserModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-
-        self._valid_model_fields = ["name", "current_location", "home_location", "likes", "dislikes", "match_blacklist", "force_key"] # todo is this necessary, or could you just check the keys?
+        self._valid_model_fields = {
+            "id",
+            "name",
+            "current_location",
+            "predominant_location",
+            "tastes", 
+            "travel_propensity", 
+            "matches", 
+            "pending_likes", 
+            "match_blacklist"
+        }
         
     def create_user(self, json_data: str, force_key: int=None) -> int:
         """
         Takes json data in the app's internal format and returns the id key of the newly created user.
         Force key arg is for testing purposes to not always have huge unreadable uuids.
         """
+        
         self._read_json()
+        print(f"\n--------write out file: {self._datafile}\n--------------------------")
         json_dict = json.loads(json_data)
-        self._validate_json_fields(json_dict)
+        #self._validate_json_fields(json_dict) # todo re-enable?
         if force_key: # Don't allow force-creating a key that's already taken
             if force_key in self._data:
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
@@ -111,7 +124,8 @@ class UserModelInterface(ModelInterfaceABC):
             current_location = tuple(json_dict["current_location"])
         )
 
-        self._data[user_id] = self._serialize_user(new_user)
+        self._data[user_id] = new_user.serialize()
+        print(f"-------------------------- user data: \n{self._data[user_id]}\n---------------------------")
         self._write_json()
         return user_id
 
@@ -128,19 +142,21 @@ class UserModelInterface(ModelInterfaceABC):
         or raises error if not found.
         """
         self._read_json()
+        print(f"\n--------write out file: {self._datafile}\n--------------------------")
         self._validate_object_id(user_id)
         user_data = self._data[user_id]
-        assert type(user_data) == dict
+        # print(f"--------------------------in lookup obj: user data: \n{self._data[user_id]}\n---------------------------")
         user_obj = user.User(
             user_id = user_id,
             name=user_data["name"],
             current_location=user_data["current_location"],
-            home_location=user_data["home_location"],
-            likes = user_data["likes"],
-            dislikes = user_data["dislikes"]
+            predominant_location = user_data["predominant_location"],
+            tastes = user_data["tastes"],
+            matches = user_data["matches"],
+            pending_likes = user_data["pending_likes"],
+            match_blacklist = user_data["match_blacklist"],
+            travel_propensity = user_data["travel_propensity"]
         )
-        if "match_blacklist" in user_data: # todo legacy for mock entries that didn't have the field
-            user_obj.match_blacklist = user_data["match_blacklist"]
 
         return user_obj
 
@@ -153,11 +169,7 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         new_data = json.loads(new_json)
         user_data = self._data[user_id]
-        for key in new_data:
-            if not key in self._valid_model_fields: # todo this validation isn't complete or in the smartest/clearest place. Need to check shape, make sure 100% right about append vs. overwrite
-                raise ValueError(f"Invalid user field: {key}")
-            if type(new_data[key]) != type(user_data[key]):
-                raise TypeError(f"Incorrect user data type for field {key}.\nExpected type {type(user_data[key])}")
+        self._validate_json_fields(new_data)
         for key in new_data: # todo best practice on type() vs isinstance?
             entry_type = type(user_data[key])
             entry = user_data[key]
@@ -256,21 +268,6 @@ class UserModelInterface(ModelInterfaceABC):
             user_data["match_blacklist"][other_user_id] = time.time()
         self._write_json()
 
-    def _serialize_user(self, user: user.User) -> dict: # todo: serializer methods go in the model classes
-        """
-        Create a dictionary representation of the user.
-        """
-        userDict = {
-            "name": user.name,
-            "current_location": user.current_location,
-            "home_location": user.home_location,
-            "likes": user.likes,
-            "dislikes": user.dislikes,
-            "match_blacklist": user.match_blacklist,
-            "pending_likes": user.pending_likes,
-            "matches": user.matches
-        }
-        return userDict
 
 class DatespotModelInterface(ModelInterfaceABC):
 
@@ -280,7 +277,6 @@ class DatespotModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-        self._valid_model_fields = ["name", "location", "traits", "price_range", "hours"]
     
     def create_datespot(self, json_data: str) -> str:
         """
@@ -509,7 +505,6 @@ class ReviewModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-        self._valid_model_fields = ["datespot_id", "text"]
     
     def create_review(self, json_str: str) -> str:
         self._read_json()
@@ -534,7 +529,6 @@ class MessageModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-        self._valid_model_fields = ["time_sent", "sender_id", "chat_id", "text"]
     
     def create_message(self, json_data: str) -> str:
         """
@@ -601,7 +595,6 @@ class ChatModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-        self._valid_model_fields = ["start_time", "participant_ids", "messages"]
     
     def create_chat(self, new_obj_json: str):
         self._read_json()
@@ -653,7 +646,6 @@ class ChatModelInterface(ModelInterfaceABC):
         message_db = MessageModelInterface(json_map_filename=self._master_datafile)
         for message_id in chat_data["messages"]:
             message_objects.append(message_db.lookup_obj(message_id))
-
 
         return chat.Chat(
             start_time = chat_data["start_time"],

@@ -1,1 +1,1 @@
-{"user_data": "test/testing_mockUserDB.json", "datespot_data": "test/testing_mockDatespotDB.json", "match_data": "test/testing_mockMatchData.json"}
+{"user_data": "test/testing_mockUserDB.json", "datespot_data": "test/testing_mockDatespotDB.json", "match_data": "test/testing_mockMatchData.json", "review_data": "test/testing_mockReviewData.json", "message_data": "test/testing_mockMessageData.json", "chat_data": "test/testing_mockChatData.json"}

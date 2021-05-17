@@ -49,7 +49,7 @@ class Message(metaclass=DatespotAppType):
         return f"{self.time_sent}:\t{self.sender_id}:\t{self.text}"
 
     def serialize(self) -> dict:
-        """Return data about this object instance that should be stored, as a native Python dictionary."""
+        """Return data about this object instance that should be stored."""
         return {
             "time_sent": self.time_sent,
             "sender_id": self.sender_id,
