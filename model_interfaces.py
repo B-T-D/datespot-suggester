@@ -25,7 +25,6 @@ class ModelInterfaceABC: # Abstract base class
         with open(self._master_datafile, 'r') as fobj:
             json_map = json.load(fobj)
             fobj.seek(0)
-        print(f"---------------json map:\n{json_map}\n----------------------")
         self._datafile = json_map[f"{self._model}_data"]
     
     def _read_json(self): #  todo this gets messy when something is a set that needs to be manually converted back to a native python set
@@ -566,12 +565,9 @@ class MessageModelInterface(ModelInterfaceABC):
 
          # Add the message to its Chat's data:
         fobj = open(self._master_datafile, "r")
-        print(f"self._datafile json map contents in create message:")
-        print(fobj.readlines())
         chat_db = ChatModelInterface(json_map_filename=self._master_datafile) # Same JSON map as this instance is working from
         chat_json = json.dumps({"messages": [new_obj_id]})
         chat_id = new_obj.chat_id
-        print(f"update chat will be called with chat id = {chat_id}")
         chat_db.update_chat(new_obj.chat_id, chat_json)
 
         self._data[new_obj_id] = new_obj.serialize()
@@ -627,34 +623,40 @@ class ChatModelInterface(ModelInterfaceABC):
 
         self._data[new_obj_id] = new_obj.serialize()
         self._write_json()
-        print(f"Chats data in create chat in MI:\n{self._data}")
         return new_obj_id
 
     def update_chat(self, object_id: str, update_json): # Todo will need more sophisticated interface for adding/removing from lists. Same in other models that have running-list data.
         self._read_json()
-        print(f"Chats data in update chat in MI:\n{self._data}")
         self._validate_object_id
         
         update_json_dict = json.loads(update_json)
-        print(f"JSON dict in update chat in MI:\n{update_json_dict}")
         self._validate_json_fields(update_json_dict)
         chat_data = self._data[object_id] # load the old data
         if "start_time" in update_json_dict:
             del update_json_dict["start_time"] # Start time treated as immutable
         for key in update_json_dict:
-            print(f"key = {key}")
             if type(chat_data[key]) == list:
-                print(f"type check for list evaluated T")
                 chat_data[key].extend(update_json_dict[key])
-        print(f"data in the MI dict is now:\n{self._data}")
         self._write_json()
     
     def lookup_obj(self, object_id: str):
         self._read_json()
         self._validate_object_id(object_id)
         chat_data = self._data[object_id]
+
+        # Instantiate a Message object literal from each stored Message ID
+            # Todo how could this possibly perform well IRL? Chats would run to hundreds of messages...
+            #   ...Think about when a Chat object actually gets instantiated. If it happens very often, 
+            #           should probably do this some other way.
+        
+        message_objects = []
+        message_db = MessageModelInterface(json_map_filename=self._master_datafile)
+        for message_id in chat_data["messages"]:
+            message_objects.append(message_db.lookup_obj(message_id))
+
+
         return chat.Chat(
             start_time = chat_data["start_time"],
             participant_ids = chat_data["participant_ids"],
-            messages = chat_data["messages"]
+            messages = message_objects
         ) 

@@ -1,9 +1,6 @@
 from app_object_type import DatespotAppType
 
-from database_api import DatabaseAPI
 from message import Message
-
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
 # todo... this one may not need VSA and NLTK, if all it does it math on the sentiment
 #   numbers of the Messages composing the Chat.
@@ -21,7 +18,7 @@ class Chat(metaclass=DatespotAppType):
         Args:
             start_time (float): UNIX timestamp of the time the chat began.
             participant_ids (list[str]): List of user ID strings for the users participating in the chat.
-            messages (list[str]) : List of Message ID strings. Will be empty unless instantiating an object from storage.
+            messages (list[Message]) : List of Message object literals. Will be empty unless instantiating an object from storage.
         """
         self.start_time = start_time
         self.participant_ids = participant_ids
@@ -57,10 +54,11 @@ class Chat(metaclass=DatespotAppType):
         """Return relevant data for storage, as a native Python dictionary."""
         # sort the messages by timestamp.
         self.messages.sort(key = lambda message : message.time_sent)
+        message_ids = [message.id for message in self.messages] # only store the IDs, don't redundantly store the full text etc. 
         return {
             "start_time": self.start_time,
             "participant_ids": self.participant_ids,
-            "messages": self.messages
+            "messages": message_ids
         }
 
     def _average_sentiment(self):
@@ -68,10 +66,9 @@ class Chat(metaclass=DatespotAppType):
         if not self.messages:
             print(f"returning 0 bc no messages")
             return 0 # todo not sure best thing to return 
-        db = DatabaseAPI()
         sentiments_sum = 0
-        for message_id in self.messages:
-            sentiments_sum += db.get_message_sentiment(message_id)
+        for message in self.messages:
+            sentiments_sum += message.sentiment_avg
         self._sentiment_avg = round(sentiments_sum / len(self.messages), SENTIMENT_DECIMAL_PLACES)
         return self._sentiment_avg
     

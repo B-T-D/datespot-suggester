@@ -18,7 +18,8 @@ class TestHelloWorldThings(unittest.TestCase):
             "datespot_data": "test/testing_mockDatespotDB.json",
             "match_data": "test/testing_mockMatchData.json",
             "review_data": "test/testing_mockReviewData.json",
-            "message_data": "test/testing_mockMessageData.json"
+            "message_data": "test/testing_mockMessageData.json",
+            "chat_data": "test/testing_mockChatData.json"
             }
 
         with open(TEST_JSON_DB_NAME, 'w') as fobj:
@@ -70,7 +71,11 @@ class TestHelloWorldThings(unittest.TestCase):
         # Mock message data:
 
         self.mock_bilateral_timestamp = time.time()
-        self.mock_chat_id_1 = "1a"
+        self.quick_mock_chat_json = json.dumps({
+            "start_time": time.time(),
+            "participant_ids": [self.akatosh_id, self.stendarr_id]
+        })
+        self.mock_chat_id_1 = self.db.post_object("chat", self.quick_mock_chat_json)
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
     

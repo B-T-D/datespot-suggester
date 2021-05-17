@@ -86,8 +86,6 @@ class TestHelloWorldThings(unittest.TestCase):
         self.chat_id = self.db.post_object("chat", self.chat_json)
         
 
-        print(f"in setUp: self.chat_id = {self.chat_id}")
-
         # Mock messages
 
         self.first_timestamp = time.time()
@@ -100,9 +98,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "text": self.first_message_text
 
         })
-        print(f"first message json:\n{self.first_message_json}")
         self.first_message_id = self.db.post_object("message", self.first_message_json)
-        print(f"first message_id = {self.first_message_id}")
         self.first_message_sentiment = self.db.get_message_sentiment(self.first_message_id)
 
         # Second message in same chat:
@@ -115,24 +111,21 @@ class TestHelloWorldThings(unittest.TestCase):
             "text": self.second_message_text
         })
         self.second_message_id = self.db.post_object("message", self.second_message_json)
-        print(f"second message_id = {self.second_message_id}")
         self.second_message_sentiment = self.db.get_message_sentiment(self.second_message_id)
 
         # create_message should append the message to the chat 
 
         # Fetch the chat object at the end, to create one with the messages appended
         self.chat_obj = self.db.get_obj("chat", self.chat_id)
-        print(f"len of the messages list: {len(self.chat_obj.messages)}")
 
     def test_init(self):
         self.assertIsInstance(self.chat_obj, Chat)
     
-    # def test_message_id_order(self):
-    #     """Are both test messages in the Chat, and is the first message before the second?"""
-    #     self.chat_obj.messages.append(self.second_message_id)
-    #     # self.chat_obj.messages.append("test")
-    #     print(f"len of the messages list: {len(self.chat_obj.messages)}")
-    #     self.assertEqual(self.chat_obj.messages, [self.first_message_id, self.second_message_id])
+    def test_message_id_order(self):
+        """Are both test messages in the Chat, and is the first message before the second?"""
+        # self.chat_obj.messages.append("test")
+        print(f"len of the messages list: {len(self.chat_obj.messages)}")
+        self.assertEqual([message.id for message in self.chat_obj.messages], [self.first_message_id, self.second_message_id]) # todo hacky/obfuscating to have the list comp here
     
     def test_average_sentiment(self):
         """Does the average sentiment match the value expected from separate calculation on same values?"""

@@ -52,7 +52,7 @@ class Message(metaclass=DatespotAppType):
         """Return data about this object instance that should be stored, as a native Python dictionary."""
         return {
             "time_sent": self.time_sent,
-            "sender": self.sender_id,
+            "sender_id": self.sender_id,
             "chat_id": self.chat_id,
             "text": self.text,
             "sentiment": self.sentiment_avg
