@@ -99,7 +99,8 @@ class UserModelInterface(ModelInterfaceABC):
             "travel_propensity", 
             "matches", 
             "pending_likes", 
-            "match_blacklist"
+            "match_blacklist",
+            "force_key" # todo force_key isn't really a model field, conceptually
         }
         
     def create_user(self, json_data: str, force_key: int=None) -> int:
@@ -109,9 +110,8 @@ class UserModelInterface(ModelInterfaceABC):
         """
         
         self._read_json()
-        print(f"\n--------write out file: {self._datafile}\n--------------------------")
         json_dict = json.loads(json_data)
-        #self._validate_json_fields(json_dict) # todo re-enable?
+        self._validate_json_fields(json_dict)
         if force_key: # Don't allow force-creating a key that's already taken
             if force_key in self._data:
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
@@ -125,7 +125,6 @@ class UserModelInterface(ModelInterfaceABC):
         )
 
         self._data[user_id] = new_user.serialize()
-        print(f"-------------------------- user data: \n{self._data[user_id]}\n---------------------------")
         self._write_json()
         return user_id
 
@@ -142,7 +141,6 @@ class UserModelInterface(ModelInterfaceABC):
         or raises error if not found.
         """
         self._read_json()
-        print(f"\n--------write out file: {self._datafile}\n--------------------------")
         self._validate_object_id(user_id)
         user_data = self._data[user_id]
         # print(f"--------------------------in lookup obj: user data: \n{self._data[user_id]}\n---------------------------")
@@ -277,6 +275,7 @@ class DatespotModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
+        self._valid_model_fields = ["name", "location", "traits", "price_range", "hours"]
     
     def create_datespot(self, json_data: str) -> str:
         """
@@ -410,6 +409,7 @@ class MatchModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
+        self._valid_model_fields = [] # todo 
 
         self.user_api_instance = UserModelInterface(json_map_filename=self._master_datafile)
     
@@ -505,6 +505,7 @@ class ReviewModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
+        self._valid_model_fields = ["datespot_id", "text"]
     
     def create_review(self, json_str: str) -> str:
         self._read_json()
@@ -529,6 +530,7 @@ class MessageModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
+        self._valid_model_fields = ["time_sent", "sender_id", "chat_id", "text"]
     
     def create_message(self, json_data: str) -> str:
         """
@@ -595,6 +597,7 @@ class ChatModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
+        self._valid_model_fields = ["start_time", "participant_ids", "messages"]
     
     def create_chat(self, new_obj_json: str):
         self._read_json()
