@@ -98,9 +98,7 @@ class UserModelInterface(ModelInterfaceABC):
         """
         self._read_json()
         json_dict = json.loads(json_data)
-        for key in json_dict:
-            if not key in self._valid_model_fields:
-                raise ValueError(f"Bad JSON in call to create_user: \n{key}")
+        self._validate_json_fields(json_dict)
         if force_key: # Don't allow force-creating a key that's already taken
             if force_key in self._data:
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
@@ -258,7 +256,7 @@ class UserModelInterface(ModelInterfaceABC):
             user_data["match_blacklist"][other_user_id] = time.time()
         self._write_json()
 
-    def _serialize_user(self, user: user.User) -> dict: # todo: superfluous?
+    def _serialize_user(self, user: user.User) -> dict: # todo: serializer methods go in the model classes
         """
         Create a dictionary representation of the user.
         """
@@ -308,7 +306,7 @@ class DatespotModelInterface(ModelInterfaceABC):
             datespot_obj.hours = json_dict["hours"]
 
         # Hash that object
-        new_object_id = datespot_obj.id
+        new_object_id = datespot_obj.id # todo refactor to the uniform approach: create the object, then call its id method.
 
         # Save the object's data to the DB using that hash as the key
         self._data[new_object_id] = self._serialize_datespot(datespot_obj)
@@ -526,4 +524,44 @@ class ReviewModelInterface(ModelInterfaceABC):
         new_obj_id = new_obj.id # Get object's id hash string
         self._data[new_obj_id] = new_obj.serialize() # Save with that id as the key
         self._write_json()
-        return new_obj_id    
+        return new_obj_id
+
+class MessageModelInterface(ModelInterfaceABC):
+
+    def __init__(self, json_map_filename=None):
+        self._model = "message"
+        if json_map_filename:
+            super().__init__(json_map_filename)
+        else:
+            super().__init__()
+        self._valid_model_fields = ["time_sent", "sender_id", "recipient_ids", "text"]
+    
+    def create_message(self, json_data: str) -> str:
+        """
+        Returns the new object's id key string.
+        """
+
+        self._read_json()
+        json_dict = json.loads(json_data)
+        self._validate_json_fields(json_dict)
+        
+        
+        time_sent = None
+        if "time_sent" in json_dict: # If caller sent JSON containing a time stamp, use it...
+            time_sent = json_dict["time_sent"]
+        else:
+            time_sent = time.time() # ...otherwise, create timestamp now.
+
+        new_obj = message.Message(
+            time_sent = time_sent,
+            sender_id = json_dict["sender_id"],
+            recipient_ids = json_dict["recipient_ids"],
+            text = json_dict["text"]
+        )
+        # Todo update the messages array in the sender User object's attributes?
+            # That's not the full conversation though anyway. 
+        new_obj_id = new_obj.id
+        self._data[new_obj_id] = new_obj.serialize()
+        self._write_json()
+        return new_obj_id
+    

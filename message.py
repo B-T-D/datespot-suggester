@@ -6,6 +6,9 @@ from vaderSentiment import vaderSentiment as vs
 SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC shared by Review, Message, and any other
                                 #   code that calls VSA methods that return floats.
 
+# Todo: Might want an external caller to be able to instantiate a Chat without creating messages.
+#   If e.g. this morphs into an API that is "send in people and their chat, get back suggestions"
+
 class Message(metaclass=DatespotAppType):
 
     def __init__(self, time_sent: float, sender_id: str, recipient_ids: list, text: str):
@@ -45,7 +48,7 @@ class Message(metaclass=DatespotAppType):
     def serialize(self) -> dict:
         """Return data about this object instance that should be stored, as a native Python dictionary."""
         return {
-            "time_sent": self.timestamp,
+            "time_sent": self.time_sent,
             "sender": self.sender_id,
             "recipients": self.recipient_ids,
             "text": self.text,

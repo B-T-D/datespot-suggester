@@ -14,7 +14,7 @@ JSON_MAP_FILENAME = "jsonMap.json"
 class DatabaseAPI:
 
     def __init__(self, json_map_filename: str=JSON_MAP_FILENAME):
-        self._valid_model_names = {"user", "datespot", "match"}
+        self._valid_model_names = {"user", "datespot", "match", "review", "message"}
         self._json_map_filename = json_map_filename
 
     def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
