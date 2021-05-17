@@ -13,9 +13,10 @@ JSON_MAP_FILENAME = "jsonMap.json"
 
 class DatabaseAPI:
 
-    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME):
+    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME, live_google_maps: bool=False):
         self._valid_model_names = {"user", "datespot", "match", "review", "message", "chat"}
         self._json_map_filename = json_map_filename
+        self._live_google_maps = live_google_maps
 
     def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
         """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.
@@ -155,6 +156,9 @@ class DatabaseAPI:
     def get_datespots_near(self, location: tuple, radius: int) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
+
+        # Todo: Dispatch differently for live vs. static google maps mode. One set of instructions for looking up from testmode cache,
+        #   one for having the client make a real API call. 
 
         datespots_db = self._model_interface("datespot")
         # todo validate the location and radius here?
