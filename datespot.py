@@ -95,7 +95,6 @@ class Datespot(metaclass=DatespotAppType):
         """
         Add traits associated with known brand reputation (traits confidently addable based on restaurant's name).
         """
-        print(f"in apply brandreps: self.traits = \n{self.traits}")
         for reputational_label, tagged_restaurants in self.brand_reputations.items():
             if self.name in tagged_restaurants:
                 self.traits[reputational_label] = 1.0 # todo treating these as binaries for now. E.g. a place is either 100% "fast food" or 0%.
