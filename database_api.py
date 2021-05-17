@@ -14,7 +14,7 @@ JSON_MAP_FILENAME = "jsonMap.json"
 class DatabaseAPI:
 
     def __init__(self, json_map_filename: str=JSON_MAP_FILENAME):
-        self._valid_model_names = {"user", "datespot", "match", "review", "message"}
+        self._valid_model_names = {"user", "datespot", "match", "review", "message", "chat"}
         self._json_map_filename = json_map_filename
 
     def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
@@ -26,6 +26,12 @@ class DatabaseAPI:
             return model_interfaces.DatespotModelInterface(json_map_filename=self._json_map_filename)
         elif model_name == "match":
             return model_interfaces.MatchModelInterface(json_map_filename=self._json_map_filename)
+        elif model_name == "review":
+            return model_interfaces.ReviewModelInterface(json_map_filename=self._json_map_filename)
+        elif model_name == "message":
+            return model_interfaces.MessageModelInterface(json_map_filename=self._json_map_filename)
+        elif model_name == "chat":
+            return model_interfaces.ChatModelInterface(json_map_filename=self._json_map_filename)
 
     def _validate_model_name(self, model_name):
         if not model_name in self._valid_model_names:
@@ -65,11 +71,17 @@ class DatabaseAPI:
             json_data = json.loads(json_data)
             user_id_1, user_id_2 = json_data["users"]
             new_object_id = match_db.create_match(user_id_1, user_id_2)
+        elif object_type == "message":
+            message_db = self._model_interface("message")
+            new_object_id = message_db.create_message(json_data)
+        elif object_type == "chat":
+            chat_db = self._model_interface("chat")
+            new_object_id = chat_db.create_chat(json_data)
 
         if new_object_id:
             return new_object_id
 
-    def get_obj(self, object_type, object_id):
+    def get_obj(self, object_type, object_id): # todo need consistent naming. "Post" uses full word "object" not "obj"
     
         """
         Return an internal-model object literal for the data corresponding to the key "id".
@@ -106,13 +118,16 @@ class DatabaseAPI:
         model_db = self._model_interface(object_type)
         return json.dumps(model_db._get_all_data()) # todo meant to be an internal method. Goal is to implement s/t can use model_db.data public attribute.
     
-    def put_json(self, object_type:str, object_id:int, new_json: str) -> None:
+    def put_json(self, object_model_name:str, object_id:int, new_json: str) -> None:
         """
         Update the stored JSON for the corresponding field of the corresponding object."""
 
-        if object_type ==  "user":
-            user_db = self._model_interface()
+        if object_model_name ==  "user":
+            user_db = self._model_interface("user")
             user_db.update_user(object_id, new_json)
+        if object_model_name == "chat":
+            chat_db = self._model_interface("chat")
+            chat_db.update_cjat(object_id, new_json)
     
     def post_swipe(self, user_id, candidate_id, outcome_json: str) -> bool:
         """
@@ -158,7 +173,13 @@ class DatabaseAPI:
         Returns user id of next candidate.
         """
         user_db = self._model_interface("user")
-        return user_db.query_next_candidate(user_id)    
+        return user_db.query_next_candidate(user_id)
+
+    def get_message_sentiment(self, message_id: str) -> float:
+        """Return the average sentiment for message matching this id."""
+        message_db = self._model_interface("message")    
+        json_data = json.loads(message_db.lookup_json(message_id))
+        return json_data["sentiment"]
 
     def find(self, object_type: str, field: str, *args) -> str:
         # See https://stackoverflow.com/questions/18591778/how-to-pass-an-operator-to-a-python-function

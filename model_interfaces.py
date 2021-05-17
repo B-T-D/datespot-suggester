@@ -5,7 +5,7 @@ import json
 import uuid
 import time
 
-import user, datespot, match, review, message # todo ...chat
+import user, datespot, match, review, message, chat
 import geo_utils
 
 JSON_DB_NAME = "jsonMap.json"
@@ -25,6 +25,7 @@ class ModelInterfaceABC: # Abstract base class
         with open(self._master_datafile, 'r') as fobj:
             json_map = json.load(fobj)
             fobj.seek(0)
+        print(f"---------------json map:\n{json_map}\n----------------------")
         self._datafile = json_map[f"{self._model}_data"]
     
     def _read_json(self): #  todo this gets messy when something is a set that needs to be manually converted back to a native python set
@@ -119,8 +120,8 @@ class UserModelInterface(ModelInterfaceABC):
         """
         Return the JSON string for a user.
         """
-        self._read_json()
-        return json.dumps(self._data[user_id])
+        self._read_json() # todo User does it this way, Datespot does it by instantiating an object. If no reason for difference, determine which is better and standardize to that.
+        return json.dumps(self._data[user_id]) # ...This way seems more intuitive. Part of the point of storing stuff is to look it up without repeating computations. 
 
     def lookup_obj(self, user_id: str) -> user.User:
         """
@@ -368,7 +369,7 @@ class DatespotModelInterface(ModelInterfaceABC):
             hours = datespot_data["hours"]
         )
 
-    def update_datespot(self, id: int, **kwargs): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
+    def update_datespot(self, id: str, **kwargs): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
         self._read_json()
         datespot_data = self._data[id]
@@ -534,7 +535,7 @@ class MessageModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-        self._valid_model_fields = ["time_sent", "sender_id", "recipient_ids", "text"]
+        self._valid_model_fields = ["time_sent", "sender_id", "chat_id", "text"]
     
     def create_message(self, json_data: str) -> str:
         """
@@ -555,13 +556,105 @@ class MessageModelInterface(ModelInterfaceABC):
         new_obj = message.Message(
             time_sent = time_sent,
             sender_id = json_dict["sender_id"],
-            recipient_ids = json_dict["recipient_ids"],
+            chat_id = json_dict["chat_id"],
             text = json_dict["text"]
         )
+
         # Todo update the messages array in the sender User object's attributes?
             # That's not the full conversation though anyway. 
         new_obj_id = new_obj.id
+
+         # Add the message to its Chat's data:
+        fobj = open(self._master_datafile, "r")
+        print(f"self._datafile json map contents in create message:")
+        print(fobj.readlines())
+        chat_db = ChatModelInterface(json_map_filename=self._master_datafile) # Same JSON map as this instance is working from
+        chat_json = json.dumps({"messages": [new_obj_id]})
+        chat_id = new_obj.chat_id
+        print(f"update chat will be called with chat id = {chat_id}")
+        chat_db.update_chat(new_obj.chat_id, chat_json)
+
         self._data[new_obj_id] = new_obj.serialize()
         self._write_json()
         return new_obj_id
     
+    def lookup_obj(self, object_id: int) -> message.Message:
+        """Return the Message object corresponding to id."""
+        self._read_json()
+        self._validate_object_id(object_id)
+        message_data = self._data[object_id]
+        return message.Message(
+            time_sent = message_data["time_sent"],
+            sender_id = message_data["sender_id"],
+            chat_id = message_data["chat_id"],
+            text = message_data["text"]
+        ) # Todo: Not copying the sentiment because that can be recomputed on the object. Is that the right approach?
+        #       Or maybe better to pull the cached sentiment? It'd still update as soon as anything called the Message's SA method.
+    
+    def lookup_json(self, object_id: str) -> str:
+        """Return the stored JSON string for the Message matching this id."""
+        self._read_json()
+        self._validate_object_id(object_id)
+        return json.dumps(self._data[object_id])
+
+class ChatModelInterface(ModelInterfaceABC):
+
+    def __init__(self, json_map_filename=None):
+        self._model = "chat"
+        if json_map_filename:
+            super().__init__(json_map_filename)
+        else:
+            super().__init__()
+        self._valid_model_fields = ["start_time", "participant_ids", "messages"]
+    
+    def create_chat(self, new_obj_json: str):
+        self._read_json()
+        json_dict = json.loads(new_obj_json)
+        self._validate_json_fields(json_dict)
+
+        start_time = None # Same as Message. If it didn't come in with a timestamp, use the current time
+        if "start_time" in json_dict:
+            start_time = json_dict["start_time"]
+        else:
+            start_time = time.time()
+
+        new_obj = chat.Chat(
+            start_time = start_time,
+            participant_ids = json_dict["participant_ids"]
+        ) # no messages yet
+
+        new_obj_id = new_obj.id
+
+        self._data[new_obj_id] = new_obj.serialize()
+        self._write_json()
+        print(f"Chats data in create chat in MI:\n{self._data}")
+        return new_obj_id
+
+    def update_chat(self, object_id: str, update_json): # Todo will need more sophisticated interface for adding/removing from lists. Same in other models that have running-list data.
+        self._read_json()
+        print(f"Chats data in update chat in MI:\n{self._data}")
+        self._validate_object_id
+        
+        update_json_dict = json.loads(update_json)
+        print(f"JSON dict in update chat in MI:\n{update_json_dict}")
+        self._validate_json_fields(update_json_dict)
+        chat_data = self._data[object_id] # load the old data
+        if "start_time" in update_json_dict:
+            del update_json_dict["start_time"] # Start time treated as immutable
+        for key in update_json_dict:
+            print(f"key = {key}")
+            if type(chat_data[key]) == list:
+                print(f"type check for list evaluated T")
+                chat_data[key].extend(update_json_dict[key])
+        print(f"data in the MI dict is now:\n{self._data}")
+        self._write_json()
+    
+    def lookup_obj(self, object_id: str):
+        self._read_json()
+        self._validate_object_id(object_id)
+        chat_data = self._data[object_id]
+        return chat.Chat(
+            start_time = chat_data["start_time"],
+            participant_ids = chat_data["participant_ids"],
+            messages = chat_data["messages"]
+        ) 

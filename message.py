@@ -11,18 +11,18 @@ SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC
 
 class Message(metaclass=DatespotAppType):
 
-    def __init__(self, time_sent: float, sender_id: str, recipient_ids: list, text: str):
+    def __init__(self, time_sent: float, sender_id: str, chat_id: str, text: str):
         """
 
         Args:
-            timestamp (float): UNIX timestamp of the time the message was sent
+            time_sent (float): UNIX timestamp of the time the message was sent
             sender_id (str): User ID of user who sent the message
-            recipient_ids (list[str]): List of message recipients' user ID strings
+            chat_id (str): Chat ID of the Chat to which this message belongs
             text (str): Text of the message
         """
         self.time_sent = time_sent
         self.sender_id  = sender_id
-        self.recipient_ids = recipient_ids
+        self.chat_id = chat_id
         self.text = text
 
         self.id = self._id()
@@ -40,17 +40,20 @@ class Message(metaclass=DatespotAppType):
     
     def _id(self) -> str: # Todo Very easy to put this in an ABC
         """
-        Return this Message's id string to external callser.
+        Return this Message's id string.
         """
         hex_str = str(hex(hash(self)))
         return hex_str[2:] # strip "0x"
+    
+    def __str__(self) -> str:
+        return f"{self.time_sent}:\t{self.sender_id}:\t{self.text}"
 
     def serialize(self) -> dict:
         """Return data about this object instance that should be stored, as a native Python dictionary."""
         return {
             "time_sent": self.time_sent,
             "sender": self.sender_id,
-            "recipients": self.recipient_ids,
+            "chat_id": self.chat_id,
             "text": self.text,
             "sentiment": self.sentiment_avg
         }

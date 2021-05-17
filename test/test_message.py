@@ -53,11 +53,11 @@ class TestHelloWorldThings(unittest.TestCase):
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
         
-
+        self.mock_chat_id_1 = "1a"
         self.message_obj = Message(
             time_sent = self.mock_bilateral_timestamp,
             sender_id = self.akatosh_id,
-            recipient_ids = [self.stendarr_id],
+            chat_id = self.mock_chat_id_1,
             text = self.single_sentence_text
         )
 
@@ -65,10 +65,11 @@ class TestHelloWorldThings(unittest.TestCase):
         self.multisentence_text = "I'm Akatosh blah blah blah. Lord Akatosh lends you his might. When your own strength fails you, trust in the Nine."
         self.expected_sentiment_multisentence = 0.092 # todo hardcoded
 
+        self.mock_chat_id_2 = "2a"
         self.multisentence_message_obj = Message(
             time_sent = time.time(),
             sender_id = self.akatosh_id,
-            recipient_ids = [self.stendarr_id],
+            chat_id = self.mock_chat_id_2,
             text = self.multisentence_text
         )
 
@@ -100,3 +101,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertAlmostEqual(self.expected_sentiment_single_sentence, self.message_obj._sentiment_avg)
         self.multisentence_message_obj._analyze_sentiment()
         self.assertAlmostEqual(self.expected_sentiment_multisentence, self.multisentence_message_obj._sentiment_avg)
+    
+    def test_str(self):
+        """Does the __str__ method return the expected string?"""
+        expected_string = f"{self.mock_bilateral_timestamp}:\t{self.akatosh_id}:\t{self.single_sentence_text}"

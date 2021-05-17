@@ -70,6 +70,7 @@ class TestHelloWorldThings(unittest.TestCase):
         # Mock message data:
 
         self.mock_bilateral_timestamp = time.time()
+        self.mock_chat_id_1 = "1a"
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
     
@@ -80,7 +81,7 @@ class TestHelloWorldThings(unittest.TestCase):
         json_str = json.dumps({
             "time_sent": self.mock_bilateral_timestamp,
             "sender_id": self.akatosh_id,
-            "recipient_ids": [self.stendarr_id],
+            "chat_id": self.mock_chat_id_1,
             "text": self.single_sentence_text
         })
         message_id = self.api.create_message(json_str)
