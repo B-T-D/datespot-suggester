@@ -3,6 +3,8 @@ from app_object_type import DatespotAppType
 import nltk
 from vaderSentiment import vaderSentiment as vs
 
+import user
+
 TASTES_KEYWORDS = "tastes_keywords.txt"
 
 SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC shared by Review, Message, and any other
@@ -13,17 +15,17 @@ SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC
 
 class Message(metaclass=DatespotAppType):
 
-    def __init__(self, time_sent: float, sender_id: str, chat_id: str, text: str):
+    def __init__(self, time_sent: float, sender: user.User, chat_id: str, text: str):
         """
 
         Args:
             time_sent (float): UNIX timestamp of the time the message was sent
-            sender_id (str): User ID of user who sent the message
+            sender (user.User): User model-object instance
             chat_id (str): Chat ID of the Chat to which this message belongs
             text (str): Text of the message
         """
         self.time_sent = time_sent
-        self.sender_id  = sender_id
+        self.sender  = sender
         self.chat_id = chat_id
         self.text = text
 
@@ -48,7 +50,7 @@ class Message(metaclass=DatespotAppType):
     
     def __hash__(self):
         """Returns the result of calling Python builtin hash() on string concatenated from timestamp and sender id."""
-        return hash(str(self.time_sent) + self.sender_id)
+        return hash(str(self.time_sent) + self.sender.id)
     
     def _id(self) -> str: # Todo Very easy to put this in an ABC
         """
@@ -60,11 +62,16 @@ class Message(metaclass=DatespotAppType):
     def __str__(self) -> str:
         return f"{self.time_sent}:\t{self.sender_id}:\t{self.text}"
 
+    def analyze(self) -> None: # Todo: make sense? Rationale: Let the external caller manually choose when the analysis runs, because that
+                                #   caller is responsible for updating the User and Chat data that depend on the message data.
+        """Updates the Message's public sentiment attribute and makes any discovered updates to the sender User object's tastes."""
+        self._analyze_sentiment()
+
     def serialize(self) -> dict:
         """Return data about this object instance that should be stored."""
         return {
             "time_sent": self.time_sent,
-            "sender_id": self.sender_id,
+            "sender_id": self.sender.id, # access the public id attribute of the User object
             "chat_id": self.chat_id,
             "text": self.text,
             "sentiment": self.sentiment_avg
@@ -73,6 +80,10 @@ class Message(metaclass=DatespotAppType):
     def _tokenize(self):
         """Tokenize the Message's text into individual sentences and store array of sentences in the private instance-variable."""
         self._sentences = nltk.tokenize.sent_tokenize(self.text)
+
+    def _bsearch_taste_keywords(self, word: str):
+        # todo placeholder, not implemented. Just returning the linear search for now
+        return word in self._tastes_keywords
     
     def _analyze_sentiment(self):
         """Compute the mean sentiment of the Message's sentences."""
@@ -80,11 +91,17 @@ class Message(metaclass=DatespotAppType):
         sentiments_sum = 0 # sum of vaderSentiment SentimentIntensityAnalyzer "compound" scores
         analyzer = vs.SentimentIntensityAnalyzer()
         for sentence in self._sentences:
-            sentiments_sum += analyzer.polarity_scores(sentence)["compound"]
-            for word in sentence: # todo time complexity needlessly bad, VSA already made one pass 
+            sentence_sentiment = analyzer.polarity_scores(sentence)["compound"]
+            sentiments_sum += sentence_sentiment
+            for word in sentence: # todo time complexity needlessly bad, VSA already made one pass. Subclass VSA into a custom MessageAnalyzer and change just the one method
+                                    #     by making it also check for the keywords. 
                     # todo implement binary search
-                if word in self._tastes_keywords:
-                    pass # todo update the sender user object literal's tastes data. MessageModelInterface is responsible for writing the changes to both the 
+                word = word.lower().strip()
+                if self._bsearch_taste_keywords(word) in self._tastes_keywords:
+                    self.sender.update_tastes(taste = word, strength = sentence_sentiment) # Todo improve the business logic. Right now, this merely treats the sentiment of the 
+                                                                            # sentence in which the word appeared as the user's sentiment toward that taste.
+
+                     # todo update the sender user object literal's tastes data. MessageModelInterface is responsible for writing the changes to both the 
                         #   message data and the user data.
         self._sentiment_avg = round(sentiments_sum / len(self._sentences), SENTIMENT_DECIMAL_PLACES)
         return self._sentiment_avg
