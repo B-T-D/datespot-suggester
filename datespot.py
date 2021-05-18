@@ -22,6 +22,10 @@ DATESPOT_SCORE_DECIMAL_PLACES = 4
 
 class Datespot(metaclass=DatespotAppType):
 
+    # Todo: Plan as of 5/18 is that reviews per se aren't related to a datespot. Higher level info is extracted from the reviews--abstract traits about the 
+    #   object--and those traits are related to the datespot object. We remember an aggregate knowledge of / opinion about the restaurant that we learned from 
+    #   reading its reviews, we don't memorize the full text of every review we read.
+
     def __init__(self, location: tuple, name: str, traits: dict={}, price_range: int=None, hours: list=[]):
         """
         Args:
@@ -53,6 +57,7 @@ class Datespot(metaclass=DatespotAppType):
         
         self.price_range = price_range
         self.hours = hours
+
 
         with open(BASELINE_SCORING_DATA) as fobj: # todo each json.load(fobj) call is another pass through the entire json file, right?
                                                     # Is there a smarter way to ensure a single pass than reading all the json into a 

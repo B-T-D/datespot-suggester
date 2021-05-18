@@ -1,9 +1,5 @@
 """Objects for interfacing between stored data and model-object instances."""
-
-import abc
-import json
-import uuid
-import time
+import abc, json, uuid, time
 
 import user, datespot, match, review, message, chat
 import geo_utils
@@ -131,7 +127,8 @@ class UserModelInterface(ModelInterfaceABC):
         self._write_json()
         return user_id
 
-    def lookup_json(self, user_id: int) -> str:
+    def lookup_json(self, user_id: int) -> str: # todo have a lookup JSON method in the ABC, then have individual MIs override if they need to. 
+                                                #   For most models, simply reading the JSON and dumping back the data for object_id should suffice.
         """
         Return the JSON string for a user.
         """

@@ -1,13 +1,19 @@
 """
-Implementation-agnostic interface between the database and JSON-using external code. Goal is for external calling code to 
-be unaffected by SQL vs. NoSQL and similar issues.
+Implementation-agnostic interface between internal app database and JSON-using external code. Provides public methods that parallel HTTP request
+methods and return JSON.
+
+Goal is for external calling code to be unaffected by SQL vs. NoSQL and similar issues.
 """
 
 import json
 
 import model_interfaces
 
-# todo: The models should serialize. That will expand reusability of the model interfaces. 
+# todo: The models should serialize themselves. That will expand reusability of the model interfaces. 
+
+# todo: What's the best name for this module? "JSON_server"? "REST_server"? "REST_API"? "REST_backend"? "JSON_backend"?
+    # It's not a full REST API. It's not meant to handle actual HTTP requests; it doesn't use appropriate URIs. It's meant to get the JSON 
+    #   that the actual web-facing REST API will return in HTTP responses.
 
 JSON_MAP_FILENAME = "jsonMap.json"
 
