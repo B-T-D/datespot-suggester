@@ -123,9 +123,8 @@ class UserModelInterface(ModelInterfaceABC):
             name=json_dict["name"],
             current_location = tuple(json_dict["current_location"])
         )
-        if "tastes" in json_dict:
-            print(f"*****adding tastes*****")
-            new_user.tastes = json_dict["tastes"]
+        # todo adding tastes not supported here--does that make sense?
+        #   Rationale is that any tastes data comes in later, not at the moment the user is created in the DB for the first time.
 
         self._data[user_id] = new_user.serialize()
         self._write_json()
@@ -161,11 +160,32 @@ class UserModelInterface(ModelInterfaceABC):
 
         return user_obj
 
-    def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does. 
+    def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does.
+        # Todo support a "force datapoints count" option for updating tastes?
         """
         Takes JSON string, updates the native Python dict, and writes it to the stored master JSON.
 
-        Specify the field to update as the key in the new_json string. E.g. {"location": (44.01, -72.12)} specifies to update location.
+        Specify the field to update as the key in the new_json string. E.g.  specifies to update location.
+
+        Example calls:
+
+            Update user's location:
+                    {"location": [44.01, -72.12]}
+
+                - Values should be a Python list / JS array. Currently, tuples encode to lists/arrays and decode as lists
+                - Values should have two elements
+                - value[0] is latitude float, value[1] is longitude float
+            
+            Update user's tastes:
+                    {"tastes": 
+                        {"taste_name": 0.17}
+                    }
+            
+                - Tastes updates should be a dict/object, i.e. enclosed in braces
+                - Keys within that dict/object should be strings
+                - Value for each key should be a float between -1.0 and 1.0
+                - Caller doesn't directly update the datapoints count
+            
         """
         self._read_json()
         new_data = json.loads(new_json)
@@ -176,6 +196,9 @@ class UserModelInterface(ModelInterfaceABC):
             entry = user_data[key]
             if key == "current_location": # todo location still parses as list, so make sure to overwrite, not append
                 self._data[user_id]["current_location"] = new_data[key]
+            elif key == "tastes":
+                new_tastes_data = new_data[key]
+                self._update_tastes(user_id, new_tastes_data)
             elif entry_type == list:
                 self._data[user_id][key].extend(new_data[key])
             elif isinstance(entry, set):
@@ -184,6 +207,18 @@ class UserModelInterface(ModelInterfaceABC):
                 self._data[user_id][key] = new_data[key]
         self._write_json()
         return
+    
+    def _update_tastes(self, user_id: int, new_tastes_data:dict) -> None:
+        """Helper method to handle calling the User model's tastes updater method."""
+        # We assume the caller only ever sends one datapoint at a time--it doesn't need to access or modify the datapoints counter
+        #   for the taste that it's updating.
+        user_obj = self.lookup_obj(user_id)
+        for taste_name, strength in new_tastes_data.items():
+            print(f"taste_name = {taste_name}, strength = {strength}")
+            user_obj.update_tastes(taste = taste_name, strength = strength)
+        print(f"serialized user obj after the User.update call:\n{user_obj.serialize()}")
+        self._data[user_id]["tastes"] = user_obj.serialize()["tastes"] # Since we have an object literal in memory anyway, just have it give back the tastes dict.
+        return # Caller is makes the _write_json call
     
     # todo all the "query objects near" methods could probably be abstracted to the ABC.
     def query_users_currently_near_location(self, location: tuple, radius=50000) -> list: # todo is the radius parameter totally unnecessary? 

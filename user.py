@@ -89,9 +89,11 @@ class User(metaclass=DatespotAppType):
             score (float): Strength of the preference from that datapoint. Normalized to between 
                 -1.0 and 1.0.
         """
+        print(f"User.update_tastes called.\ntaste = {taste}, update strength = {strength}")
         taste = taste.lower().strip() # todo is this cluttering, or worthwhile as a redundant, relatively easy/cheap check?
 
         if not taste in self._tastes:
+            print(f"taste {taste} not found in existing tastes")
             self._tastes[taste] = [strength, 1] # [strength_score, num_datapoints]
         else:
             prior_strength, datapoints = self._tastes[taste][0], self._tastes[taste][1]
@@ -120,7 +122,7 @@ class User(metaclass=DatespotAppType):
             "name": self.name,
             "current_location": self.current_location,
             "predominant_location": self.predominant_location,
-            "tastes": self.tastes,
+            "tastes": self._tastes,
             "travel_propensity": self.travel_propensity,
             "matches": self.matches,
             "pending_likes": self.pending_likes,
