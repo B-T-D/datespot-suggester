@@ -102,6 +102,13 @@ class User(metaclass=DatespotAppType):
             new_strength = (weighted_prior_strength + strength) / datapoints
             self._tastes[taste] = [new_strength, datapoints]
     
+    def taste_names(self): # todo would this be a good use case for a yield generator?
+                            # i.e. lazily yield them one at a time for the caller to iterate over. The datespot scorer method iterates over them.
+                            #   OTOH maybe useful to spend O(n) time then return them as a hash set?
+                            # Todo: Or just store them as an alphabetized list and binary search, like the master tastes-lexicon of all recognized tastes.
+        """Return only the names of the tastes"""
+        return set([taste_name for taste_name in self._tastes.keys()])
+
     def taste_strength(self, taste) -> float: # Public method so external callers aren't affected by the confusing indexing in the tastes dict values
         """
         Return the current weighted average strength-score for this taste.

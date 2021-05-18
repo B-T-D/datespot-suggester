@@ -42,11 +42,28 @@ class TestHelloWorldThings(unittest.TestCase):
         self.azura_name = "Azura"
         self.azura_location = (40.73517750328247, -74.00683227856715)
         self.azura_id = "1"
+        self.azura_existing_taste_name = "dawn"
+        self.azura_existing_taste_strength = 0.9
+        self.azura_existing_taste_datapoints = 3
+        self.azura_existing_tastes = { # This is the data in the object's internal format, for testing convenience not for a call to the external create_user()
+            self.azura_existing_taste_name:
+                [self.azura_existing_taste_strength,
+                self.azura_existing_taste_datapoints]
+        }
         azura_json = json.dumps({
             "name": self.azura_name,
             "current_location": self.azura_location,
         })
+        print(azura_json)
+
+        # Todo this is very convoluted--it was a quick hacky way of forcing the preexisting tastes data into the test DB
         assert self.api.create_user(azura_json, force_key=self.azura_id) == self.azura_id # It should return the id
+        assert self.azura_id in self.api._data
+        azura_obj = self.api.lookup_obj(self.azura_id)
+        azura_obj._tastes = self.azura_existing_tastes # Directly set the private attribute
+        self.api._data[self.azura_id] = azura_obj.serialize() # Manually serialize it here and force it to write to DB
+        self.api._write_json()
+        assert self.azura_existing_taste_name in self.api.lookup_obj(self.azura_id)._tastes
 
         self.boethiah_name = "Boethiah"
         self.boethiah_location = (40.76346250260515, -73.98013893542904)
@@ -99,6 +116,32 @@ class TestHelloWorldThings(unittest.TestCase):
                                                             #   Indicates something wrong with the method that looks up a user object. 
 
         self.assertAlmostEqual(new_data["current_location"][0], updated_user_data["current_location"][0]) # todo these aren't very comprehensive tests
+    
+    def test_update_user_adds_new_taste(self):
+        """Does the update method behave as expected when adding a new taste?"""
+        new_taste = "dusk"
+        new_taste_strength = 0.9
+        new_taste_json = json.dumps({"tastes": {new_taste: new_taste_strength}})
+        self.api.update_user(self.azura_id, new_taste_json)
+        azura_user_obj = self.api.lookup_obj(self.azura_id)
+        self.assertIn(new_taste, azura_user_obj._tastes)
+    
+    def test_update_user_updates_existing_taste(self):
+        """Does the update method behave as expected when adding an additional datapoint to an existing taste?"""
+        new_datapoint_strength = 0.1
+        expected_value = \
+            (self.azura_existing_taste_strength * self.azura_existing_taste_datapoints + new_datapoint_strength) / \
+            (1 + self.azura_existing_taste_datapoints)
+        
+        print(f"expected_value = {expected_value}")
+        
+        update_json = json.dumps({
+            "tastes": {self.azura_existing_taste_name: new_datapoint_strength}
+        })
+        self.api.update_user(self.azura_id, update_json)
+        actual_value = self.api._data[self.azura_id]["tastes"][self.azura_existing_taste_name][0]
+        #actual_value = self.api.lookup_obj(self.azura_id).taste_strength(self.azura_existing_taste_name) # todo should query this from an MI method instead of going to the actual object?
+        self.assertAlmostEqual(expected_value, actual_value)
         
     # todo add test for current logic wrt tastes (updating the weighted average)
 

@@ -41,13 +41,20 @@ class TestHelloWorldThings(unittest.TestCase):
 
         grortName = "Grort"
         grortCurrentLocation = (40.746667, -74.001111)
-        grort_json = json.dumps({
+        grort_json = json.dumps({ # todo can't create with tastes like this under current setup
             "name": grortName,
-            "current_location": grortCurrentLocation,
-            "tastes": {"italian": [0.1, 1]}
+            "current_location": grortCurrentLocation
         })
+        self.grort_tastes = {
+            "italian": [0.1, 1]
+        }
         self.grort_user_id = self.db.post_object("user", grort_json)
         self.user_grort = self.db.get_obj("user", self.grort_user_id)
+        print(self.user_grort.serialize())
+        print(f"user obj ._tastes: type = {type(self.user_grort._tastes)}\n val = \n {self.user_grort._tastes}")
+        self.user_grort._tastes = self.grort_tastes # todo quick hack to force it into the data
+        print(f"user obj ._tastes: type = {type(self.user_grort._tastes)}\n val = \n {self.user_grort._tastes}")
+        print(self.user_grort.serialize())
 
     
     def test_baseline_scoring_data_read_from_json(self):

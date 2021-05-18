@@ -126,9 +126,9 @@ class Datespot(metaclass=DatespotAppType):
             # todo does this logic hold up? Both mathematically and business-wise?
         datapoints = 0
         for trait in self.traits:
-            if trait in user.tastes:
+            if trait in user.taste_names():
                 datapoints += 1
-                score += self.traits[trait][0] * user.tastes[trait][0] # user.tastes[trait][0] is the actual score, [1] is the datapoints counter
+                score += self.traits[trait][0] * user.taste_strength(trait) # user.tastes[trait][0] is the actual score, [1] is the datapoints counter
         if datapoints: # Don't divide by zero
             score /= datapoints # Divide the score by the number of data points to scale it back to -1.0 to 1.0.
                                 # Todo check the math and business logic on this...
