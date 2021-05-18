@@ -62,11 +62,6 @@ class Message(metaclass=DatespotAppType):
     def __str__(self) -> str:
         return f"{self.time_sent}:\t{self.sender_id}:\t{self.text}"
 
-    def analyze(self) -> None: # Todo: make sense? Rationale: Let the external caller manually choose when the analysis runs, because that
-                                #   caller is responsible for updating the User and Chat data that depend on the message data.
-        """Updates the Message's public sentiment attribute and makes any discovered updates to the sender User object's tastes."""
-        self._analyze_sentiment()
-
     def serialize(self) -> dict:
         """Return data about this object instance that should be stored."""
         return {
@@ -83,25 +78,26 @@ class Message(metaclass=DatespotAppType):
 
     def _bsearch_taste_keywords(self, word: str):
         # todo placeholder, not implemented. Just returning the linear search for now
-        print(f"searching for {word} in tastes keywords")
         return word in self._tastes_keywords
     
     def _analyze_sentiment(self):
         """Compute the mean sentiment of the Message's sentences."""
-        print(f"tastes keywords:\n{self._tastes_keywords}")
+        print(f"analyze sentiment was called")
         self._tokenize() # populate the sentences array
         sentiments_sum = 0 # sum of vaderSentiment SentimentIntensityAnalyzer "compound" scores
         analyzer = vs.SentimentIntensityAnalyzer()
         for sentence in self._sentences:
-            print(f"sentence = {sentence}")
             sentence_sentiment = analyzer.polarity_scores(sentence)["compound"]
             sentiments_sum += sentence_sentiment
+            print(f"sentence.split() = {sentence.split()}")
             for word in sentence.split(): # todo time complexity needlessly bad, VSA already made one pass. Subclass VSA into a custom MessageAnalyzer and change just the one method
                                     #     by making it also check for the keywords. 
                     # todo implement binary search
+                print(f"word = {word}")
                 word = word.lower().strip()
                 if self._bsearch_taste_keywords(word):
-                    print(f"found {word}")
+                    print(f"found word '{word}'")
+                    print(f"message.py is about to call update tastes")
                     self.sender.update_tastes(taste = word, strength = sentence_sentiment) # Todo improve the business logic. Right now, this merely treats the sentiment of the 
                                                                             # sentence in which the word appeared as the user's sentiment toward that taste.
 

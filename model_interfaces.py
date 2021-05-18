@@ -598,7 +598,6 @@ class MessageModelInterface(ModelInterfaceABC):
             chat_id = json_dict["chat_id"],
             text = json_dict["text"]
         )
-        new_obj.analyze() # Tell the Message to run its NLP in order to update its attributes and sender User's attributes.
 
         # Write any changes to the User object back to the user DB--if we discovered anything about the user's tastes,
         #   save that info to improve suggestions later:
