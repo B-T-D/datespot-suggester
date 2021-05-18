@@ -50,11 +50,7 @@ class TestHelloWorldThings(unittest.TestCase):
         }
         self.grort_user_id = self.db.post_object("user", grort_json)
         self.user_grort = self.db.get_obj("user", self.grort_user_id)
-        print(self.user_grort.serialize())
-        print(f"user obj ._tastes: type = {type(self.user_grort._tastes)}\n val = \n {self.user_grort._tastes}")
         self.user_grort._tastes = self.grort_tastes # todo quick hack to force it into the data
-        print(f"user obj ._tastes: type = {type(self.user_grort._tastes)}\n val = \n {self.user_grort._tastes}")
-        print(self.user_grort.serialize())
 
     
     def test_baseline_scoring_data_read_from_json(self):

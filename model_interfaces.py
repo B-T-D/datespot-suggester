@@ -145,7 +145,6 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_object_id(user_id)
         user_data = self._data[user_id]
-        # print(f"--------------------------in lookup obj: user data: \n{self._data[user_id]}\n---------------------------")
         user_obj = user.User(
             user_id = user_id,
             name=user_data["name"],
@@ -214,9 +213,7 @@ class UserModelInterface(ModelInterfaceABC):
         #   for the taste that it's updating.
         user_obj = self.lookup_obj(user_id)
         for taste_name, strength in new_tastes_data.items():
-            print(f"taste_name = {taste_name}, strength = {strength}")
             user_obj.update_tastes(taste = taste_name, strength = strength)
-        print(f"serialized user obj after the User.update call:\n{user_obj.serialize()}")
         self._data[user_id]["tastes"] = user_obj.serialize()["tastes"] # Since we have an object literal in memory anyway, just have it give back the tastes dict.
         return # Caller is makes the _write_json call
     

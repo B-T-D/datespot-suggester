@@ -54,7 +54,6 @@ class TestHelloWorldThings(unittest.TestCase):
             "name": self.azura_name,
             "current_location": self.azura_location,
         })
-        print(azura_json)
 
         # Todo this is very convoluted--it was a quick hacky way of forcing the preexisting tastes data into the test DB
         assert self.api.create_user(azura_json, force_key=self.azura_id) == self.azura_id # It should return the id
@@ -84,7 +83,6 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_lookup_user(self):
         existing_user = self.api.lookup_obj(self.azura_id) # todo it should work with an int literal
-        #print(type(existingUser))
         #self.assertIsInstance(existingUser, user.User) # todo this keeps failing even though it's a user instance. For namespacing reasons (?)
         self.assertEqual(existing_user.name, self.azura_name)
     
@@ -133,14 +131,11 @@ class TestHelloWorldThings(unittest.TestCase):
             (self.azura_existing_taste_strength * self.azura_existing_taste_datapoints + new_datapoint_strength) / \
             (1 + self.azura_existing_taste_datapoints)
         
-        print(f"expected_value = {expected_value}")
-        
         update_json = json.dumps({
             "tastes": {self.azura_existing_taste_name: new_datapoint_strength}
         })
         self.api.update_user(self.azura_id, update_json)
         actual_value = self.api._data[self.azura_id]["tastes"][self.azura_existing_taste_name][0]
-        #actual_value = self.api.lookup_obj(self.azura_id).taste_strength(self.azura_existing_taste_name) # todo should query this from an MI method instead of going to the actual object?
         self.assertAlmostEqual(expected_value, actual_value)
         
     # todo add test for current logic wrt tastes (updating the weighted average)

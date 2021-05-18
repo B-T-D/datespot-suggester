@@ -1,6 +1,5 @@
 from app_object_type import DatespotAppType
 
-import json # to read in the keywords only
 import nltk
 from vaderSentiment import vaderSentiment as vs
 
@@ -30,10 +29,11 @@ class Message(metaclass=DatespotAppType):
 
         self.id = self._id()
 
-        self._tastes_keywords =  None 
+        self._tastes_keywords = [] 
 
         with open(TASTES_KEYWORDS, 'r') as fobj:
-            self._tastes_keywords = json.load(fobj)
+            for line in fobj.readlines():
+                self._tastes_keywords.append(line)
         assert isinstance(self._tastes_keywords, list)
         self._tastes_keywords.sort() # for binary search
             # Todo store it sorted on disk. Have a unit test that reads it from disk and confirms it's sorted.
