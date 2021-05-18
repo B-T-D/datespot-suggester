@@ -19,6 +19,9 @@ Conceptual prototype for a dating app API that suggests date locations to users.
 - [ ] Add support for hypothetical concurrent DB interactions. In a real dating app, multiple users would sometims interact with a single DB object concurrently.
 - [ ] Resy integration. Support users booking via Resy; experiment with filtering suggestions by
 reservation availability.
+- [ ] Configure TravisCI and Coveralls on main branch of repo.
+- [ ] Achieve 100% unit test code coverage.
+- [ ] Improve unit tests to include large, edge, and boundary test cases for the most important algorithms.
 
 ### Milestone features
 - [ ] Analyze user chats to find keywords relevant to date-location preferences, and tailor that user's suggestions accordingly.
