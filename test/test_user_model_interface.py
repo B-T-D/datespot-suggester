@@ -53,10 +53,11 @@ class TestHelloWorldThings(unittest.TestCase):
         azura_json = json.dumps({
             "name": self.azura_name,
             "current_location": self.azura_location,
+            "force_key": self.azura_id
         })
 
         # Todo this is very convoluted--it was a quick hacky way of forcing the preexisting tastes data into the test DB
-        assert self.api.create_user(azura_json, force_key=self.azura_id) == self.azura_id # It should return the id
+        assert self.api.create_user(azura_json) == self.azura_id # It should return the id
         assert self.azura_id in self.api._data
         azura_obj = self.api.lookup_obj(self.azura_id)
         azura_obj._tastes = self.azura_existing_tastes # Directly set the private attribute
@@ -69,9 +70,10 @@ class TestHelloWorldThings(unittest.TestCase):
         self.boethiah_id = "2"
         boethiah_json = json.dumps({
             "name": self.boethiah_name,
-            "current_location": self.boethiah_location
+            "current_location": self.boethiah_location,
+            "force_key": self.boethiah_id
         })
-        assert self.api.create_user(boethiah_json, force_key=self.boethiah_id) == self.boethiah_id
+        assert self.api.create_user(boethiah_json) == self.boethiah_id
         
     def test_create_user(self):
         json_data = json.dumps({

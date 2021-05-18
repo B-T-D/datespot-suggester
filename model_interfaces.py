@@ -103,7 +103,7 @@ class UserModelInterface(ModelInterfaceABC):
             "force_key" # todo force_key isn't really a model field, conceptually
         }
         
-    def create_user(self, json_data: str, force_key: int=None) -> int:
+    def create_user(self, json_data: str) -> int:
         """
         Takes json data in the app's internal format and returns the id key of the newly created user.
         Force key arg is for testing purposes to not always have huge unreadable uuids.
@@ -112,8 +112,9 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         json_dict = json.loads(json_data)
         self._validate_json_fields(json_dict)
-        if force_key: # Don't allow force-creating a key that's already taken
-            if force_key in self._data:
+        if "force_key" in json_dict:
+            force_key = json_dict["force_key"]
+            if force_key in self._data: # Don't allow force-creating a key that's already taken
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
             user_id = force_key
         else:
@@ -565,6 +566,14 @@ class MessageModelInterface(ModelInterfaceABC):
     def create_message(self, json_data: str) -> str:
         """
         Returns the new object's id key string.
+
+        JSON format:
+            {
+                "time_sent": <<UNIX timestamp>>,
+                "sender_id": <<ID string of a stored User object>>,
+                "chat_id": <<ID string of the stored Chat object in which this message was sent>>,
+                "text": <<String text of the message>>
+            }
         """
         # Todo SRP. This method is doing too much. 
         self._read_json()
@@ -623,9 +632,10 @@ class MessageModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_object_id(object_id)
         message_data = self._data[object_id]
+        user_db = UserModelInterface(self._master_datafile) # need a User MI to get a User obj to call the Message constructor with
         return message.Message(
             time_sent = message_data["time_sent"],
-            sender_id = message_data["sender_id"],
+            sender = user_db.lookup_obj(message_data["sender_id"]),
             chat_id = message_data["chat_id"],
             text = message_data["text"]
         ) # Todo: Not copying the sentiment because that can be recomputed on the object. Is that the right approach?

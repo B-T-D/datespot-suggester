@@ -38,7 +38,7 @@ class DatabaseAPI:
         if not model_name in self._valid_model_names:
             raise ValueError(f"Invalid model name: {model_name}")
 
-    def post_object(self, object_type: str, json_data: str, **kwargs) -> str:
+    def post_object(self, object_type: str, json_data: str, **kwargs) -> str: # todo kwargs should be deleteable now
         """
         Add data for a new object to the database and return its id string.
 
@@ -60,10 +60,7 @@ class DatabaseAPI:
         object_type = object_type.lower()
         if object_type == "user":
             user_db = self._model_interface("user")
-            if "force_key" in kwargs:
-                new_object_id = user_db.create_user(json_data, kwargs["force_key"])
-            else:
-                new_object_id = user_db.create_user(json_data)
+            new_object_id = user_db.create_user(json_data)
         elif object_type == "datespot":
             datespot_db = self._model_interface("datespot")
             datespot_db.create_datespot(json_data)

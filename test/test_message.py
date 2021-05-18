@@ -12,6 +12,26 @@ class TestHelloWorldThings(unittest.TestCase):
 
     def setUp(self):
 
+        # Boilerplate mock data environment stuff
+        data_map = { # todo DRY, this is repeated in every model interface's tests module
+            "user_data": "test/testing_mockUserDB.json",
+            "datespot_data": "test/testing_mockDatespotDB.json",
+            "match_data": "test/testing_mockMatchData.json",
+            "review_data": "test/testing_mockReviewData.json",
+            "message_data": "test/testing_mockMessageData.json",
+            "chat_data": "test/testing_mockChatData.json"
+            }
+
+        with open(TEST_JSON_DB_NAME, 'w') as fobj:
+            json.dump(data_map, fobj)
+            fobj.seek(0)
+
+        # make sure all the test-mock JSONs exist:
+        for filename in data_map:
+            with open(data_map[filename], 'w') as fobj:
+                json.dump({}, fobj)
+                fobj.seek(0)
+
         # Mock DB
         self.db = DatabaseAPI(json_map_filename=TEST_JSON_DB_NAME)
 

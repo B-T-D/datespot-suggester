@@ -46,7 +46,8 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.akatosh_location,
             "force_key": self.akatosh_id
         })
-        self.db.post_object("user", akatosh_json) # Don't need to store the key returned by this, forced it to "1"
+        actual_key = self.db.post_object("user", akatosh_json) # Don't need to store the key returned by this, forced it to "1"
+        print(actual_key)
 
         self.stendarr_name = "Stendarr"
         self.stendarr_location = (40.74769591216627, -73.99447266003756)
@@ -85,7 +86,7 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_create_message(self):
         json_str = json.dumps({
             "time_sent": self.mock_bilateral_timestamp,
-            "sender_id": self.akatosh_id,
+            "sender_id": self.akatosh_id,  # MI is called with sender_id. MI then has sole responsibility for translating the MI to a user object literal.
             "chat_id": self.mock_chat_id_1,
             "text": self.single_sentence_text
         })
