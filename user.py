@@ -36,7 +36,7 @@ class User(metaclass=DatespotAppType):
         else:
             self.predominant_location = self._compute_predominant_location()
 
-        self.tastes = tastes
+        self._tastes = tastes # Private attribute, because the structure of the dict's values is a confusing implementation detail.
 
         self.travel_propensity= travel_propensity #  todo placeholder. Integer indicating how willing the user is to travel, relative to other users. 
         self.chat_logs = None # todo you want NLP on the *user*'s chats, not just the chats for this
@@ -77,7 +77,42 @@ class User(metaclass=DatespotAppType):
         # todo validate at the DB layer
         self.current_location = location
         return 0
+
+    def update_tastes(self, taste: str, strength: float) -> None:
+        """
+        Update this User's tastes data. If taste is not yet in the tastes hashmap, add it as a new 
+        key with its strength-score and a one total datapoint. Otherwise, update that taste's weighted average
+        strength-score and increment its total datapoints count in the hashmap.
+
+        Args:
+            taste (str): String label of the taste. E.g. "thai", "italian", "loud", "quiet", "dark"
+            score (float): Strength of the preference from that datapoint. Normalized to between 
+                -1.0 and 1.0.
+        """
+        taste = taste.lower().strip() # todo is this cluttering, or worthwhile as a redundant, relatively easy/cheap check?
+
+        if not taste in self._tastes:
+            self._tastes[taste] = [strength, 1] # [strength_score, num_datapoints]
+        else:
+            prior_strength, datapoints = self._tastes[taste][0], self._tastes[taste][1]
+            weighted_prior_strength = prior_strength * datapoints
+            datapoints += 1 # increment datapoints count to new total after multiplying by the prior value
+            new_strength = (weighted_prior_strength + strength) / datapoints
+            self._tastes[taste] = [new_strength, datapoints]
     
+    def taste_strength(self, taste) -> float: # Public method so external callers aren't affected by the confusing indexing in the tastes dict values
+        """
+        Return the current weighted average strength-score for this taste.
+        """
+        return self._tastes[taste][0]
+    
+    def taste_datapoints(self, taste) -> int: # toto YAGNI?
+        """
+        Return the current number of datapoints for this taste. That is, how many sentiment floats were used in 
+        computing the current weighted average strength score.
+        """
+        return self._tastes[taste][1]
+
     def serialize(self) -> dict:
         """Return the data about this object that should be stored."""
         return {

@@ -30,12 +30,13 @@ class Message(metaclass=DatespotAppType):
 
         self.id = self._id()
 
-        self._tastes_keywords =  None
+        self._tastes_keywords =  None 
 
         with open(TASTES_KEYWORDS, 'r') as fobj:
             self._tastes_keywords = json.load(fobj)
         assert isinstance(self._tastes_keywords, list)
         self._tastes_keywords.sort() # for binary search
+            # Todo store it sorted on disk. Have a unit test that reads it from disk and confirms it's sorted.
 
         self._sentences = []
         self._sentimient_avg = None
@@ -80,7 +81,7 @@ class Message(metaclass=DatespotAppType):
         analyzer = vs.SentimentIntensityAnalyzer()
         for sentence in self._sentences:
             sentiments_sum += analyzer.polarity_scores(sentence)["compound"]
-            for word in sentence: # todo time complexity terrible
+            for word in sentence: # todo time complexity needlessly bad, VSA already made one pass 
                     # todo implement binary search
                 if word in self._tastes_keywords:
                     pass # todo update the sender user object literal's tastes data. MessageModelInterface is responsible for writing the changes to both the 
