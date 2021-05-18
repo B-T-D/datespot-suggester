@@ -70,6 +70,8 @@ class TestHelloWorldThings(unittest.TestCase):
         
         self.azura_user_obj.update_tastes(self.existing_taste_name, new_datapoint_strength)
         self.assertAlmostEqual(expected_value, self.azura_user_obj._tastes[self.existing_taste_name][0])  # index [0] to return the weighted strength score
+        # should now have 4 total datapoints (it was hard coded to simulate having 3 preexisting)
+        self.assertEqual(4, self.azura_user_obj.taste_datapoints(self.existing_taste_name))
     
     def test_taste_strength(self):
         """Does the public method for returning the current strength of a taste behave as expected?"""

@@ -602,13 +602,10 @@ class MessageModelInterface(ModelInterfaceABC):
         # Write any changes to the User object back to the user DB--if we discovered anything about the user's tastes,
         #   save that info to improve suggestions later:
         updated_user_tastes = sender_user_obj.serialize()["tastes"]
-        print(f"in create message: prior_user_tastes = \n{prior_user_tastes}")
-        print(f"in create message: updated_user_tastes = \n{updated_user_tastes}")
         if str(prior_user_tastes) != str(sender_user_obj.serialize()["tastes"]):  # Todo what's simplest, most performant here? Goal is to update only those tastes that
                                                     # changed, and do so via the User MI. User MI currently doesn't support wholesale overwrite of 
                                                     # the tastes, only incremental update. So to use that interface, would need to sort out here
                                                     # which ones changed. 
-            print(f"tastes updated, writing to db")
             user_data = user_db._get_all_data()[sender_user_obj.id] # Todo: Expedient for now. Use the private method to just overwrite the entire dict.
             user_data["tastes"] = updated_user_tastes
             user_db._write_json() # Todo: For now need to manually tell it to write since didn't use one of its public methods.

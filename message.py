@@ -82,22 +82,17 @@ class Message(metaclass=DatespotAppType):
     
     def _analyze_sentiment(self):
         """Compute the mean sentiment of the Message's sentences."""
-        print(f"analyze sentiment was called")
         self._tokenize() # populate the sentences array
         sentiments_sum = 0 # sum of vaderSentiment SentimentIntensityAnalyzer "compound" scores
         analyzer = vs.SentimentIntensityAnalyzer()
         for sentence in self._sentences:
             sentence_sentiment = analyzer.polarity_scores(sentence)["compound"]
             sentiments_sum += sentence_sentiment
-            print(f"sentence.split() = {sentence.split()}")
             for word in sentence.split(): # todo time complexity needlessly bad, VSA already made one pass. Subclass VSA into a custom MessageAnalyzer and change just the one method
                                     #     by making it also check for the keywords. 
                     # todo implement binary search
-                print(f"word = {word}")
                 word = word.lower().strip()
                 if self._bsearch_taste_keywords(word):
-                    print(f"found word '{word}'")
-                    print(f"message.py is about to call update tastes")
                     self.sender.update_tastes(taste = word, strength = sentence_sentiment) # Todo improve the business logic. Right now, this merely treats the sentiment of the 
                                                                             # sentence in which the word appeared as the user's sentiment toward that taste.
 

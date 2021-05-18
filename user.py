@@ -1,5 +1,6 @@
 from app_object_type import DatespotAppType
 
+TASTE_STRENGTH_DECIMAL_PLACES = 6 # Todo confirm this is however many significant figures VSA includes
 
 class User(metaclass=DatespotAppType):
 
@@ -89,17 +90,16 @@ class User(metaclass=DatespotAppType):
             score (float): Strength of the preference from that datapoint. Normalized to between 
                 -1.0 and 1.0.
         """
-        print(f"update tastes was called with {taste}, {strength}")
         taste = taste.lower().strip() # todo is this cluttering, or worthwhile as a redundant, relatively easy/cheap check?
 
         if not taste in self._tastes:
             self._tastes[taste] = [strength, 1] # [strength_score, num_datapoints]
         else:
-            prior_strength, datapoints = self._tastes[taste][0], self._tastes[taste][1]
-            weighted_prior_strength = prior_strength * datapoints
-            datapoints += 1 # increment datapoints count to new total after multiplying by the prior value
-            new_strength = (weighted_prior_strength + strength) / datapoints
-            self._tastes[taste] = [new_strength, datapoints]
+            prior_strength, prior_datapoints = self._tastes[taste][0], self._tastes[taste][1]
+            weighted_prior_strength = prior_strength * prior_datapoints
+            new_datapoints = prior_datapoints + 1
+            new_strength = (weighted_prior_strength + strength) / new_datapoints
+            self._tastes[taste] = [new_strength, new_datapoints]
     
     def taste_names(self): # todo would this be a good use case for a yield generator?
                             # i.e. lazily yield them one at a time for the caller to iterate over. The datespot scorer method iterates over them.
@@ -112,9 +112,7 @@ class User(metaclass=DatespotAppType):
         """
         Return the current weighted average strength-score for this taste.
         """
-        print(f"in User.py: taste_strength called with taste = {taste}")
-        print(f"self._tastes = {self._tastes}")
-        return self._tastes[taste][0]
+        return round(self._tastes[taste][0], TASTE_STRENGTH_DECIMAL_PLACES)
     
     def taste_datapoints(self, taste) -> int: # toto YAGNI?
         """
