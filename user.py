@@ -89,6 +89,7 @@ class User(metaclass=DatespotAppType):
             score (float): Strength of the preference from that datapoint. Normalized to between 
                 -1.0 and 1.0.
         """
+        print(f"update tastes was called with {taste}, {strength}")
         taste = taste.lower().strip() # todo is this cluttering, or worthwhile as a redundant, relatively easy/cheap check?
 
         if not taste in self._tastes:
@@ -111,6 +112,8 @@ class User(metaclass=DatespotAppType):
         """
         Return the current weighted average strength-score for this taste.
         """
+        print(f"in User.py: taste_strength called with taste = {taste}")
+        print(f"self._tastes = {self._tastes}")
         return self._tastes[taste][0]
     
     def taste_datapoints(self, taste) -> int: # toto YAGNI?

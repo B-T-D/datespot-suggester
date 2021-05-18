@@ -79,6 +79,20 @@ class TestHelloWorldThings(unittest.TestCase):
         self.mock_chat_id_1 = self.db.post_object("chat", self.quick_mock_chat_json)
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
+
+        # Mock message where user expresses tastes info
+
+        self.tastes_message_timestamp = time.time()
+        self.akatosh_taste_name = "italian"
+        self.tastes_message_text = "I love italian food"
+        self.expected_sentiment_tastes_sentence = 0.6369 # todo hardcoded
+        self.tastes_message_json = json.dumps({
+            "time_sent": self.tastes_message_timestamp,
+            "sender_id": self.akatosh_id,
+            "chat_id": self.mock_chat_id_1,
+            "text": self.tastes_message_text
+        })
+        self.tastes_message_id = self.api.create_message(self.tastes_message_json)
     
     def test_instantiation(self):
         self.assertIsInstance(self.api, MessageModelInterface)
@@ -92,3 +106,9 @@ class TestHelloWorldThings(unittest.TestCase):
         })
         message_id = self.api.create_message(json_str)
         self.assertIn(message_id, self.api._data)
+    
+    def test_tastes_updated_in_user_obj(self):
+        expected_taste_strength = self.expected_sentiment_tastes_sentence
+        akatosh_obj = self.db.get_obj("user", self.akatosh_id)
+        actual_taste_strength = akatosh_obj.taste_strength(self.akatosh_taste_name)
+        self.assertAlmostEqual(expected_taste_strength, actual_taste_strength)

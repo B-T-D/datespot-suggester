@@ -35,7 +35,7 @@ class Message(metaclass=DatespotAppType):
 
         with open(TASTES_KEYWORDS, 'r') as fobj:
             for line in fobj.readlines():
-                self._tastes_keywords.append(line)
+                self._tastes_keywords.append(line.rstrip()) # strip newline character from right
         assert isinstance(self._tastes_keywords, list)
         self._tastes_keywords.sort() # for binary search
             # Todo store it sorted on disk. Have a unit test that reads it from disk and confirms it's sorted.
@@ -83,21 +83,25 @@ class Message(metaclass=DatespotAppType):
 
     def _bsearch_taste_keywords(self, word: str):
         # todo placeholder, not implemented. Just returning the linear search for now
+        print(f"searching for {word} in tastes keywords")
         return word in self._tastes_keywords
     
     def _analyze_sentiment(self):
         """Compute the mean sentiment of the Message's sentences."""
+        print(f"tastes keywords:\n{self._tastes_keywords}")
         self._tokenize() # populate the sentences array
         sentiments_sum = 0 # sum of vaderSentiment SentimentIntensityAnalyzer "compound" scores
         analyzer = vs.SentimentIntensityAnalyzer()
         for sentence in self._sentences:
+            print(f"sentence = {sentence}")
             sentence_sentiment = analyzer.polarity_scores(sentence)["compound"]
             sentiments_sum += sentence_sentiment
-            for word in sentence: # todo time complexity needlessly bad, VSA already made one pass. Subclass VSA into a custom MessageAnalyzer and change just the one method
+            for word in sentence.split(): # todo time complexity needlessly bad, VSA already made one pass. Subclass VSA into a custom MessageAnalyzer and change just the one method
                                     #     by making it also check for the keywords. 
                     # todo implement binary search
                 word = word.lower().strip()
-                if self._bsearch_taste_keywords(word) in self._tastes_keywords:
+                if self._bsearch_taste_keywords(word):
+                    print(f"found {word}")
                     self.sender.update_tastes(taste = word, strength = sentence_sentiment) # Todo improve the business logic. Right now, this merely treats the sentiment of the 
                                                                             # sentence in which the word appeared as the user's sentiment toward that taste.
 
