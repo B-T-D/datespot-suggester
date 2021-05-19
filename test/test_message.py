@@ -86,7 +86,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.expected_sentiment_multisentence = 0.092 # todo hardcoded
 
         self.mock_chat_id_2 = "2a"
-        self.multisentence_message_obj = modelsMessage(
+        self.multisentence_message_obj = models.Message(
             time_sent = time.time(),
             sender = self.db.get_obj("user", self.akatosh_id),
             chat_id = self.mock_chat_id_2,
@@ -94,7 +94,7 @@ class TestHelloWorldThings(unittest.TestCase):
         )
 
     def test_init(self):
-        self.assertIsInstance(self.message_obj, Message)
+        self.assertIsInstance(self.message_obj, models.Message)
     
     def test_eq(self):
         """Does the custom __eq__() behave as expected?"""

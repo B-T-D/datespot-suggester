@@ -7,7 +7,7 @@ try:
 except:
     from model_interfaces import MatchModelInterface, UserModelInterface
 
-from match import Match
+import models
 
 TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
@@ -65,7 +65,7 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_lookup_match(self):
         matchObj = self.api.lookup_obj(self.knownMatchKey)
-        self.assertIsInstance(matchObj, Match)
+        self.assertIsInstance(matchObj, models.Match)
 
 # todo need very thorough testing of the get_suggestions stuff. Very buggy and slapped together as of 5/13.
 

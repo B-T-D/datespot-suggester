@@ -2,12 +2,13 @@ import unittest
 import json
 import random
 
+import models
+
 try:
     from python_backend.model_interfaces import DatespotModelInterface
     from python_backend.datespot import Datespot
 except:
     from model_interfaces import DatespotModelInterface
-    from datespot import Datespot
 
 # todo, style--define global constants before or after imports?
 
