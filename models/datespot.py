@@ -79,6 +79,11 @@ class Datespot(metaclass=DatespotAppType):
         """
         return hash(self) == hash(other)
 
+    def __lt__(self, other):# Todo: Weird to have eq be the hash and __lt__ be something else. This was quick hack because
+            # heapq needed a way to break ties.
+        """Return True if self has a lower baseline_dateworthiness than other."""
+        return self.baseline_dateworthiness < other.baseline_dateworthiness
+
     def __hash__(self):
         return hash(self._location)
 

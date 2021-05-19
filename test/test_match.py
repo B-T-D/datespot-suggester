@@ -19,6 +19,8 @@ class TestHelloWorldThings(unittest.TestCase):
     def setUp(self):
         
         self.db = DatabaseAPI() # Testing on the real DB, to have restaurants
+            # Todo script that populates the test DBs with realistic restaurants en masse. And/or separate JSON map for this test
+            #   (pointing to same test DB filenames for some like users, different one for datespots)
 
         # Need user objects to instantiate a Match
         grortName = "Grort"
@@ -43,6 +45,10 @@ class TestHelloWorldThings(unittest.TestCase):
         # midpoint should be circa (40.75827478958617, -73.99310556132602)
 
         self.matchGrortDrobb = models.Match(userGrort, userDrobb)
+        assert self.matchGrortDrobb.midpoint is not None
+
+        # Get the candidates list that the DatabaseAPI would be giving to Match:
+        self.candidate_datespots_list = self.db.get_datespots_near(self.matchGrortDrobb.midpoint)
     
     def test_compute_midpoint(self):
         maxDelta = 0.01
@@ -55,34 +61,34 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_get_suggestions_return_type(self):
         """Does Match.get_suggestions() external method return the expected type?"""
         expected_return_type = list
-        returned_obj = self.matchGrortDrobb.get_suggestions()
+        returned_obj = self.matchGrortDrobb.suggestions(self.candidate_datespots_list)
         self.assertIsInstance(returned_obj, expected_return_type)
     
     def test_get_suggestions_return_not_null(self):
-        returned_obj = self.matchGrortDrobb.get_suggestions()
+        returned_obj = self.matchGrortDrobb.suggestions(self.candidate_datespots_list)
         self.assertGreater(len(returned_obj), 0)
 
     def test_get_suggestions_return_shape(self):
         """Does the returned object's shape (nested lists/tuples) match the expected structure?"""
-        returned_obj = self.matchGrortDrobb.get_suggestions()
+        returned_obj = self.matchGrortDrobb.suggestions(self.candidate_datespots_list)
         # each "suggestion" should be a Datespot object literal:
         #print(len(returned_obj))
         for element in returned_obj:
             #print(f"element = {element}: {element.name}")
-            self.assertIsInstance(element, datespot.Datespot)
+            self.assertIsInstance(element, models.Datespot)
     
-    def test_db_user_method_returns_expected_query_results(self):
-        """Does the method that calls the main database API return the expected query results, i.e. 
-        a list of serialized restaurant object dicts sorted by distance?"""
-        returned_obj = self.matchGrortDrobb._get_datespots_by_geography()
-        #print(returned_obj)
-        self.assertIsInstance(returned_obj, list)
-        self.assertGreater(len(returned_obj), 0)
+    # def test_db_user_method_returns_expected_query_results(self):
+    #     """Does the method that calls the main database API return the expected query results, i.e. 
+    #     a list of serialized restaurant object dicts sorted by distance?"""
+    #     returned_obj = self.matchGrortDrobb._get_datespots_by_geography()
+    #     #print(returned_obj)
+    #     self.assertIsInstance(returned_obj, list)
+    #     self.assertGreater(len(returned_obj), 0)
     
     def test_internal_scorer_method_returns_expected_data(self):
         """Does the internal "private" method responsible for scoring each nearby datespot return a non-empty
         list?"""
-        returned_obj = self.matchGrortDrobb._score_nearby_datespots()
+        returned_obj = self.matchGrortDrobb._score_nearby_datespots(self.candidate_datespots_list)
         self.assertIsInstance(returned_obj, list)
         self.assertGreater(len(returned_obj), 0)
 

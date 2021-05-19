@@ -411,19 +411,48 @@ class DatespotModelInterface(ModelInterfaceABC):
         self._read_json()
         return len(self._data)
 
-    def query_datespots_near(self, location, radius=2000): # Todo hasty implementation. This is the most important query logic so better to get something working sooner.
-        """Return list of the datespots in the DB within radius meters of location, sorted from nearest to farthest.""" 
+    def query_datespot_ids_near(self, location, radius=2000): # Todo hasty implementation. This is the most important query logic so better to get something working sooner.
+        """Return list of the datespots in the DB within radius meters of location, sorted from nearest to farthest.
+        
+        Returns:
+            (list): List of two-element tuples such that query_results[i][0] is distance from query location to the datespot
+                and query_results[i][1] is the datespot's ID string.
+        
+        """ 
         if (not location) or (not geo_utils.is_valid_lat_lon(location)): # todo best architectural place for validating this?
             raise ValueError(f"Bad lat lon location: {location}")
         self._read_json()
         query_results = [] # list of two element tuples of (distance_from_query_location, serialized_datespot_dict). I.e. list[tuple[int, dict]]
         for id_key in self._data:
-            place = self._data[id_key]
-            place_loc = place["location"]
+            datespot_data = self._data[id_key]
+            place_loc = datespot_data["location"]
             distance = geo_utils.haversine(location, place_loc)
             if distance < radius: # todo do we need the full object in the results dict, or would only the lookup key suffice?
-                query_results.append((distance, place)) # append as tuple with distance as the tuple's first element
+                query_results.append((distance, id_key)) # append as tuple with distance as the tuple's first element
         query_results.sort() # Todo no reason to heap-sort yet, this method's caller won't necessarily want it as a heap. 
+        return query_results
+
+    def query_datespot_objs_near(self, location, radius=2000):
+        """
+        Return a list of distances and corresponding Datespot object literals within radius meters of location,
+        sorted from nearest to farthest. Same as query_datespot_ids_near() except that it returns the Datespot
+        objects instead of the IDs.
+
+        """
+        # Todo do we want a one-pass algorithm to return a list of Datespot objects? Rather than some other code
+        #   needing to make a second pass to lookup each datespot id?
+
+        # Todo: Do we care about keeping the distances in the list at this point? Isn't it enough to return a distance-sorted
+        #   list? OTOH, if the caller is Match algorithms, may end up wanting to factor distance into suggestions (all else equal,
+        #   choose the closer restaurant).
+
+        # Todo for now, just wrap the one that returns ids, and then convert each ID to a datespot object
+        datespot_ids = self.query_datespot_ids_near(location, radius)
+        query_results = []
+        for composite_element in datespot_ids:
+            distance, id_string = composite_element[0], composite_element[1]
+            datespot_obj = self.lookup_obj(id_string)
+            query_results.append((distance,datespot_obj))
         return query_results
 
 class MatchModelInterface(ModelInterfaceABC):
@@ -481,10 +510,7 @@ class MatchModelInterface(ModelInterfaceABC):
         user1_obj, user2_obj = self.user_api_instance.lookup_obj(user1_id), self.user_api_instance.lookup_obj(user2_id)
         match_obj = models.Match(user1_obj, user2_obj)
         new_object_id = match_obj.id
-        self._data[new_object_id] = {
-            "users": [user1_id, user2_id],
-            "timestamp": time.time()
-        }
+        self._data[new_object_id] = match_obj.serialize()
         self._write_json()
         return new_object_id
     
@@ -495,7 +521,11 @@ class MatchModelInterface(ModelInterfaceABC):
         user_id_1, user_id_2 = match_data["users"][0], match_data["users"][1]
         user1 = self.user_api_instance.lookup_obj(user_id_1)
         user2 = self.user_api_instance.lookup_obj(user_id_2)
-        match_obj = models.Match(user1, user2)
+        match_obj = models.Match(
+            user1 = user1,
+            user2 = user2,
+            timestamp = match_data["timestamp"],
+            suggestions_queue = match_data["suggestions_queue"])
         return match_obj
     
     def get_all_suggestions(self, match_id: int) -> list:

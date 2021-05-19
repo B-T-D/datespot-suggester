@@ -159,7 +159,7 @@ class DatabaseAPI:
                 user_db.add_to_pending_likes(user_id, candidate_id)
         return False
 
-    def get_datespots_near(self, location: tuple, radius: int) -> list:
+    def get_datespots_near(self, location: tuple, radius: int=2000) -> list: # todo make private method?
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
 
@@ -168,16 +168,29 @@ class DatabaseAPI:
 
         datespots_db = self._model_interface("datespot")
         # todo validate the location and radius here?
-        results = datespots_db.query_datespots_near(location, radius)
+        results = datespots_db.query_datespot_objs_near(location, radius)
         return results
     
-    def get_next_datespot(self, match_id) -> str:
+    def get_datespot_suggestions(self, match_id) -> list:
         """
-        Return JSON for the next suggested date location for this match.
+        Return list of Datespot objects and their distances from the Match's midpoint, ordered by distance.
         """
-        match_db = self._model_interface("match")
-        return match_db.get_next_suggestion(match_id)
-    
+
+        # Instantiate the Match object
+        match_obj = self.get_obj("match", match_id)
+
+        # Ask it the midpoint to use
+        midpoint = match_obj.midpoint
+
+        # Perform a geographic query using that midpoint
+        candidate_datespots = self.query_datespot_objs_near(midpoint) # todo can one-liner this into passing match_obj.midpoint as the arg
+
+        # Pass that list[Datespot] to Match's next_suggestion public method.
+        return match_obj.suggestions(candidate_datespots) # todo TBD how much we care about returning just one vs. returning a prioritized queue
+                                                    #   and letting the client handle swiping on restaurants without needing a new query every time
+                                                    #   the users reject a suggestion. Would guess that latter approach is better practice.
+
+        
     def get_next_candidate(self, user_id: int) -> int:
         """
         Returns user id of next candidate.

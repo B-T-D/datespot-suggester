@@ -8,7 +8,7 @@ class User(metaclass=DatespotAppType):
         self,
         user_id: str,
         name: str,
-        current_location: tuple=None,
+        current_location,
         predominant_location: tuple=None,
         tastes: dict={},
         matches: dict={},
