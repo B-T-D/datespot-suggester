@@ -17,20 +17,9 @@ def read_in_uniques(filename: str) -> list:
                 lines_list.append(line + "\n") # Add back exactly one newline
     return lines_list
 
-def is_unique_elements(input_list: list):
-    """Returns True if there are no duplicate elements in the list, else False."""
-    seen = set()
-    for word in input_list:
-        if not word in seen:
-            seen.add(word)
-        else:
-            return False
-    return True
-
 def write_out(filename: str, lines: list):
     with open(filename, "w") as fobj:
         fobj.writelines(lines)
-
 
 def main():
     lines = read_in_uniques(TASTES_KEYWORDS)
@@ -39,6 +28,5 @@ def main():
     print(lines)
     write_out(filename=TASTES_KEYWORDS, lines=lines)
     
-
 if __name__ == "__main__":
     main()
