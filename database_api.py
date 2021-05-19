@@ -25,7 +25,7 @@ class DatabaseAPI:
     def __init__(self, json_map_filename: str=JSON_MAP_FILENAME, live_google_maps: bool=False):
         self._valid_model_names = {"user", "datespot", "match", "review", "message", "chat"}
         self._json_map_filename = json_map_filename
-        self._live_google_maps = live_google_maps
+        self._live_google_maps = live_google_maps # todo implement different dispatching for the datespot queries based on this setting
 
     def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
         """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.
