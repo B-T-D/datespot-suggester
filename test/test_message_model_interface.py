@@ -46,7 +46,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.akatosh_location,
             "force_key": self.akatosh_id
         })
-        self.db.post_object("user", akatosh_json) # Don't need to store the key returned by this, forced it to "1"
+        actual_key = self.db.post_object("user", akatosh_json) # Don't need to store the key returned by this, forced it to "1"
 
         self.stendarr_name = "Stendarr"
         self.stendarr_location = (40.74769591216627, -73.99447266003756)
@@ -78,6 +78,37 @@ class TestHelloWorldThings(unittest.TestCase):
         self.mock_chat_id_1 = self.db.post_object("chat", self.quick_mock_chat_json)
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
+
+        # Mock message where user expresses tastes info
+
+        self.tastes_message_timestamp = time.time()
+        self.akatosh_taste_name = "italian"
+        self.tastes_message_text = f"I love {self.akatosh_taste_name} food"
+        self.expected_sentiment_tastes_sentence = 0.6369 # todo hardcoded
+            # Todo import the identical sentiment analyzer here, and run it on the sentence, and save the result.
+        self.tastes_message_json = json.dumps({
+            "time_sent": self.tastes_message_timestamp,
+            "sender_id": self.akatosh_id,
+            "chat_id": self.mock_chat_id_1,
+            "text": self.tastes_message_text
+        })
+        self.tastes_message_id = self.api.create_message(self.tastes_message_json)
+
+        # Mock message with negative taste sentiment
+        self.negative_tastes_message_timestamp = time.time()
+        self.akatosh_negative_taste_name = "thai"
+        self.negative_tastes_message_text = f"I don't really like {self.akatosh_negative_taste_name} food"
+        self.expected_sentiment_negative_tastes_sentence = -0.3241 # todo hardcoded
+        self.negative_tastes_message_json = json.dumps({
+            "time_sent": self.negative_tastes_message_timestamp,
+            "sender_id": self.akatosh_id,
+            "chat_id": self.mock_chat_id_1,
+            "text": self.negative_tastes_message_text
+        })
+        self.negative_tastes_message_id = self.api.create_message(self.negative_tastes_message_json)
+
+        akatosh_obj = self.db.get_obj("user", self.akatosh_id) # todo just for debug
+
     
     def test_instantiation(self):
         self.assertIsInstance(self.api, MessageModelInterface)
@@ -85,9 +116,46 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_create_message(self):
         json_str = json.dumps({
             "time_sent": self.mock_bilateral_timestamp,
-            "sender_id": self.akatosh_id,
+            "sender_id": self.akatosh_id,  # MI is called with sender_id. MI then has sole responsibility for translating the MI to a user object literal.
             "chat_id": self.mock_chat_id_1,
             "text": self.single_sentence_text
         })
         message_id = self.api.create_message(json_str)
         self.assertIn(message_id, self.api._data)
+    
+    def test_tastes_updated_in_user_obj(self):
+        positive_expected_taste_strength = self.expected_sentiment_tastes_sentence
+        akatosh_obj = self.db.get_obj("user", self.akatosh_id)
+        positive_actual_taste_strength = akatosh_obj.taste_strength(self.akatosh_taste_name)
+        self.assertAlmostEqual(positive_expected_taste_strength, positive_actual_taste_strength)
+
+        # Test negative sentiment on new trait
+        negative_expected_taste_strength = self.expected_sentiment_negative_tastes_sentence
+        negative_actual_taste_strength = akatosh_obj.taste_strength(self.akatosh_negative_taste_name)
+        self.assertAlmostEqual(negative_expected_taste_strength, negative_actual_taste_strength)
+
+    def test_existing_taste_updated_in_user_obj(self):
+        """Do the various methods behave as expectexd in adding a new sentiment datapoint to a previously known user taste?"""
+        # Mock message with additional datapoint on a known taste
+        self.second_datapoint_tastes_message_timestamp = time.time()
+        self.second_datapoint_tastes_message_text = f"{self.akatosh_taste_name} is my favorite type of food"
+        self.expected_sentiment_after_second_datapoint = 0.54785 # todo hardcoded. Import VSA and mimic the method's logic here
+        self.second_datapoint_tastes_message_json = json.dumps({
+            "time_sent": self.second_datapoint_tastes_message_timestamp,
+            "sender_id": self.akatosh_id,
+            "chat_id": self.mock_chat_id_1,
+            "text": self.second_datapoint_tastes_message_text
+        })
+
+        self.api.create_message(self.second_datapoint_tastes_message_json)
+        akatosh_obj = self.db.get_obj("user", self.akatosh_id)
+        self.assertAlmostEqual(
+            self.expected_sentiment_after_second_datapoint,
+            akatosh_obj.taste_strength(self.akatosh_taste_name)
+            )
+        
+
+        # That User should now have two datapoints total on that taste
+        self.assertEqual(akatosh_obj.taste_datapoints(self.akatosh_taste_name), 2)
+
+    # Todo: Test messages ending in punctuation, e.g. "I love indian!"

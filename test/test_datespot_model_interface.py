@@ -42,7 +42,14 @@ class TestHelloWorldThings(unittest.TestCase):
         # make a mock restaurant
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
         self.terrezanos_name = "Terrezano's"
-        self.terrezanos_traits = ["italian", "wine", "pasta", "NOT FROM PIZZA HUT", "authentic", "warehouse"]
+        self.terrezanos_traits = {
+            "italian": [1.0, "discrete"],
+            "wine": [0.5, 1],
+            "pasta": [0.6, 2],
+            "NOT FROM PIZZA HUT": [0.01, 2],
+            "authentic": [-0.05, 3],
+            "warehouse": [1.0, "discrete"]
+            }
         self.terrezanos_price_range = 2
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
         """
@@ -71,7 +78,15 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_create_datespot(self):
         domenicos_location = (40.723889184134926, -73.97613846772394)
         domenicos_name = "Domenico's"
-        domenicos_traits = ["coffee", "coffee shop", "gourmet", "americano", "knows coffee", "bricks", "burger juice"]
+        domenicos_traits = {
+            "coffee": [1.0, 1], # todo...So we're imagining this as ~ how good the coffee is, rather than the discrete fact that they do serve coffee?
+            "coffee shop": [1.0, "discrete"],
+            "gourmet": [0.25, 1],
+            "americano": [0.15, 1],
+            "knows coffee": [0.3, 1],
+            "bricks": [0.6, 1],
+            "burger juice": [0.9, 1]
+        }
         domenicos_price_range = 1
         domenicos_hours = [[8, 19], [8, 19], [8, 19], [8, 19], [8, 19], [8, 19], [10, 17]]
 
@@ -91,14 +106,18 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_native_python_dict_value_types(self):
         """Are the values in the API's native python dictionary stored as the intended types, rather than as strings?"""
         terrezanos_data = self.api._data[self.terrezanos_id]
-        for key, expected_type in [("location", tuple), ("name", str), ("traits", list), ("price_range", int), ("hours", list)]:
+        for key, expected_type in [("location", tuple), ("name", str), ("traits", dict), ("price_range", int), ("hours", list)]:
             self.assertIsInstance(terrezanos_data[key], expected_type)
     
     def test_update_datespot_traits(self):
         """Are traits updates written to the stored JSON file as expected?"""
         new_terrezanos_trait = "not at a Terrezano's"
         # update with a single string:
-        self.api.update_datespot(self.terrezanos_id, traits=new_terrezanos_trait)
+        update_json = json.dumps({
+            "traits": {"not at a Terrezano's": [0.95, 1]}
+        })
+
+        self.api.update_datespot(self.terrezanos_id, update_json=update_json)
         self.assertIn(new_terrezanos_trait, self.api._data[self.terrezanos_id]["traits"]) # self.api._data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
 
         # update with a list:

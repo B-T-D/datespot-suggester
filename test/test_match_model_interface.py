@@ -42,13 +42,13 @@ class TestHelloWorldThings(unittest.TestCase):
         drobbName = "Drobb"
         drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
 
-        self.userKeyGrort = self.user_api.create_user(json.dumps({"name":grortName, "current_location": grortCurrentLocation}), force_key="1")
-        self.userKeyDrobb = self.user_api.create_user(json.dumps({"name":drobbName, "current_location": drobbCurrentLocation}), force_key="2")
+        self.userKeyGrort = self.user_api.create_user(json.dumps({"name":grortName, "current_location": grortCurrentLocation, "force_key": "1"}))
+        self.userKeyDrobb = self.user_api.create_user(json.dumps({"name":drobbName, "current_location": drobbCurrentLocation, "force_key": "2"}))
         self.userGrort = self.user_api.lookup_obj(self.userKeyGrort)
         self.userDrobb = self.user_api.lookup_obj(self.userKeyDrobb)
 
         # Create a match for lookup
-        self.userKeyMiltrudd = self.user_api.create_user(json.dumps({"name":"Miltrudd", "current_location":(41.0, -72.0)}), force_key="3")
+        self.userKeyMiltrudd = self.user_api.create_user(json.dumps({"name":"Miltrudd", "current_location":(41.0, -72.0), "force_key": "3"}))
         self.userMiltrudd = self.user_api.lookup_obj(self.userKeyMiltrudd)
         # match Grort with Miltrudd:
         self.knownMatchKey = self.api.create_match(self.userKeyMiltrudd, self.userKeyGrort)

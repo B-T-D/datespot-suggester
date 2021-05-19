@@ -1,9 +1,5 @@
 """Objects for interfacing between stored data and model-object instances."""
-
-import abc
-import json
-import uuid
-import time
+import abc, json, uuid, time
 
 import user, datespot, match, review, message, chat
 import geo_utils
@@ -62,14 +58,16 @@ class ModelInterfaceABC: # Abstract base class
     def _is_valid_object_id(self, object_id: int) -> bool:
         return object_id in self._data
     
-    def _validate_json_fields(self, json_dict: dict) -> None:
-        """Raise ValueError if any key in json_dict isn't a valid field for this model."""
+    def _validate_json_fields(self, json_dict: dict) -> None: # todo seems like too much code (needing to list the valid model fields for each child class). 
+                                                                #   But under current architecture, can't just check against the keys from an arbitrary JSON object in the dict, 
+                                                                #   because sometimes the DB is empty (esp in testing)
+        """Raise ValueError if any key in json_dict isn't a valid field for this model.""" # todo do we need to check if data is none here, or would that be superfluous?
         for key in json_dict:
             if not key in self._valid_model_fields:
                 raise ValueError(f"Invalid field in call to model interface create method: {key}")
     
     def _get_all_data(self) -> dict: # todo access this with the public attribute "self.data", not this method
-        """Return the API instance's data as a native Python dictionary."""
+        """Return the API instance's data as a native Python dictionary. I.e. all objects in a single dict, keys are the object ID strings."""
         self._read_json()
         return self._data
     
@@ -88,19 +86,31 @@ class UserModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-
-        self._valid_model_fields = ["name", "current_location", "home_location", "likes", "dislikes", "match_blacklist", "force_key"] # todo is this necessary, or could you just check the keys?
+        self._valid_model_fields = {
+            "id",
+            "name",
+            "current_location",
+            "predominant_location",
+            "tastes", 
+            "travel_propensity", 
+            "matches", 
+            "pending_likes", 
+            "match_blacklist",
+            "force_key" # todo force_key isn't really a model field, conceptually
+        }
         
-    def create_user(self, json_data: str, force_key: int=None) -> int:
+    def create_user(self, json_data: str) -> int:
         """
         Takes json data in the app's internal format and returns the id key of the newly created user.
         Force key arg is for testing purposes to not always have huge unreadable uuids.
         """
+        
         self._read_json()
         json_dict = json.loads(json_data)
         self._validate_json_fields(json_dict)
-        if force_key: # Don't allow force-creating a key that's already taken
-            if force_key in self._data:
+        if "force_key" in json_dict:
+            force_key = json_dict["force_key"]
+            if force_key in self._data: # Don't allow force-creating a key that's already taken
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
             user_id = force_key
         else:
@@ -110,12 +120,15 @@ class UserModelInterface(ModelInterfaceABC):
             name=json_dict["name"],
             current_location = tuple(json_dict["current_location"])
         )
+        # todo adding tastes not supported here--does that make sense?
+        #   Rationale is that any tastes data comes in later, not at the moment the user is created in the DB for the first time.
 
-        self._data[user_id] = self._serialize_user(new_user)
+        self._data[user_id] = new_user.serialize()
         self._write_json()
         return user_id
 
-    def lookup_json(self, user_id: int) -> str:
+    def lookup_json(self, user_id: int) -> str: # todo have a lookup JSON method in the ABC, then have individual MIs override if they need to. 
+                                                #   For most models, simply reading the JSON and dumping back the data for object_id should suffice.
         """
         Return the JSON string for a user.
         """
@@ -130,39 +143,59 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_object_id(user_id)
         user_data = self._data[user_id]
-        assert type(user_data) == dict
         user_obj = user.User(
             user_id = user_id,
             name=user_data["name"],
             current_location=user_data["current_location"],
-            home_location=user_data["home_location"],
-            likes = user_data["likes"],
-            dislikes = user_data["dislikes"]
+            predominant_location = user_data["predominant_location"],
+            tastes = user_data["tastes"],
+            matches = user_data["matches"],
+            pending_likes = user_data["pending_likes"],
+            match_blacklist = user_data["match_blacklist"],
+            travel_propensity = user_data["travel_propensity"]
         )
-        if "match_blacklist" in user_data: # todo legacy for mock entries that didn't have the field
-            user_obj.match_blacklist = user_data["match_blacklist"]
 
         return user_obj
 
-    def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does. 
+    def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does.
+        # Todo support a "force datapoints count" option for updating tastes?
         """
         Takes JSON string, updates the native Python dict, and writes it to the stored master JSON.
 
-        Specify the field to update as the key in the new_json string. E.g. {"location": (44.01, -72.12)} specifies to update location.
+        Specify the field to update as the key in the new_json string. E.g.  specifies to update location.
+
+        Example calls:
+
+            Update user's location:
+                    {"location": [44.01, -72.12]}
+
+                - Values should be a Python list / JS array. Currently, tuples encode to lists/arrays and decode as lists
+                - Values should have two elements
+                - value[0] is latitude float, value[1] is longitude float
+            
+            Update user's tastes:
+                    {"tastes": 
+                        {"taste_name": 0.17}
+                    }
+            
+                - Tastes updates should be a dict/object, i.e. enclosed in braces
+                - Keys within that dict/object should be strings
+                - Value for each key should be a float between -1.0 and 1.0
+                - Caller doesn't directly update the datapoints count
+            
         """
         self._read_json()
         new_data = json.loads(new_json)
         user_data = self._data[user_id]
-        for key in new_data:
-            if not key in self._valid_model_fields: # todo this validation isn't complete or in the smartest/clearest place. Need to check shape, make sure 100% right about append vs. overwrite
-                raise ValueError(f"Invalid user field: {key}")
-            if type(new_data[key]) != type(user_data[key]):
-                raise TypeError(f"Incorrect user data type for field {key}.\nExpected type {type(user_data[key])}")
+        self._validate_json_fields(new_data)
         for key in new_data: # todo best practice on type() vs isinstance?
             entry_type = type(user_data[key])
             entry = user_data[key]
             if key == "current_location": # todo location still parses as list, so make sure to overwrite, not append
                 self._data[user_id]["current_location"] = new_data[key]
+            elif key == "tastes":
+                new_tastes_data = new_data[key]
+                self._update_tastes(user_id, new_tastes_data)
             elif entry_type == list:
                 self._data[user_id][key].extend(new_data[key])
             elif isinstance(entry, set):
@@ -171,6 +204,16 @@ class UserModelInterface(ModelInterfaceABC):
                 self._data[user_id][key] = new_data[key]
         self._write_json()
         return
+    
+    def _update_tastes(self, user_id: int, new_tastes_data:dict) -> None:
+        """Helper method to handle calling the User model's tastes updater method."""
+        # We assume the caller only ever sends one datapoint at a time--it doesn't need to access or modify the datapoints counter
+        #   for the taste that it's updating.
+        user_obj = self.lookup_obj(user_id)
+        for taste_name, strength in new_tastes_data.items():
+            user_obj.update_tastes(taste = taste_name, strength = strength)
+        self._data[user_id]["tastes"] = user_obj.serialize()["tastes"] # Since we have an object literal in memory anyway, just have it give back the tastes dict.
+        return # Caller is makes the _write_json call
     
     # todo all the "query objects near" methods could probably be abstracted to the ABC.
     def query_users_currently_near_location(self, location: tuple, radius=50000) -> list: # todo is the radius parameter totally unnecessary? 
@@ -256,21 +299,6 @@ class UserModelInterface(ModelInterfaceABC):
             user_data["match_blacklist"][other_user_id] = time.time()
         self._write_json()
 
-    def _serialize_user(self, user: user.User) -> dict: # todo: serializer methods go in the model classes
-        """
-        Create a dictionary representation of the user.
-        """
-        userDict = {
-            "name": user.name,
-            "current_location": user.current_location,
-            "home_location": user.home_location,
-            "likes": user.likes,
-            "dislikes": user.dislikes,
-            "match_blacklist": user.match_blacklist,
-            "pending_likes": user.pending_likes,
-            "matches": user.matches
-        }
-        return userDict
 
 class DatespotModelInterface(ModelInterfaceABC):
 
@@ -309,44 +337,14 @@ class DatespotModelInterface(ModelInterfaceABC):
         new_object_id = datespot_obj.id # todo refactor to the uniform approach: create the object, then call its id method.
 
         # Save the object's data to the DB using that hash as the key
-        self._data[new_object_id] = self._serialize_datespot(datespot_obj)
+        self._data[new_object_id] = datespot_obj.serialize()
         self._write_json()
         return new_object_id
-
-    def _serialize_datespot(self, datespot) -> dict: # Todo don't need the id here, right? Or is that unneccessarily confusing and should just slap the id everywhere?
-        datespotDict = {
-            "id": datespot.id,
-            "location": datespot.location,
-            "name": datespot.name,
-            "traits": list(datespot.traits),
-            "price_range": datespot.price_range,
-            "hours": datespot.hours,
-            "baseline_dateworthiness": datespot.baseline_dateworthiness
-        }
-        return datespotDict
     
     def _validate_new_datespot(self):
     # todo query the db by name and location to avoid duplicates. I.e. does a restaurant with that name 
     #   already exist at approximately that location in the db?
         pass
-
-    # todo try using the object_hook arg to json.load to handle the tuple vs string 
-    #   thing in a more code-concise way. 
-    def _tuple_loc_key_to_string(self, location_key: tuple) -> str:
-        """
-        Convert a tuple literal to a string representation that Python json library
-        defaults accept as a key.
-        """
-        return str(location_key)
-    
-    def _string_loc_key_to_tuple(self, location_key_string: str) -> tuple:
-        """
-        Convert a string representation of the three-element tuple to a literal
-        three-element tuple object.
-        """
-        stripped = location_key_string.strip('()') # todo one-liner means fewer copies right?
-        values = [float(substring) for substring in stripped.split(sep=',')]
-        return tuple(values)
 
     def lookup_json(self, id: int) -> str:
         """
@@ -368,20 +366,41 @@ class DatespotModelInterface(ModelInterfaceABC):
             hours = datespot_data["hours"]
         )
 
-    def update_datespot(self, id: str, **kwargs): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
+    def update_datespot(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
         self._read_json()
-        datespot_data = self._data[id]
+        datespot_data = self._data[id] # Todo: kwargs isn't the "standard" way the other MIs have been doing it. Take JSON.
+        json_data = json.loads(update_json)
+        self._validate_json_fields(json_data)
 
-        for field in self._valid_model_fields:
-            if field in kwargs:
-                new_value = kwargs[field]
-                if field == "traits": # todo what if you want to clear the list? YAGNI for now
-                    if isinstance(new_value, list):
-                        datespot_data[field].extend(new_value)
-                    else:
-                        datespot_data[field].append(new_value)
-                else: # Any field other than the traits list can just be overwritten entirely
+        for field in self._valid_model_fields: # Todo: SRP--make separate helper to do the hard-to-follow dict updates?
+            if field in json_data: # i.e. the keys in the dict
+                new_value = json_data[field]
+                if field == "traits": # todo what if you want to clear the dict?
+                    assert isinstance(new_value, dict)
+                    for update_key in new_value: # the "value" is a nested dict
+                        # if not already in the restaurants traits, initialize it with 1 datapoint:
+                        score, data_info = update_key[0], update_key[1] # todo for now, just pretend they're sending in a datapoints count
+                        discrete = update_key[1] == "discrete" # todo the discrete vs. continuous thing seems needlessly complex, surely a better way
+                        if not update_key in datespot_data["traits"]:
+                            datespot_data["traits"][update_key] = [update_key]
+                            if discrete:
+                                datespot_data["traits"][update_key].append("discrete")
+                            else:
+                                datespot_data["traits"][update_key].append(1) # this was the first datapoint
+                        elif not discrete:
+                            trait_data = datespot_data["traits"][update_key]
+                            stored_score = trait_data[0]
+                            stored_num_datapoints = trait_data[1]
+                            stored_score = (stored_score * stored_num_datapoints + score) / stored_num_datapoints + 1
+                            stored_num_datapoints += 1
+
+                        # if discrete and already in data, do nothing. E.g. we already knew it's an Italian restaurant, nothing to update.
+
+
+                        # todo the caller only sends the label and the intensity (if applicable), not a datapoints count
+
+                else: # Any field other than the traits dict can just be overwritten entirely
                     datespot_data[field] = new_value
 
         self._write_json()
@@ -414,6 +433,7 @@ class MatchModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
+        self._valid_model_fields = [] # todo 
 
         self.user_api_instance = UserModelInterface(json_map_filename=self._master_datafile)
     
@@ -528,6 +548,10 @@ class ReviewModelInterface(ModelInterfaceABC):
 
 class MessageModelInterface(ModelInterfaceABC):
 
+    # Todo: The message analysis might be better suited to its own special architecture. Message is uniquely 
+    #   interwoven with User and Chat, so trying to do the MI on the same pattern as the more static models
+    #   (Datespot, User) results in the MI needing to worry a lot about the objects' implementation details.
+
     def __init__(self, json_map_filename=None):
         self._model = "message"
         if json_map_filename:
@@ -539,8 +563,16 @@ class MessageModelInterface(ModelInterfaceABC):
     def create_message(self, json_data: str) -> str:
         """
         Returns the new object's id key string.
-        """
 
+        JSON format:
+            {
+                "time_sent": <<UNIX timestamp>>,
+                "sender_id": <<ID string of a stored User object>>,
+                "chat_id": <<ID string of the stored Chat object in which this message was sent>>,
+                "text": <<String text of the message>>
+            }
+        """
+        # Todo SRP. This method is doing too much. 
         self._read_json()
         json_dict = json.loads(json_data)
         self._validate_json_fields(json_dict)
@@ -552,15 +584,32 @@ class MessageModelInterface(ModelInterfaceABC):
         else:
             time_sent = time.time() # ...otherwise, create timestamp now.
 
+        # Constructor needs a User object literal in order to update its tastes.
+        user_db = UserModelInterface(self._master_datafile) # The MIs can't go out to the main database API because it causes circular imports
+        sender_user_obj = user_db.lookup_obj(json_dict["sender_id"])
+        prior_user_tastes = str(sender_user_obj.serialize()["tastes"]) # for comparison later, to see if any updates happened
+
         new_obj = message.Message(
             time_sent = time_sent,
-            sender_id = json_dict["sender_id"],
+            sender = sender_user_obj,
             chat_id = json_dict["chat_id"],
             text = json_dict["text"]
         )
 
-        # Todo update the messages array in the sender User object's attributes?
-            # That's not the full conversation though anyway. 
+        # Write any changes to the User object back to the user DB--if we discovered anything about the user's tastes,
+        #   save that info to improve suggestions later:
+        updated_user_tastes = sender_user_obj.serialize()["tastes"]
+        if str(prior_user_tastes) != str(sender_user_obj.serialize()["tastes"]):  # Todo what's simplest, most performant here? Goal is to update only those tastes that
+                                                    # changed, and do so via the User MI. User MI currently doesn't support wholesale overwrite of 
+                                                    # the tastes, only incremental update. So to use that interface, would need to sort out here
+                                                    # which ones changed. 
+            user_data = user_db._get_all_data()[sender_user_obj.id] # Todo: Expedient for now. Use the private method to just overwrite the entire dict.
+            user_data["tastes"] = updated_user_tastes
+            user_db._write_json() # Todo: For now need to manually tell it to write since didn't use one of its public methods.
+
+        # Todo would it make sense to have some kind of flag that indicates whether any tastes updates need to happen?
+        #   So can skip that in the large majority of cases where the message won't match any tastes keywords?
+        
         new_obj_id = new_obj.id
 
          # Add the message to its Chat's data:
@@ -579,9 +628,10 @@ class MessageModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_object_id(object_id)
         message_data = self._data[object_id]
+        user_db = UserModelInterface(self._master_datafile) # need a User MI to get a User obj to call the Message constructor with
         return message.Message(
             time_sent = message_data["time_sent"],
-            sender_id = message_data["sender_id"],
+            sender = user_db.lookup_obj(message_data["sender_id"]),
             chat_id = message_data["chat_id"],
             text = message_data["text"]
         ) # Todo: Not copying the sentiment because that can be recomputed on the object. Is that the right approach?
@@ -625,7 +675,7 @@ class ChatModelInterface(ModelInterfaceABC):
         self._write_json()
         return new_obj_id
 
-    def update_chat(self, object_id: str, update_json): # Todo will need more sophisticated interface for adding/removing from lists. Same in other models that have running-list data.
+    def update_chat(self, object_id: str, update_json: str): # Todo will need more sophisticated interface for adding/removing from lists. Same in other models that have running-list data.
         self._read_json()
         self._validate_object_id
         
@@ -653,7 +703,6 @@ class ChatModelInterface(ModelInterfaceABC):
         message_db = MessageModelInterface(json_map_filename=self._master_datafile)
         for message_id in chat_data["messages"]:
             message_objects.append(message_db.lookup_obj(message_id))
-
 
         return chat.Chat(
             start_time = chat_data["start_time"],

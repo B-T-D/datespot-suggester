@@ -1,21 +1,31 @@
 """
-Implementation-agnostic interface between the database and JSON-using external code. Goal is for external calling code to 
-be unaffected by SQL vs. NoSQL and similar issues.
+Implementation-agnostic interface between internal app database and JSON-using external code. Provides public methods that parallel HTTP request
+methods and return JSON.
+
+Goal is for external calling code to be unaffected by SQL vs. NoSQL and similar issues.
 """
 
 import json
 
 import model_interfaces
 
-# todo: The models should serialize. That will expand reusability of the model interfaces. 
+# todo: The models should serialize themselves. That will expand reusability of the model interfaces. 
+
+# todo: What's the best name for this module? "JSON_server"? "REST_server"? "REST_API"? "REST_backend"? "JSON_backend"?
+    # It's not a full REST API. It's not meant to handle actual HTTP requests; it doesn't use appropriate URIs. It's meant to get the JSON 
+    #   that the actual web-facing REST API will return in HTTP responses.\
+
+# Todo: In a live app, the messages wouldn't go through this JSON backend for analysis before continuing on to the recipient(s). Something would copy them
+#   in the middle, send them immediately on to recipient, and then dispatch the data to the backend for analysis on a less urgent timeframe.
 
 JSON_MAP_FILENAME = "jsonMap.json"
 
 class DatabaseAPI:
 
-    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME):
+    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME, live_google_maps: bool=False):
         self._valid_model_names = {"user", "datespot", "match", "review", "message", "chat"}
         self._json_map_filename = json_map_filename
+        self._live_google_maps = live_google_maps # todo implement different dispatching for the datespot queries based on this setting
 
     def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
         """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.
@@ -37,7 +47,7 @@ class DatabaseAPI:
         if not model_name in self._valid_model_names:
             raise ValueError(f"Invalid model name: {model_name}")
 
-    def post_object(self, object_type: str, json_data: str, **kwargs) -> str:
+    def post_object(self, object_type: str, json_data: str, **kwargs) -> str: # todo kwargs should be deleteable now
         """
         Add data for a new object to the database and return its id string.
 
@@ -59,10 +69,7 @@ class DatabaseAPI:
         object_type = object_type.lower()
         if object_type == "user":
             user_db = self._model_interface("user")
-            if "force_key" in kwargs:
-                new_object_id = user_db.create_user(json_data, kwargs["force_key"])
-            else:
-                new_object_id = user_db.create_user(json_data)
+            new_object_id = user_db.create_user(json_data)
         elif object_type == "datespot":
             datespot_db = self._model_interface("datespot")
             datespot_db.create_datespot(json_data)
@@ -155,6 +162,9 @@ class DatabaseAPI:
     def get_datespots_near(self, location: tuple, radius: int) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
+
+        # Todo: Dispatch differently for live vs. static google maps mode. One set of instructions for looking up from testmode cache,
+        #   one for having the client make a real API call. 
 
         datespots_db = self._model_interface("datespot")
         # todo validate the location and radius here?

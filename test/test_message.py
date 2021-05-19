@@ -12,6 +12,26 @@ class TestHelloWorldThings(unittest.TestCase):
 
     def setUp(self):
 
+        # Boilerplate mock data environment stuff
+        data_map = { # todo DRY, this is repeated in every model interface's tests module
+            "user_data": "test/testing_mockUserDB.json",
+            "datespot_data": "test/testing_mockDatespotDB.json",
+            "match_data": "test/testing_mockMatchData.json",
+            "review_data": "test/testing_mockReviewData.json",
+            "message_data": "test/testing_mockMessageData.json",
+            "chat_data": "test/testing_mockChatData.json"
+            }
+
+        with open(TEST_JSON_DB_NAME, 'w') as fobj:
+            json.dump(data_map, fobj)
+            fobj.seek(0)
+
+        # make sure all the test-mock JSONs exist:
+        for filename in data_map:
+            with open(data_map[filename], 'w') as fobj:
+                json.dump({}, fobj)
+                fobj.seek(0)
+
         # Mock DB
         self.db = DatabaseAPI(json_map_filename=TEST_JSON_DB_NAME)
 
@@ -56,7 +76,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.mock_chat_id_1 = "1a"
         self.message_obj = Message(
             time_sent = self.mock_bilateral_timestamp,
-            sender_id = self.akatosh_id,
+            sender = self.db.get_obj("user", self.akatosh_id),
             chat_id = self.mock_chat_id_1,
             text = self.single_sentence_text
         )
@@ -68,7 +88,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.mock_chat_id_2 = "2a"
         self.multisentence_message_obj = Message(
             time_sent = time.time(),
-            sender_id = self.akatosh_id,
+            sender = self.db.get_obj("user", self.akatosh_id),
             chat_id = self.mock_chat_id_2,
             text = self.multisentence_text
         )
@@ -76,11 +96,23 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_init(self):
         self.assertIsInstance(self.message_obj, Message)
     
+    def test_eq(self):
+        """Does the custom __eq__() behave as expected?"""
+        self.assertTrue(self.message_obj == self.message_obj)
+        self.assertFalse(self.message_obj == self.multisentence_message_obj)
+    
     def test_hash(self):
         """Does the integer returned by __hash__ match the results of mimicing the same hashing steps
         manually?"""
         expected_hash = hash(str(self.mock_bilateral_timestamp) + self.akatosh_id)
         self.assertEqual(expected_hash, hash(self.message_obj))
+    
+    def test_str(self):
+        """Does the __str__() method return the expected string for a known message?"""
+        expected_string = f"{self.message_obj.time_sent}:\t{self.message_obj.sender.id}:\t{self.message_obj.text}"
+        actual_string = str(self.message_obj)
+        self.assertEqual(expected_string, str(self.message_obj))
+        self.assertEqual(expected_string, __str__(self.message_obj)) # Todo for some reason, the single line of the __str__ method doesn't register as covered
     
     def test_tokenize(self):
         """Does _tokenize split a multisentence text into the expected sentences?"""

@@ -121,10 +121,13 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_init(self):
         self.assertIsInstance(self.chat_obj, Chat)
     
+    def test_eq(self):
+        """Does the custom __eq__() behave as expected?"""
+        self.assertTrue(self.chat_obj == self.chat_obj)
+    
     def test_message_id_order(self):
         """Are both test messages in the Chat, and is the first message before the second?"""
         # self.chat_obj.messages.append("test")
-        print(f"len of the messages list: {len(self.chat_obj.messages)}")
         self.assertEqual([message.id for message in self.chat_obj.messages], [self.first_message_id, self.second_message_id]) # todo hacky/obfuscating to have the list comp here
     
     def test_average_sentiment(self):

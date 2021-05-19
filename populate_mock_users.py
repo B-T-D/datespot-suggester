@@ -22,13 +22,20 @@ def main():
     names = [
         "Grort",
         "Drobb",
-        "Sheogorath",
         "An old boot",
         "Foo",
         "Bar",
         "Baz",
         "Quux",
-        "Molag Bal",
+        "Akatosh",
+        "Arkay",
+        "Dibella",
+        "Julianos",
+        "Kynareth",
+        "Mara",
+        "Stendarr",
+        "Talos",
+        "Zenithar",
         "Azura",
         "Boethiah",
         "Clavicus Vile",
@@ -39,20 +46,23 @@ def main():
         "Mehrunes Dagon",
         "Mephala",
         "Meridia",
+        "Molag Bal",
         "Namira",
         "Nocturnal",
         "Peryite",
         "Sanguine",
-        "Vaermina"
+        "Sheogorath",
+        "Vaermina",
     ]
 
     db = database_api.DatabaseAPI()
     for i in range(len(names)):
         json_data = json.dumps({
             "name": names[i],
-            "current_location": random_lat_lon()
+            "current_location": random_lat_lon(),
+            "force_key": str(i)
         })
-        db.add("user", json_data, force_key = i)
+        db.post_object("user", json_data, force_key = i)
 
 
 if __name__ == "__main__":

@@ -12,9 +12,15 @@ TEST_JSON_MAP_FILENAME = "testing_mockJsonMap.json"
 
 class TestHelloWorldThings(unittest.TestCase):
 
+    # Todo: These run conspicuously slower than other unit tests as of 5/19--why? Do time trials.
+        # If it's the haversine formula or the suggestions heap taking too long, that suggests a performance bottleneck
+        # for this backend system as a whole. 
+        # From watching dots anecdotally while the tests ran, looks like it may be suggestions return not null and suggestions return shape.
+        #   But just be all of them that request a suggestion, i.e. the heap etc. handling is too slow.
+
     def setUp(self):
         
-        self.db = DatabaseAPI()
+        self.db = DatabaseAPI() # Testing on the real DB, to have restaurants
 
         # Need user objects to instantiate a Match
         grortName = "Grort"
