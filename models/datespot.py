@@ -1,5 +1,5 @@
 from app_object_type import DatespotAppType
-import user
+import models.user as user
 
 import json
 

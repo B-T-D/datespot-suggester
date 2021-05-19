@@ -2,9 +2,7 @@ import unittest
 
 import json
 
-from match import Match
-import datespot
-from user import User
+import models
 
 from database_api import DatabaseAPI
 
@@ -44,7 +42,7 @@ class TestHelloWorldThings(unittest.TestCase):
         # distance should be approx 2610m
         # midpoint should be circa (40.75827478958617, -73.99310556132602)
 
-        self.matchGrortDrobb = Match(userGrort, userDrobb)
+        self.matchGrortDrobb = models.Match(userGrort, userDrobb)
     
     def test_compute_midpoint(self):
         maxDelta = 0.01

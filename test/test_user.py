@@ -1,6 +1,6 @@
 import unittest
 
-from user import User
+import models
 
 class TestHelloWorldThings(unittest.TestCase):
     """Quick non-brokenness tests."""
@@ -13,7 +13,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.azura_location = (40.73517750328247, -74.00683227856715)
         self.azura_id = "1"
         
-        self.azura_user_obj = User(
+        self.azura_user_obj = models.User(
             user_id = self.azura_id,
             name = self.azura_name,
             current_location = self.azura_location
@@ -29,7 +29,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.boethiah_name = "Boethiah"
         self.boethiah_location = (40.76346250260515, -73.98013893542904)
         self.boethiah_id = "2"
-        self.boethiah_user_obj = User(
+        self.boethiah_user_obj = models.User(
             user_id = self.boethiah_id,
             name = self.boethiah_name,
             current_location = self.boethiah_location
@@ -37,7 +37,7 @@ class TestHelloWorldThings(unittest.TestCase):
 
     def test_init(self):
         """Was a User object instantiated?"""
-        self.assertIsInstance(self.azura_user_obj, User)
+        self.assertIsInstance(self.azura_user_obj, models.User)
     
     def test_eq(self):
         """Does the custom __eq__() behave as expected?"""

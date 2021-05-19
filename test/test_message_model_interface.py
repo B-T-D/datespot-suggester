@@ -13,6 +13,9 @@ class TestHelloWorldThings(unittest.TestCase):
 
     def setUp(self):
 
+        # Todo: Import subprocess and run the preprocess tastes script to sort the text file
+        #   That doesn't need to be in setUp though, just once per time the tests are run. Maybe the shell script should do it.
+
         data_map = { # todo DRY, this is repeated in every model interface's tests module
             "user_data": "test/testing_mockUserDB.json",
             "datespot_data": "test/testing_mockDatespotDB.json",
