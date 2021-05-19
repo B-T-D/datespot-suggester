@@ -25,16 +25,32 @@ class TestHelloWorldThings(unittest.TestCase):
         self.existing_taste_datapoints = 3
         self.azura_user_obj._tastes[self.existing_taste_name] = [self.existing_taste_strength, self.existing_taste_datapoints]
 
+        # Instantiate second user for __eq__
+        self.boethiah_name = "Boethiah"
+        self.boethiah_location = (40.76346250260515, -73.98013893542904)
+        self.boethiah_id = "2"
+        self.boethiah_user_obj = User(
+            user_id = self.boethiah_id,
+            name = self.boethiah_name,
+            current_location = self.boethiah_location
+        )
+
     def test_init(self):
         """Was a User object instantiated?"""
         self.assertIsInstance(self.azura_user_obj, User)
+    
+    def test_eq(self):
+        """Does the custom __eq__() behave as expected?"""
+        self.assertTrue(self.azura_user_obj == self.azura_user_obj)
+        self.assertFalse(self.azura_user_obj == self.boethiah_user_obj)
+
     
     def test_hash(self):
         """Does the object's hash match the result obtained from separately mimicking the 
         hash method's logic?"""
         expected_hash = hash(self.azura_id)
         self.assertEqual(expected_hash, hash(self.azura_user_obj))
-    
+
     def test_tastes_attribute_is_expected_type(self):
         """Is the empty tastes hashmap the expected type?"""
         expected_type = dict

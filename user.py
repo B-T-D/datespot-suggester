@@ -61,28 +61,10 @@ class User(metaclass=DatespotAppType):
     def __hash__(self):
         return hash(self.id)
 
-    def __str__(self):
-        """
-        Return the string representation of a dictionary containing all the user's info.
-        """
-        userDict = {
-            "name": self.name,
-            "current_location": self.current_location,
-            "home_location": self.home_location,
-        }
-        return "User" + str(userDict)
+    # YAGNI on __str__ so far. Nothing has needed a string representation. 
 
     def _compute_predominant_location(self): # todo, placeholder for more sophisticated
         return self.current_location
-
-
-    def update_current_location(self, location: tuple) -> int:
-        """
-        Update the user's current location and return a status-code int to caller.
-        """
-        # todo validate at the DB layer
-        self.current_location = location
-        return 0
 
     def update_tastes(self, taste: str, strength: float) -> None:
         """
