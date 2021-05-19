@@ -96,11 +96,23 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_init(self):
         self.assertIsInstance(self.message_obj, Message)
     
+    def test_eq(self):
+        """Does the custom __eq__() behave as expected?"""
+        self.assertTrue(self.message_obj == self.message_obj)
+        self.assertFalse(self.message_obj == self.multisentence_message_obj)
+    
     def test_hash(self):
         """Does the integer returned by __hash__ match the results of mimicing the same hashing steps
         manually?"""
         expected_hash = hash(str(self.mock_bilateral_timestamp) + self.akatosh_id)
         self.assertEqual(expected_hash, hash(self.message_obj))
+    
+    def test_str(self):
+        """Does the __str__() method return the expected string for a known message?"""
+        expected_string = f"{self.message_obj.time_sent}:\t{self.message_obj.sender.id}:\t{self.message_obj.text}"
+        actual_string = str(self.message_obj)
+        self.assertEqual(expected_string, str(self.message_obj))
+        self.assertEqual(expected_string, __str__(self.message_obj)) # Todo for some reason, the single line of the __str__ method doesn't register as covered
     
     def test_tokenize(self):
         """Does _tokenize split a multisentence text into the expected sentences?"""

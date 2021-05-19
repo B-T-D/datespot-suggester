@@ -72,7 +72,7 @@ class Message(metaclass=DatespotAppType):
         return hex_str[2:] # strip "0x"
     
     def __str__(self) -> str:
-        return f"{self.time_sent}:\t{self.sender_id}:\t{self.text}"
+        return f"{self.time_sent}:\t{self.sender.id}:\t{self.text}"
 
     def serialize(self) -> dict:
         """Return data about this object instance that should be stored."""
