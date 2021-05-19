@@ -121,6 +121,10 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_init(self):
         self.assertIsInstance(self.chat_obj, Chat)
     
+    def test_eq(self):
+        """Does the custom __eq__() behave as expected?"""
+        self.assertTrue(self.chat_obj == self.chat_obj)
+    
     def test_message_id_order(self):
         """Are both test messages in the Chat, and is the first message before the second?"""
         # self.chat_obj.messages.append("test")

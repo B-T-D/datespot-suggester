@@ -157,3 +157,5 @@ class TestHelloWorldThings(unittest.TestCase):
 
         # That User should now have two datapoints total on that taste
         self.assertEqual(akatosh_obj.taste_datapoints(self.akatosh_taste_name), 2)
+
+    # Todo: Test messages ending in punctuation, e.g. "I love indian!"

@@ -43,7 +43,6 @@ class TestHelloWorldThings(unittest.TestCase):
         """Does the custom __eq__() behave as expected?"""
         self.assertTrue(self.azura_user_obj == self.azura_user_obj)
         self.assertFalse(self.azura_user_obj == self.boethiah_user_obj)
-
     
     def test_hash(self):
         """Does the object's hash match the result obtained from separately mimicking the 

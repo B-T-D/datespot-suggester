@@ -64,8 +64,7 @@ class Chat(metaclass=DatespotAppType):
     def _average_sentiment(self):
         """Compute the mean sentiment of the Chat's component Messages.""" # Read in the JSON and average the cached values.
         if not self.messages:
-            print(f"returning 0 bc no messages")
-            return 0 # todo not sure best thing to return 
+            return # todo not sure best thing to return 
         sentiments_sum = 0
         for message in self.messages:
             sentiments_sum += message.sentiment_avg
