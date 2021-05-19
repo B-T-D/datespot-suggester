@@ -95,11 +95,11 @@ class Message(metaclass=DatespotAppType):
         # Python standard lib bisect implements the core work in C, under the hood. https://github.com/python/cpython/blob/3.9/Lib/bisect.py
         #   No DIY pure-Python implementation will come close to performing faster. If we're running the Python interpreter anyway, best performance
         #   presumably comes from using bisect.
-        print(f"word = {word}")
-        print(f"keywords = {self._tastes_keywords}")
+
         i = bisect.bisect_left(self._tastes_keywords, word) # returns the index that would be immediately to the left of the first occurrence of word,
-        print(f"i = {i}")
-        return (i < len(self._tastes_keywords) - 1) and (self._tastes_keywords[i+1] == word) # First condition is to check against running past the end 
+        return (i < len(self._tastes_keywords) - 1) and (self._tastes_keywords[i] == word) # First condition is to check against running past the end 
+
+        # Todo: Add some kind of dev-mode functools decorators that logs to file how long each query takes?
 
     # Todo this can get much more sophisticated.
         # Todo e.g. "Sichuan" should also map to "Chinese"
@@ -115,7 +115,9 @@ class Message(metaclass=DatespotAppType):
             for word in sentence.split(): # todo time complexity needlessly bad, VSA already made one pass. Subclass VSA into a custom MessageAnalyzer and change just the one method
                                     #     by making it also check for the keywords. 
                     # todo implement binary search
-                word = word.lower().strip()
+                word = word.lower().strip() # todo refactor this preprocessing to a helper
+                while not word[-1].isalpha(): # strip ending punctuation
+                    word = word[:-1]
                 # Todo should we search character-wise to deal with plurals? Or always strip "s" from plurals?
                 if self._bsearch_taste_keywords(word):
                     self.sender.update_tastes(taste = word, strength = sentence_sentiment) # Todo improve the business logic. Right now, this merely treats the sentiment of the 
