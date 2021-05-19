@@ -1,11 +1,23 @@
+"""
+Data and algorithms relevant to ascertaining user tastes and preferences based on natural-language user chat messages.
+"""
+
 from app_object_type import DatespotAppType
 
 import nltk
 from vaderSentiment import vaderSentiment as vs
+import bisect
 
 import user
 
 TASTES_KEYWORDS = "tastes_keywords.txt"
+# Todo: Needs more menu item keywords. Ideally, find a list of menu items at NYC restaurants sorted by how common they are.
+    # Fast food so not super helpful: https://www.foodnetwork.com/restaurants/photos/most-popular-dish-at-americas-top-chain-restaurants 
+    # Decent starting point for specific dishes and food words: https://ny.eater.com/maps/new-york-iconic-dishes
+
+# Todo: Specific restaurant names ("I hate Terrezano's")
+    # Todo: Where to get a list of them? Dynamically based on user-chat mentions or known locations of actual completed dates?
+    # Todo: How differently than a normal keyword should they be handled?
 
 SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC shared by Review, Message, and any other
                                 #   code that calls VSA methods that return floats.
@@ -77,9 +89,21 @@ class Message(metaclass=DatespotAppType):
         self._sentences = nltk.tokenize.sent_tokenize(self.text)
 
     def _bsearch_taste_keywords(self, word: str):
+        # Todo: Every element in this list is guaranteed to be unique. Can we improve performance meaningfully by exploiting that constraint?
         # todo placeholder, not implemented. Just returning the linear search for now
-        return word in self._tastes_keywords
-    
+
+        # Python standard lib bisect implements the core work in C, under the hood. https://github.com/python/cpython/blob/3.9/Lib/bisect.py
+        #   No DIY pure-Python implementation will come close to performing faster. If we're running the Python interpreter anyway, best performance
+        #   presumably comes from using bisect.
+        print(f"word = {word}")
+        print(f"keywords = {self._tastes_keywords}")
+        i = bisect.bisect_left(self._tastes_keywords, word) # returns the index that would be immediately to the left of the first occurrence of word,
+        print(f"i = {i}")
+        return (i < len(self._tastes_keywords) - 1) and (self._tastes_keywords[i+1] == word) # First condition is to check against running past the end 
+
+    # Todo this can get much more sophisticated.
+        # Todo e.g. "Sichuan" should also map to "Chinese"
+
     def _analyze_sentiment(self):
         """Compute the mean sentiment of the Message's sentences."""
         self._tokenize() # populate the sentences array
@@ -92,6 +116,7 @@ class Message(metaclass=DatespotAppType):
                                     #     by making it also check for the keywords. 
                     # todo implement binary search
                 word = word.lower().strip()
+                # Todo should we search character-wise to deal with plurals? Or always strip "s" from plurals?
                 if self._bsearch_taste_keywords(word):
                     self.sender.update_tastes(taste = word, strength = sentence_sentiment) # Todo improve the business logic. Right now, this merely treats the sentiment of the 
                                                                             # sentence in which the word appeared as the user's sentiment toward that taste.

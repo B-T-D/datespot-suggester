@@ -22,6 +22,7 @@ reservation availability.
 - [ ] Configure TravisCI and Coveralls on main branch of repo.
 - [ ] Achieve 100% unit test code coverage.
 - [ ] Improve unit tests to include large, edge, and boundary test cases for the most important algorithms.
+- [ ] Google-style Python docstrings for all public methods.
 
 ### Milestone features
 - [ ] Analyze user chats to find keywords relevant to date-location preferences, and tailor that user's suggestions accordingly.

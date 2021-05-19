@@ -49,6 +49,11 @@ class User(metaclass=DatespotAppType):
         self.pending_likes = {} # Users this user swiped "accept" on, but who haven't yet swiped back. Keys are user ids, values are time.time() timestamps
          
         self.match_blacklist = {} # Users with whom this user should never be matched. Keys are user ids, values timestamps indicating when the blacklisting happened. 
+
+        # Todo: How much data do we need to confidently assign a "hard" preference like vegan, kosher, halal?
+
+        # Todo: We don't want the chat-reader to e.g. massively over-weight Korean restaurants in suggestions for a user who says "I'm Korean" meaning ethnicity.
+        #   Maybe there will be enough non-ethnic restaurant traits for it to wash out, TBD. 
     
     def __eq__(self, other): # must define if defining __hash__
         return hash(self) == hash(other) # todo DRY into ABC? Identical code for all three of User, Datespot, and Match

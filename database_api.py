@@ -13,7 +13,10 @@ import model_interfaces
 
 # todo: What's the best name for this module? "JSON_server"? "REST_server"? "REST_API"? "REST_backend"? "JSON_backend"?
     # It's not a full REST API. It's not meant to handle actual HTTP requests; it doesn't use appropriate URIs. It's meant to get the JSON 
-    #   that the actual web-facing REST API will return in HTTP responses.
+    #   that the actual web-facing REST API will return in HTTP responses.\
+
+# Todo: In a live app, the messages wouldn't go through this JSON backend for analysis before continuing on to the recipient(s). Something would copy them
+#   in the middle, send them immediately on to recipient, and then dispatch the data to the backend for analysis on a less urgent timeframe.
 
 JSON_MAP_FILENAME = "jsonMap.json"
 
