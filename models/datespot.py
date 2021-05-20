@@ -61,9 +61,10 @@ class Datespot(metaclass=DatespotAppType):
             round(location[1], MAX_LATLON_COORD_DECIMAL_PLACES)
             )
         self.location = self._location
+        self.name = name
         self.id = self._id() # todo confirm this is correct and good practice
             # Todo: Use @property decorator?
-        self.name = name
+        
         
         self.price_range = price_range # Todo reconcile google-yelp if still using google--google is [0..4], yelp is [0..3] apparently
         self.hours = hours
@@ -101,8 +102,11 @@ class Datespot(metaclass=DatespotAppType):
         """Return True if self has a lower baseline_dateworthiness than other."""
         return self.baseline_dateworthiness < other.baseline_dateworthiness
 
-    def __hash__(self):
-        return hash(self._location)
+    def __hash__(self): # todo: Not sure how sound the logic is here. Should test lots of cases to support that same restaurant hashes to same thing.
+        rounded_lat_lon = (round(self.location[0], 4), round(self.location[1])) # Rationale for rounding is to reduce chances of e.g. the 7th decimal value
+                                                                                #   changing and causing same restaurant to hash differently.
+        string_to_hash = f"{self.name} {rounded_lat_lon}"
+        return hash(string_to_hash)
 
     def _id(self) -> str:
         """
