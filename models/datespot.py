@@ -5,7 +5,7 @@ import json
 
 import hashlib, struct
 
-BASELINE_SCORING_DATA = "datespot_baseline_scoring_data.json"
+BASELINE_SCORING_DATA = "data_static/datespot_baseline_scoring_data.json"
 MAX_LATLON_COORD_DECIMAL_PLACES = 8
 DATESPOT_SCORE_DECIMAL_PLACES = 4
 
