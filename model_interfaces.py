@@ -309,48 +309,16 @@ class DatespotModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-        self._valid_model_fields = ["name", "location", "traits", "price_range", "hours"]
-    
-    def create_datespot(self, json_data: str) -> str:
+        self._valid_model_fields = ["name", "location", "traits", "price_range", "hours", "yelp_rating", "yelp_review_count", "yelp_url"]
+
+    def create_datespot(self, json_str: str) -> str:
         """
         Creates a new Datespot object, serializes it to the persistent JSON, and returns its id key.
         """
         self._read_json()
-        json_dict = json.loads(json_data)
-        # Validate fields
-        for key in json_dict: # todo refactor to use the inherited _validate_fields method
-            if not key in self._valid_model_fields: # todo validate the values
-                raise ValueError(f"Bad JSON in call to create_datespot(): {key}")
-        location_tuple = tuple(json_dict["location"])
-        # Instantiate an object with the data
-        datespot_obj = models.Datespot(
-            location = location_tuple,
-            name = json_dict["name"]
-        )
+        datespot_obj = self._instantiate_datespot_from_json(json_str)
 
-        optional_fields =  {
-            "traits": datespot_obj.traits,
-            "price_range": datespot_obj.price_range,
-            "hours": datespot_obj.hours,
-            "yelp_rating": datespot_obj.yelp_rating,
-            "yelp_review_count": datespot_obj.yelp_review_count,
-            "yelp_url": datespot_obj.yelp_url
-            }
-        
-        for optional_field in optional_fields:
-            if optional_field in json_dict:
-                exec(f"datespot_obj.{optional_field} = json_dict[optional_field]") # Todo what's a better way than exec()? Or is this an ok use case for exec()?
-
-
-        # if "traits" in json_dict:
-        #     datespot_obj.traits = json_dict["traits"]
-        # if "price_range" in json_dict and json_dict["price_range"] is not None:
-        #     datespot_obj.price_range = int(json_dict["price_range"])
-        # if "hours" in json_dict: # todo better handling when hours format is made realistic
-        #     datespot_obj.hours = json_dict["hours"]
-
-        # Hash that object
-        new_object_id = datespot_obj.id # todo refactor to the uniform approach: create the object, then call its id method.
+        new_object_id = datespot_obj.id
 
         # Save the object's data to the DB using that hash as the key
         self._data[new_object_id] = datespot_obj.serialize()
@@ -379,8 +347,52 @@ class DatespotModelInterface(ModelInterfaceABC):
             name = datespot_data["name"],
             traits = datespot_data["traits"],
             price_range = datespot_data["price_range"],
-            hours = datespot_data["hours"]
+            hours = datespot_data["hours"],
+            yelp_rating = datespot_data["yelp_rating"],
+            yelp_review_count = datespot_data["yelp_review_count"],
+            yelp_url = datespot_data["yelp_url"]
         )
+    
+    def is_in_db(self, json_str) -> bool:
+        """
+        Return True if the Datespot corresponding to this JSON info is already known to the database, else false.
+        """
+        # This relies on the hashing logic in Datespot--datespot with given name at given location should hash uniquely.
+        # Instantiate a datespot object with this JSON, then see if its ID string is in the DB.
+        self._read_json()
+        datespot_obj = self._instantiate_datespot_from_json(json_str)
+        return datespot_obj.id in self._data
+
+    def _instantiate_datespot_from_json(self, json_str: str) -> models.Datespot: # Helper for DRY-ness
+        """
+        Instantiate a Datespot object corresponding to this JSON, and return it without interacting with the database.
+        """
+        json_dict = json.loads(json_str)
+        self._validate_json_fields(json_dict)
+        location_tuple = tuple(json_dict["location"])
+                
+        # Instantiate an object with the data
+        datespot_obj = models.Datespot(
+            location = location_tuple,
+            name = json_dict["name"]
+        )
+
+        optional_fields =  {
+            "traits": datespot_obj.traits,
+            "price_range": datespot_obj.price_range,
+            "hours": datespot_obj.hours,
+            "yelp_rating": datespot_obj.yelp_rating,
+            "yelp_review_count": datespot_obj.yelp_review_count,
+            "yelp_url": datespot_obj.yelp_url
+            }
+        
+        for optional_field in optional_fields:
+            if optional_field in json_dict:
+                exec(f"datespot_obj.{optional_field} = json_dict[optional_field]") # Todo what's a better way than exec()? Or is this an ok use case for exec()?
+        
+        return datespot_obj
+
+
 
     def update_datespot(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.

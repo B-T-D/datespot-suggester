@@ -6,6 +6,7 @@ Goal is for external calling code to be unaffected by SQL vs. NoSQL and similar 
 """
 
 import json
+import sys
 
 import model_interfaces
 
@@ -19,6 +20,7 @@ import yelp_api_client
 #   in the middle, send them immediately on to recipient, and then dispatch the data to the backend for analysis on a less urgent timeframe.
 
 JSON_MAP_FILENAME = "jsonMap.json"
+DEFAULT_RADIUS = 2000
 
 class DatabaseAPI:
 
@@ -151,7 +153,7 @@ class DatabaseAPI:
         if not (outcome == 0 or outcome == 1):
             raise ValueError
         outcome = bool(outcome)
-        user_db = user_api.UserAPI()
+        user_db = self._model_interface("user")
         if not outcome:
             user_db.blacklist(user_id, candidate_id)
         else: # todo cleaner to just send the update as JSON?
@@ -168,8 +170,24 @@ class DatabaseAPI:
         if not self._live_yelp: # todo add "and if not live google"?
             return self._get_cached_datespots_near(location, radius)
         elif self._live_yelp:
-            datespot_jsons = self._yelp_client.search_businesses_near(location, radius)
+            # Todo: First, analyze whether we have cached data sufficient to respond to the query. If so, return self._get_cached_datespots_near(),
+            #   even if we're in live-yelp mode. Maybe an LRU cache of lat lon radius circles--if there was a search inside that circle recently enough
+            #   to still be in the LRU cache, then return cached results?
+            return self._get_yelp_datespots_near(location, radius)
+            
+    
+    def _cache_datespots(self, datespot_dict_list: list):
+        datespot_db = self._model_interface("datespot")
+        for datespot_dict in datespot_dict_list:
+            datespot_json = json.dumps(datespot_dict)
+            if not datespot_db.is_in_db(datespot_json):
+                datespot_db.create_datespot(datespot_json)
 
+    def _get_yelp_datespots_near(self, location, radius):
+        datespot_json_list = self._yelp_client.search_businesses_near(location, radius)
+        self._cache_datespots(datespot_json_list)
+        return datespot_json_list # todo we want this and get_cached_datespots_near to return identically structured lists
+                                    #  Rn, this returns list of strings, other one returns list of dicts. 
 
     def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> list: # todo make private method?
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
@@ -234,3 +252,23 @@ class DatabaseAPI:
 
         """
         pass
+
+def test_live_yelp(location, radius=DEFAULT_RADIUS):
+    """Test function for use ad hoc use outside main tests suite."""
+    live_db = DatabaseAPI(live_yelp=True) # Defaults to the main mock DB json map
+    live_db.get_datespots_near(location)
+
+def main():
+
+    for i in range(len(sys.argv)):
+            print(f"sys.argv[{i}] = {sys.argv[i]}")
+
+    if len(sys.argv) > 2:
+        
+        if sys.argv[1] == "--test":
+            if sys.argv[2] == "--live":
+                test_location = (40.74977666604178, -73.99597469657479)
+                test_live_yelp(test_location)
+
+if __name__ == "__main__":
+    main()

@@ -43,13 +43,19 @@ class YelpClient:
         # See Yelp docs and https://github.com/Yelp/yelp-fusion/blob/master/fusion/python/sample.py 
         #   for further example path if need to search for business details.
     
-    def search_businesses_near(self, location: tuple, radius: int=DEFAULT_RADIUS) -> str:
-        """Return app-formatted JSON for the businesses returned by the Yelp API for these geographic criteria.
-        Returns a JSON string that can be directly passed as argument to DB API's post_object() method."""
+    def search_businesses_near(self, location: tuple, radius: int=DEFAULT_RADIUS) -> list: 
+        """
+        Return app-formatted JSON for the businesses returned by the Yelp API for these geographic criteria.
+        
+        Returns:
+
+            (list[dict]): List of dictionaries, each of which contains the data for one Datespot
+
+        """
+        # Returns a Python dict, not a JSON string. This client isn't the "JSON Server", its only job is to get data from Yelp and give it back to the JSON server.
         yelp_dict = self._request_business_search(location, radius)
         datespots_json = self._format_json(yelp_dict)
-        print(f"in public search biz near method: \ntype(datespots_json) = {type(datespots_json)}\ndatespots_json = {datespots_json}")
-        pass
+        return datespots_json
 
     def _request_business_search(self, location: tuple, radius: int, term: str=None) -> dict: # todo: term is placeholder for extending to more elaborate yelp querystrings later
         """Makes a request to the Yelp API for this location and radius, and returns the Yelp-formatted JSON dict.
@@ -67,7 +73,7 @@ class YelpClient:
         return self._request(self._api_host_path, self._business_search_path, YELP_API_KEY, url_params=url_params)
 
 
-    def _format_json(self, yelp_json_dict: dict) -> str:
+    def _format_json(self, yelp_json_dict: dict) -> list:
         """Takes raw Yelp-formatted JSON and discards, relabels, and rearranges the data as needed to 
         create JSON string matching app's internal format."""
         # Todo: Be sure to strip everything from the questionmark onward from the URLs. They come back
@@ -103,7 +109,7 @@ class YelpClient:
 
             dicts.append(datespot_dict)
         
-        return json.dumps(dicts)
+        return dicts
 
     def _tidy_url(self, raw_yelp_url: str) -> str:
         pass
