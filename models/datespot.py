@@ -53,6 +53,7 @@ class Datespot(metaclass=DatespotAppType):
             )
         self.location = self._location
         self.id = self._id() # todo confirm this is correct and good practice
+            # Todo: Use @property decorator?
         self.name = name
         
         self.price_range = price_range
