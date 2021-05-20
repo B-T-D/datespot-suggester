@@ -72,9 +72,7 @@ class TestHelloWorldThings(unittest.TestCase):
         """Does the returned object's shape (nested lists/tuples) match the expected structure?"""
         returned_obj = self.matchGrortDrobb.suggestions(self.candidate_datespots_list)
         # each "suggestion" should be a Datespot object literal:
-        #print(len(returned_obj))
         for element in returned_obj:
-            #print(f"element = {element}: {element.name}")
             self.assertIsInstance(element, models.Datespot)
     
     # def test_db_user_method_returns_expected_query_results(self):

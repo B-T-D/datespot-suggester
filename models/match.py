@@ -85,7 +85,6 @@ class Match(metaclass=DatespotAppType):
         # Todo: To the extent distance is factored into suggestion prioritization, that happens here in Match. S/t the
         #   distances are irrelevant by the time this method returns--if one restaurant was too far away, that's reflected
         #   in its position in the final list returned by this method.
-        print(f"in suggestions() public method: candidate_datespots = \n{candidate_datespots}")
         suggestions_heap = self._score_nearby_datespots(candidate_datespots)
         self.suggestions_queue = suggestions_heap # Todo: Correct that we want to store the scores (to easily maintain sorted order when updates)?
         results = [suggestion[1] for suggestion in suggestions_heap] # List of only the datespots, no scores. 
@@ -156,11 +155,7 @@ class Match(metaclass=DatespotAppType):
         while candidate_datespots:
             candidate = heapq.heappop(candidate_datespots)[1] # todo it'd be simpler if this list had the id along with the other data.
             # elements in the heap are tuples, element[0] is the distance "key", element[1] is the actual object
-            print(f"\n*****type candidate = {type(candidate)}\n\ncandidate = {candidate}\n*********\n")
-            # print(f"id type is {type(candidate['id'])}")
-            # print(type(candidate_obj))
             score = self.get_joint_datespot_score(candidate)
-            print(f"score was {score}")
             # negate score then use it as first element "key" in tuple for max heap
             heapq.heappush(suggestions_heap, (-score, candidate)) # The object id pk is the heap key's value.
                                                                         # Intuition = this heap is only used inside this Match instance's lifetime, so no reason not to use the object literals,

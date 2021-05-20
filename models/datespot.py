@@ -150,6 +150,9 @@ class Datespot(metaclass=DatespotAppType):
                             # Todo: Goal is to weight user tastes data heavily if we have it, but otherwise defer to the baseline dateworthiness. Make
                             #   sure the formula here does that. 
 
+                            # Todo: What about weighting the opposite way 2:1 baseline:score?
+                            #   Or: Weight ethnic-cuisine keywords lower, to avoid weird biased suggestions for users' whose ethnicity matches a cuisine genre
+
         return round(score, DATESPOT_SCORE_DECIMAL_PLACES)
     
     def serialize(self) -> dict:

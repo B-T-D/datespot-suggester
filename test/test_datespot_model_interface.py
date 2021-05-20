@@ -151,20 +151,20 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
             for schema_key in self.expected_datespot_data_keys:
                 self.assertIn(schema_key, datespot_dict)
     
-    def test_query_datespots_near_return_type(self):
-        returned_obj = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
+    def test_query_datespot_ids_near_return_type(self):
+        returned_obj = self.api.query_datespot_ids_near(location=self.test_location, radius=self.test_radius)
         self.assertIsInstance(returned_obj, list)
 
-    def test_query_datespots_near_returns_locations_within_radius(self):
+    def test_query_datespot_ids_near_near_returns_locations_within_radius(self):
         """Is the distance between the test location each query result <= the query radius?"""
-        query_results = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
+        query_results = self.api.query_datespot_ids_near(location=self.test_location, radius=self.test_radius)
         for result in query_results:
             distance = result[0]
             self.assertLessEqual(distance, self.test_radius)
     
-    def test_query_datespots_returns_nonincreasing_values(self):
+    def test_query_datespot_ids_near_returns_nonincreasing_values(self):
         """Are the elements in the query result non-increasing, i.e. sorted nearest to farthest?"""
-        query_results = self.api.query_datespots_near(location=self.test_location, radius=self.test_radius)
+        query_results = self.api.query_datespot_ids_near(location=self.test_location, radius=self.test_radius)
 
         for i in range(1, len(query_results)):
             self.assertGreaterEqual(query_results[i], query_results[i-1])
