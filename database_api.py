@@ -9,7 +9,7 @@ import json
 
 import model_interfaces
 
-# todo: The models should serialize themselves. That will expand reusability of the model interfaces. 
+import yelp_api_client
 
 # todo: What's the best name for this module? "JSON_server"? "REST_server"? "REST_API"? "REST_backend"? "JSON_backend"?
     # It's not a full REST API. It's not meant to handle actual HTTP requests; it doesn't use appropriate URIs. It's meant to get the JSON 
@@ -22,10 +22,13 @@ JSON_MAP_FILENAME = "jsonMap.json"
 
 class DatabaseAPI:
 
-    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME, live_google_maps: bool=False):
+    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME, live_google_maps: bool=False, live_yelp: bool=False):
         self._valid_model_names = {"user", "datespot", "match", "review", "message", "chat"}
         self._json_map_filename = json_map_filename
         self._live_google_maps = live_google_maps # todo implement different dispatching for the datespot queries based on this setting
+        self._live_yelp = live_yelp # todo one combined boolean toggle "live mode"
+
+        self._yelp_client = yelp_api_client.YelpClient()
 
     def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
         """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.
@@ -159,7 +162,16 @@ class DatabaseAPI:
                 user_db.add_to_pending_likes(user_id, candidate_id)
         return False
 
-    def get_datespots_near(self, location: tuple, radius: int=2000) -> list: # todo make private method?
+    def get_datespots_near(self, location: tuple, radius: int=2000) -> list:
+        # Todo: Ultimately, we want to check the cache first, there might've just been a query at that location
+        #   such that another API call is wasteful recomputation on the same reviews data.
+        if not self._live_yelp: # todo add "and if not live google"?
+            return self._get_cached_datespots_near(location, radius)
+        elif self._live_yelp:
+            self._yelp_client.search_businesses_near(location, radius)
+
+
+    def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> list: # todo make private method?
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
 

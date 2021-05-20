@@ -26,7 +26,16 @@ class Datespot(metaclass=DatespotAppType):
     #   object--and those traits are related to the datespot object. We remember an aggregate knowledge of / opinion about the restaurant that we learned from 
     #   reading its reviews, we don't memorize the full text of every review we read.
 
-    def __init__(self, location: tuple, name: str, traits: dict={}, price_range: int=None, hours: list=[]):
+    def __init__(
+        self,
+        location: tuple,
+        name: str,
+        traits: dict={},
+        price_range: int=None, # [0..3], i.e. 4 distinct levels. 
+        hours: list=[],
+        yelp_url=None,
+        yelp_rating: float=None,
+        yelp_review_count: int=0):
         """
         Args:
             traits (dict): ... 
@@ -56,8 +65,15 @@ class Datespot(metaclass=DatespotAppType):
             # Todo: Use @property decorator?
         self.name = name
         
-        self.price_range = price_range
+        self.price_range = price_range # Todo reconcile google-yelp if still using google--google is [0..4], yelp is [0..3] apparently
         self.hours = hours
+        
+        self.yelp_url = yelp_url # todo: TBD if this is best way to cache a mapping of yelp urls to restaurants
+                                    # Rationale: We can get 50 urls for the price of 1 yelp API call by caching at the time 
+                                    #   of the nearby businesses search; versus needing 1 call for each restaurant if querying the 
+                                    #   Yelp API for the url of a specific restaurant.
+        self.yelp_rating = yelp_rating # todo: This is very relevant to baseline dateworthiness--incorporate into formulae
+        self.yelp_review_count = yelp_review_count # number of yelp reviews
 
 
         with open(BASELINE_SCORING_DATA) as fobj: # todo each json.load(fobj) call is another pass through the entire json file, right?
@@ -163,5 +179,8 @@ class Datespot(metaclass=DatespotAppType):
             "location": self.location,
             "traits": self.traits,
             "price_range": self.price_range,
-            "hours": self.hours
+            "hours": self.hours,
+            "yelp_rating": self.yelp_rating,
+            "yelp_review_count": self.yelp_reviews_count,
+            "yelp_url": self.yelp_url
         }
