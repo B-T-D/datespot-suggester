@@ -168,7 +168,7 @@ class DatabaseAPI:
         if not self._live_yelp: # todo add "and if not live google"?
             return self._get_cached_datespots_near(location, radius)
         elif self._live_yelp:
-            self._yelp_client.search_businesses_near(location, radius)
+            datespot_jsons = self._yelp_client.search_businesses_near(location, radius)
 
 
     def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> list: # todo make private method?

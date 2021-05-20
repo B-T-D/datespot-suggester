@@ -181,6 +181,6 @@ class Datespot(metaclass=DatespotAppType):
             "price_range": self.price_range,
             "hours": self.hours,
             "yelp_rating": self.yelp_rating,
-            "yelp_review_count": self.yelp_reviews_count,
+            "yelp_review_count": self.yelp_review_count,
             "yelp_url": self.yelp_url
         }

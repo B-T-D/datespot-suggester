@@ -48,6 +48,7 @@ class YelpClient:
         Returns a JSON string that can be directly passed as argument to DB API's post_object() method."""
         yelp_dict = self._request_business_search(location, radius)
         datespots_json = self._format_json(yelp_dict)
+        print(f"in public search biz near method: \ntype(datespots_json) = {type(datespots_json)}\ndatespots_json = {datespots_json}")
         pass
 
     def _request_business_search(self, location: tuple, radius: int, term: str=None) -> dict: # todo: term is placeholder for extending to more elaborate yelp querystrings later
@@ -77,6 +78,8 @@ class YelpClient:
 
         # It starts as a dictionary with one key, "businesses", whose value is a list of nested dicts
 
+        dicts = []
+
         for business in yelp_json_dict["businesses"]:
             assert isinstance(business, dict)
 
@@ -97,8 +100,10 @@ class YelpClient:
                 "yelp_review_count": business["review_count"],
                 "yelp_url": business["url"]
             }
+
+            dicts.append(datespot_dict)
         
-        print(datespot_dict)
+        return json.dumps(dicts)
 
     def _tidy_url(self, raw_yelp_url: str) -> str:
         pass
@@ -115,12 +120,7 @@ class YelpClient:
             "Authorization": f"Bearer {YELP_API_KEY}"
         }
 
-        print(f"url = {url}")
-        print(f"url_params = {url_params}")
-
         response = requests.request("GET", url, headers=headers, params=url_params)
-        print(f"response = \n{response}")
-        print(f"response text = \n{response.text}")
         return response.json()
 
 def main():

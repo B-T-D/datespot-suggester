@@ -327,12 +327,27 @@ class DatespotModelInterface(ModelInterfaceABC):
             location = location_tuple,
             name = json_dict["name"]
         )
-        if "traits" in json_dict:
-            datespot_obj.traits = json_dict["traits"]
-        if "price_range" in json_dict and json_dict["price_range"] is not None:
-            datespot_obj.price_range = int(json_dict["price_range"])
-        if "hours" in json_dict: # todo better handling when hours format is made realistic
-            datespot_obj.hours = json_dict["hours"]
+
+        optional_fields =  {
+            "traits": datespot_obj.traits,
+            "price_range": datespot_obj.price_range,
+            "hours": datespot_obj.hours,
+            "yelp_rating": datespot_obj.yelp_rating,
+            "yelp_review_count": datespot_obj.yelp_review_count,
+            "yelp_url": datespot_obj.yelp_url
+            }
+        
+        for optional_field in optional_fields:
+            if optional_field in json_dict:
+                exec(f"datespot_obj.{optional_field} = json_dict[optional_field]") # Todo what's a better way than exec()? Or is this an ok use case for exec()?
+
+
+        # if "traits" in json_dict:
+        #     datespot_obj.traits = json_dict["traits"]
+        # if "price_range" in json_dict and json_dict["price_range"] is not None:
+        #     datespot_obj.price_range = int(json_dict["price_range"])
+        # if "hours" in json_dict: # todo better handling when hours format is made realistic
+        #     datespot_obj.hours = json_dict["hours"]
 
         # Hash that object
         new_object_id = datespot_obj.id # todo refactor to the uniform approach: create the object, then call its id method.
