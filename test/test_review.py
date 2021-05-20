@@ -1,7 +1,7 @@
 import unittest
 import json
 
-from review import Review
+import models
 from database_api import DatabaseAPI
 
 TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
@@ -38,10 +38,10 @@ class TestHelloWorldThings(unittest.TestCase):
 
         # Instantiate mock Review object
 
-        self.review_obj = Review(datespot_id = self.terrezanos_id, text = self.mock_text_positive_relevant)
+        self.review_obj = models.Review(datespot_id = self.terrezanos_id, text = self.mock_text_positive_relevant)
 
     def test_init(self):
-        self.assertIsInstance(self.review_obj, Review)
+        self.assertIsInstance(self.review_obj, models.Review)
     
     def test_tokenize(self):
         """Does the internal tokenize method tokenize a multi-sentence text into an array of sentences as expected?"""

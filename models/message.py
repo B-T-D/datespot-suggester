@@ -8,9 +8,9 @@ import nltk
 from vaderSentiment import vaderSentiment as vs
 import bisect
 
-import user
+import models.user as user
 
-TASTES_KEYWORDS = "tastes_keywords.txt"
+TASTES_KEYWORDS = "data_static/tastes_keywords.txt"
 # Todo: Needs more menu item keywords. Ideally, find a list of menu items at NYC restaurants sorted by how common they are.
     # Fast food so not super helpful: https://www.foodnetwork.com/restaurants/photos/most-popular-dish-at-americas-top-chain-restaurants 
     # Decent starting point for specific dishes and food words: https://ny.eater.com/maps/new-york-iconic-dishes

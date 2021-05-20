@@ -3,10 +3,10 @@ import json
 
 try:
     from python_backend.model_interfaces import UserModelInterface
-    from python_backend import user
+    from python_backend.models import user
 except:
     from model_interfaces import UserModelInterface
-    import user
+    import models.user
 
 
 TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"

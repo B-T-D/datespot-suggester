@@ -1,6 +1,6 @@
 from app_object_type import DatespotAppType
 
-from message import Message
+from models.message import Message
 
 # todo... this one may not need VSA and NLTK, if all it does it math on the sentiment
 #   numbers of the Messages composing the Chat.

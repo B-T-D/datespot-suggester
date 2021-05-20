@@ -8,7 +8,7 @@ class User(metaclass=DatespotAppType):
         self,
         user_id: str,
         name: str,
-        current_location: tuple=None,
+        current_location,
         predominant_location: tuple=None,
         tastes: dict={},
         matches: dict={},
@@ -57,6 +57,9 @@ class User(metaclass=DatespotAppType):
     
     def __eq__(self, other): # must define if defining __hash__
         return hash(self) == hash(other) # todo DRY into ABC? Identical code for all three of User, Datespot, and Match
+
+        # Todo: Is this good practice?
+        #   Todo: Make sure it at least returns False if not comparing to same class, same for other models' __eq__
     
     def __hash__(self):
         return hash(self.id)

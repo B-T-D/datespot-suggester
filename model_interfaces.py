@@ -1,7 +1,8 @@
 """Objects for interfacing between stored data and model-object instances."""
 import abc, json, uuid, time
 
-import user, datespot, match, review, message, chat
+import models
+#import models.user, models.datespot, models.match, models.review, models.message, models.chat
 import geo_utils
 
 JSON_DB_NAME = "jsonMap.json"
@@ -115,7 +116,7 @@ class UserModelInterface(ModelInterfaceABC):
             user_id = force_key
         else:
             user_id  = str(uuid.uuid1().int)
-        new_user = user.User(
+        new_user = models.User(
             user_id = user_id,
             name=json_dict["name"],
             current_location = tuple(json_dict["current_location"])
@@ -135,7 +136,7 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json() # todo User does it this way, Datespot does it by instantiating an object. If no reason for difference, determine which is better and standardize to that.
         return json.dumps(self._data[user_id]) # ...This way seems more intuitive. Part of the point of storing stuff is to look it up without repeating computations. 
 
-    def lookup_obj(self, user_id: str) -> user.User:
+    def lookup_obj(self, user_id: str) -> models.User:
         """
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
         or raises error if not found.
@@ -143,7 +144,7 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_object_id(user_id)
         user_data = self._data[user_id]
-        user_obj = user.User(
+        user_obj = models.User(
             user_id = user_id,
             name=user_data["name"],
             current_location=user_data["current_location"],
@@ -322,7 +323,7 @@ class DatespotModelInterface(ModelInterfaceABC):
                 raise ValueError(f"Bad JSON in call to create_datespot(): {key}")
         location_tuple = tuple(json_dict["location"])
         # Instantiate an object with the data
-        datespot_obj = datespot.Datespot(
+        datespot_obj = models.Datespot(
             location = location_tuple,
             name = json_dict["name"]
         )
@@ -353,12 +354,12 @@ class DatespotModelInterface(ModelInterfaceABC):
         datespot_obj = self.lookup_obj(id)
         return json.dumps(self._serialize_datespot(datespot_obj))
 
-    def lookup_obj(self, id: int) -> datespot.Datespot:
+    def lookup_obj(self, id: int) -> models.Datespot:
         """Return the datespot object corresponding to key "id"."""
         self._read_json()
         self._validate_object_id(id)
         datespot_data = self._data[id]
-        return datespot.Datespot(
+        return models.Datespot(
             location = tuple(datespot_data["location"]),
             name = datespot_data["name"],
             traits = datespot_data["traits"],
@@ -410,19 +411,48 @@ class DatespotModelInterface(ModelInterfaceABC):
         self._read_json()
         return len(self._data)
 
-    def query_datespots_near(self, location, radius=2000): # Todo hasty implementation. This is the most important query logic so better to get something working sooner.
-        """Return list of the datespots in the DB within radius meters of location, sorted from nearest to farthest.""" 
+    def query_datespot_ids_near(self, location, radius=2000): # Todo hasty implementation. This is the most important query logic so better to get something working sooner.
+        """Return list of the datespots in the DB within radius meters of location, sorted from nearest to farthest.
+        
+        Returns:
+            (list): List of two-element tuples such that query_results[i][0] is distance from query location to the datespot
+                and query_results[i][1] is the datespot's ID string.
+        
+        """ 
         if (not location) or (not geo_utils.is_valid_lat_lon(location)): # todo best architectural place for validating this?
             raise ValueError(f"Bad lat lon location: {location}")
         self._read_json()
         query_results = [] # list of two element tuples of (distance_from_query_location, serialized_datespot_dict). I.e. list[tuple[int, dict]]
         for id_key in self._data:
-            place = self._data[id_key]
-            place_loc = place["location"]
+            datespot_data = self._data[id_key]
+            place_loc = datespot_data["location"]
             distance = geo_utils.haversine(location, place_loc)
             if distance < radius: # todo do we need the full object in the results dict, or would only the lookup key suffice?
-                query_results.append((distance, place)) # append as tuple with distance as the tuple's first element
+                query_results.append((distance, id_key)) # append as tuple with distance as the tuple's first element
         query_results.sort() # Todo no reason to heap-sort yet, this method's caller won't necessarily want it as a heap. 
+        return query_results
+
+    def query_datespot_objs_near(self, location, radius=2000):
+        """
+        Return a list of distances and corresponding Datespot object literals within radius meters of location,
+        sorted from nearest to farthest. Same as query_datespot_ids_near() except that it returns the Datespot
+        objects instead of the IDs.
+
+        """
+        # Todo do we want a one-pass algorithm to return a list of Datespot objects? Rather than some other code
+        #   needing to make a second pass to lookup each datespot id?
+
+        # Todo: Do we care about keeping the distances in the list at this point? Isn't it enough to return a distance-sorted
+        #   list? OTOH, if the caller is Match algorithms, may end up wanting to factor distance into suggestions (all else equal,
+        #   choose the closer restaurant).
+
+        # Todo for now, just wrap the one that returns ids, and then convert each ID to a datespot object
+        datespot_ids = self.query_datespot_ids_near(location, radius)
+        query_results = []
+        for composite_element in datespot_ids:
+            distance, id_string = composite_element[0], composite_element[1]
+            datespot_obj = self.lookup_obj(id_string)
+            query_results.append((distance,datespot_obj))
         return query_results
 
 class MatchModelInterface(ModelInterfaceABC):
@@ -478,23 +508,24 @@ class MatchModelInterface(ModelInterfaceABC):
         """
         self._read_json()
         user1_obj, user2_obj = self.user_api_instance.lookup_obj(user1_id), self.user_api_instance.lookup_obj(user2_id)
-        match_obj = match.Match(user1_obj, user2_obj)
+        match_obj = models.Match(user1_obj, user2_obj)
         new_object_id = match_obj.id
-        self._data[new_object_id] = {
-            "users": [user1_id, user2_id],
-            "timestamp": time.time()
-        }
+        self._data[new_object_id] = match_obj.serialize()
         self._write_json()
         return new_object_id
     
-    def lookup_obj(self, match_id: int) -> match.Match:
+    def lookup_obj(self, match_id: int) -> models.Match:
         self._read_json()
         self._validate_object_id(match_id)
         match_data = self._data[match_id] # todo the three lines through the end of this one could easily go to a helper method in the ABC. E.g. _get_data_for_id
         user_id_1, user_id_2 = match_data["users"][0], match_data["users"][1]
         user1 = self.user_api_instance.lookup_obj(user_id_1)
         user2 = self.user_api_instance.lookup_obj(user_id_2)
-        match_obj = match.Match(user1, user2)
+        match_obj = models.Match(
+            user1 = user1,
+            user2 = user2,
+            timestamp = match_data["timestamp"],
+            suggestions_queue = match_data["suggestions_queue"])
         return match_obj
     
     def get_all_suggestions(self, match_id: int) -> list:
@@ -537,7 +568,7 @@ class ReviewModelInterface(ModelInterfaceABC):
 
         self._validate_json_fields(json_dict) # Validate fields
 
-        new_obj = review.Review( # Instantiate a model object
+        new_obj = models.Review( # Instantiate a model object
             datespot_id = json_dict["datespot_id"],
             text = json_dict["text"]
         )
@@ -589,7 +620,7 @@ class MessageModelInterface(ModelInterfaceABC):
         sender_user_obj = user_db.lookup_obj(json_dict["sender_id"])
         prior_user_tastes = str(sender_user_obj.serialize()["tastes"]) # for comparison later, to see if any updates happened
 
-        new_obj = message.Message(
+        new_obj = models.Message(
             time_sent = time_sent,
             sender = sender_user_obj,
             chat_id = json_dict["chat_id"],
@@ -623,13 +654,13 @@ class MessageModelInterface(ModelInterfaceABC):
         self._write_json()
         return new_obj_id
     
-    def lookup_obj(self, object_id: int) -> message.Message:
+    def lookup_obj(self, object_id: int) -> models.Message:
         """Return the Message object corresponding to id."""
         self._read_json()
         self._validate_object_id(object_id)
         message_data = self._data[object_id]
         user_db = UserModelInterface(self._master_datafile) # need a User MI to get a User obj to call the Message constructor with
-        return message.Message(
+        return models.Message(
             time_sent = message_data["time_sent"],
             sender = user_db.lookup_obj(message_data["sender_id"]),
             chat_id = message_data["chat_id"],
@@ -664,7 +695,7 @@ class ChatModelInterface(ModelInterfaceABC):
         else:
             start_time = time.time()
 
-        new_obj = chat.Chat(
+        new_obj = models.Chat(
             start_time = start_time,
             participant_ids = json_dict["participant_ids"]
         ) # no messages yet
@@ -704,7 +735,7 @@ class ChatModelInterface(ModelInterfaceABC):
         for message_id in chat_data["messages"]:
             message_objects.append(message_db.lookup_obj(message_id))
 
-        return chat.Chat(
+        return models.Chat(
             start_time = chat_data["start_time"],
             participant_ids = chat_data["participant_ids"],
             messages = message_objects
