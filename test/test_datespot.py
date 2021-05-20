@@ -1,6 +1,6 @@
 import unittest, json
 
-from datespot import Datespot
+import models
 
 from database_api import DatabaseAPI
 
@@ -27,7 +27,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.terrezanos_price_range = 3
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
 
-        self.terrezanos = Datespot(
+        self.terrezanos = models.Datespot(
             location=self.terrezanos_location,
             name=self.terrezanos_name,
             traits=self.terrezanos_traits,

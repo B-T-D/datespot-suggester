@@ -1,1 +1,1 @@
-{"user_data": "mockUserDB.json", "datespot_data": "mockDatespotDB.json", "match_data": "mockMatchDB.json", "review_data": "mockReviewDB.json"}
+{"user_data": "data_mock/mockUserDB.json", "datespot_data": "data_mock/mockDatespotDB.json", "match_data": "data_mock/mockMatchDB.json", "review_data": "data_mock/mockReviewDB.json"}

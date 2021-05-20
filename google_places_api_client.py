@@ -231,7 +231,6 @@ class Parser:
             result_json = self._datespot_to_internal_json(result)
             db.add("datespot", result_json)
 
-
 def main():
 
     test_location = (40.74977666604178, -73.99597469657479)
@@ -254,10 +253,6 @@ def main():
         myParser = Parser(response_from_file=True)
         myParser.parse()
         myParser.add_datespots()
-
-
-    
-
 
 if __name__ == '__main__':
     main()

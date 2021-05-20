@@ -1,11 +1,11 @@
 from app_object_type import DatespotAppType
-import user
+import models.user as user
 
 import json
 
 import hashlib, struct
 
-BASELINE_SCORING_DATA = "datespot_baseline_scoring_data.json"
+BASELINE_SCORING_DATA = "data_static/datespot_baseline_scoring_data.json"
 MAX_LATLON_COORD_DECIMAL_PLACES = 8
 DATESPOT_SCORE_DECIMAL_PLACES = 4
 
@@ -53,6 +53,7 @@ class Datespot(metaclass=DatespotAppType):
             )
         self.location = self._location
         self.id = self._id() # todo confirm this is correct and good practice
+            # Todo: Use @property decorator?
         self.name = name
         
         self.price_range = price_range
@@ -78,6 +79,11 @@ class Datespot(metaclass=DatespotAppType):
         Return True if self should be treated as equal to other, else False.
         """
         return hash(self) == hash(other)
+
+    def __lt__(self, other):# Todo: Weird to have eq be the hash and __lt__ be something else. This was quick hack because
+            # heapq needed a way to break ties.
+        """Return True if self has a lower baseline_dateworthiness than other."""
+        return self.baseline_dateworthiness < other.baseline_dateworthiness
 
     def __hash__(self):
         return hash(self._location)
@@ -144,6 +150,9 @@ class Datespot(metaclass=DatespotAppType):
 
                             # Todo: Goal is to weight user tastes data heavily if we have it, but otherwise defer to the baseline dateworthiness. Make
                             #   sure the formula here does that. 
+
+                            # Todo: What about weighting the opposite way 2:1 baseline:score?
+                            #   Or: Weight ethnic-cuisine keywords lower, to avoid weird biased suggestions for users' whose ethnicity matches a cuisine genre
 
         return round(score, DATESPOT_SCORE_DECIMAL_PLACES)
     

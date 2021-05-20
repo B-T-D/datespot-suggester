@@ -2,7 +2,7 @@ import unittest
 import json
 import time
 
-from message import Message
+import models
 from database_api import DatabaseAPI
 
 
@@ -74,7 +74,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
         
         self.mock_chat_id_1 = "1a"
-        self.message_obj = Message(
+        self.message_obj = models.Message(
             time_sent = self.mock_bilateral_timestamp,
             sender = self.db.get_obj("user", self.akatosh_id),
             chat_id = self.mock_chat_id_1,
@@ -86,7 +86,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.expected_sentiment_multisentence = 0.092 # todo hardcoded
 
         self.mock_chat_id_2 = "2a"
-        self.multisentence_message_obj = Message(
+        self.multisentence_message_obj = models.Message(
             time_sent = time.time(),
             sender = self.db.get_obj("user", self.akatosh_id),
             chat_id = self.mock_chat_id_2,
@@ -94,7 +94,7 @@ class TestHelloWorldThings(unittest.TestCase):
         )
 
     def test_init(self):
-        self.assertIsInstance(self.message_obj, Message)
+        self.assertIsInstance(self.message_obj, models.Message)
     
     def test_eq(self):
         """Does the custom __eq__() behave as expected?"""

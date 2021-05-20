@@ -2,7 +2,7 @@ import unittest
 import json 
 import time
 
-from chat import Chat
+import models
 
 from database_api import DatabaseAPI
 
@@ -119,7 +119,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.chat_obj = self.db.get_obj("chat", self.chat_id)
 
     def test_init(self):
-        self.assertIsInstance(self.chat_obj, Chat)
+        self.assertIsInstance(self.chat_obj, models.Chat)
     
     def test_eq(self):
         """Does the custom __eq__() behave as expected?"""
