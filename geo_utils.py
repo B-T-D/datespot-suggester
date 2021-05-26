@@ -2,7 +2,7 @@
 
 from math import sqrt, radians, cos, sin, asin
 
-EARTH_RADIUS_KM = 6368 # Radius of the Earth in kilometers
+EARTH_RADIUS_KM = 6368  # Radius of the Earth in kilometers.
 
 def is_valid_lat_lon(location: tuple) -> bool:
     """Checks whether a latitude, longitude coordinate pair is within the range of valid possible values.
@@ -18,7 +18,7 @@ def is_valid_lat_lon(location: tuple) -> bool:
     return (-90 <= lat <= 90) and (-180 <= lon <= 180)
 
 def haversine(location1: tuple, location2: tuple) -> float:
-    # Todo: Use numpy if distance computations are intensive enough to become a bottleneck.
+    # TODO Use numpy if distance computations are intensive enough to become a bottleneck.
     """
     Computes the great circle distance, in meters, between two points represented by latitude-longitude
     coordinate pairs.
@@ -34,12 +34,11 @@ def haversine(location1: tuple, location2: tuple) -> float:
     # Unpack tuples and convert lat lon decimal degrees to radians:
     lat1, lon1, lat2, lon2 = map(radians, [location1[0], location1[1], location2[0], location2[1]])
 
-    # See https://en.wikipedia.org/wiki/Haversine_formula
-    lon_distance = lon2 - lon1
-    lat_distance = lat2 - lat1
+    # Apply haversine formula (see https://en.wikipedia.org/wiki/Haversine_formula):
+    lon_distance, lat_distance = lon2 - lon1, lat2 - lat1
     a = sin(lat_distance/2)**2 + cos(lat1) * cos(lat2) * sin(lon_distance/2)**2
-    c = 2 * asin(sqrt(a)) # arcsine * 2 * radius solves for the distance
-    return c * EARTH_RADIUS_KM * 1000 # convert back to meters
+    c = 2 * asin(sqrt(a))  # arcsine * 2 * radius solves for the distance.
+    return c * EARTH_RADIUS_KM * 1000  # Convert back to meters.
 
 def midpoint(location1: tuple, location2: tuple) -> tuple:
     """
