@@ -62,15 +62,16 @@ class TestHelloWorldThings(unittest.TestCase):
             hours = self.terrezanos_hours,
         )
         """
-        self.terrezanos_id = self.api.create_datespot(
-            json.dumps({
+
+        self.terrezanos_json = json.dumps({
                 "location" : self.terrezanos_location,
                 "name" : self.terrezanos_name,
                 "traits" : self.terrezanos_traits,
                 "price_range" : self.terrezanos_price_range,
                 "hours" : self.terrezanos_hours,
             })
-        )
+
+        self.terrezanos_id = self.api.create_datespot(self.terrezanos_json)
         assert self.terrezanos_id in self.api._data
         
     def test_instantiation(self):
@@ -120,9 +121,13 @@ class TestHelloWorldThings(unittest.TestCase):
 
         self.api.update_datespot(self.terrezanos_id, update_json=update_json)
         self.assertIn(new_terrezanos_trait, self.api._data[self.terrezanos_id]["traits"]) # self.api._data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
-
         # update with a list:
         # todo
+    
+    def test_is_in_db(self):
+        """Does the method that checks if an ID is already in the database behave as expected?"""
+        self.assertTrue(self.api.is_in_db(self.terrezanos_json)) # JSON for the same restaurant should hash to same thing
+        # Todo add an assertFalse
 
 class TestQueriesOnPersistentDB(unittest.TestCase):
     """Tests using a persistent "real" DB rather than a separate DB initialized solely for testing purposes."""
@@ -132,14 +137,14 @@ class TestQueriesOnPersistentDB(unittest.TestCase):
         self.test_location = (40.74491605331198, -74.00333467806617)
         self.test_radius = 2000
 
-        self.expected_datespot_data_keys = ["id", "location", "name", "traits", "price_range", "hours"]
+        self.expected_datespot_data_keys = ["location", "name", "traits", "price_range", "hours", "yelp_rating", "yelp_review_count", "yelp_url"]
     
     def test_init(self):
         self.assertIsInstance(self.api, DatespotModelInterface)
     
     def test_api_has_data(self):
         self.assertGreater(self.api.query_num_datespots(), 0)
-        self.assertEqual(self.api.query_num_datespots(), 60) # todo hardcoded to 60 for expediency
+        self.assertEqual(self.api.query_num_datespots(), 50) # todo hardcoded to 50 (i.e. max from one yelp request)
     
     def test_api_data_has_expected_shape(self):
         data = self.api._get_all_data()

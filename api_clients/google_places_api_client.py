@@ -5,7 +5,7 @@ Makes requests to the Google Maps Places API, parses the responses into Datespot
 import json
 import requests
 
-import database_api
+import database_api # todo don't do it this way. This module should only return the JSON DB API needs to create the objects and do whatever else.
 import geo_utils
 
 ### Settings and config stuff ###
