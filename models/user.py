@@ -1,4 +1,4 @@
-from app_object_type import DatespotAppType
+from models.app_object_type import DatespotAppType
 
 TASTE_STRENGTH_DECIMAL_PLACES = 6 # Todo confirm this is however many significant figures VSA includes
 

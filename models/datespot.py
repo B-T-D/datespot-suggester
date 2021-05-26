@@ -1,4 +1,4 @@
-from app_object_type import DatespotAppType
+from models.app_object_type import DatespotAppType
 import models.user as user
 
 import json
