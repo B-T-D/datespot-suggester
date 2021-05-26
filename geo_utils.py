@@ -17,7 +17,6 @@ def is_valid_lat_lon(location: tuple) -> bool:
     lat, lon = location[0], location[1]
     return (-90 <= lat <= 90) and (-180 <= lon <= 180)
 
-
 def haversine(location1: tuple, location2: tuple) -> float:
     # Todo: Use numpy if distance computations are intensive enough to become a bottleneck.
     """
@@ -56,6 +55,5 @@ def midpoint(location1: tuple, location2: tuple) -> tuple:
         (tuple[float]): Tuple of two floats such that tuple[0] is the midpoint's latitude and 
             tuple[1] its longitude.
     """
-    lat1, lon1 = location1[0], location1[1]
-    lat2, lon2 = location2[0], location2[1]
+    lat1, lon1, lat2, lon2 = location1[0], location1[1], location2[0], location2[1]
     return ((lat1 + lat2) / 2, (lon1 + lon2) / 2)
