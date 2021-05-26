@@ -112,6 +112,7 @@ class YelpClient:
         return dicts
 
     def _tidy_url(self, raw_yelp_url: str) -> str:
+        # Todo: Use string.find() to slice off "?" and everything after it
         pass
 
     def _request(self, host, path, api_key, url_params=None): # We have this general-case code from the github examples, so might as well use it.

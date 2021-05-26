@@ -106,6 +106,9 @@ class Message(metaclass=DatespotAppType):
 
     def _analyze_sentiment(self):
         """Compute the mean sentiment of the Message's sentences."""
+
+        # Todo: If user mentions a known restaurant by name, treat that message as a Review. 
+
         self._tokenize() # populate the sentences array
         sentiments_sum = 0 # sum of vaderSentiment SentimentIntensityAnalyzer "compound" scores
         analyzer = vs.SentimentIntensityAnalyzer()

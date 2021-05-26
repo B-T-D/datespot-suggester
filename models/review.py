@@ -25,8 +25,11 @@ class Review(metaclass=DatespotAppType):
     def __eq__(self, other):
         return hash(self) == hash(other)
     
-    def __hash__(self): # Hash is the default Python hash of the full text string. An updated review shouldn't hash to same.
-        return hash(self.text)
+    def __hash__(self):
+        return hash(self.text) # If the text was updated, we don't want it to hash to the same integer.
+        # Todo: But we care that it's an update on a prior review, rather than an entirely new review. Slightly updated
+        #   review shouldn't be treated as an additional review for stats purposes.
+        #   Can hash the text to check for equality without having that be "the hash" of the whole Review object...
     
     def _id(self) -> str:
         """

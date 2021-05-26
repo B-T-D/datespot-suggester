@@ -392,8 +392,6 @@ class DatespotModelInterface(ModelInterfaceABC):
         
         return datespot_obj
 
-
-
     def update_datespot(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
         self._read_json()
@@ -590,6 +588,12 @@ class ReviewModelInterface(ModelInterfaceABC):
         self._valid_model_fields = ["datespot_id", "text"]
     
     def create_review(self, json_str: str) -> str:
+
+        # Todo: Could store only the review's hash in the DB. We likely don't care
+        #   about anything other than checking whether a given review is already in the DB.
+        #   Or maybe (id, sentiment, relevance) -- point being we don't want to store the text
+        #   of thousands of reviews. 
+
         self._read_json()
         json_dict = json.loads(json_str)
 
