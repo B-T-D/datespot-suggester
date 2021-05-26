@@ -95,7 +95,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "chat_id": self.mock_chat_id_1,
             "text": self.tastes_message_text
         })
-        self.tastes_message_id = self.api.create_message(self.tastes_message_json)
+        self.tastes_message_id = self.api.create(self.tastes_message_json)
 
         # Mock message with negative taste sentiment
         self.negative_tastes_message_timestamp = time.time()
@@ -108,7 +108,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "chat_id": self.mock_chat_id_1,
             "text": self.negative_tastes_message_text
         })
-        self.negative_tastes_message_id = self.api.create_message(self.negative_tastes_message_json)
+        self.negative_tastes_message_id = self.api.create(self.negative_tastes_message_json)
 
         akatosh_obj = self.db.get_object("user", self.akatosh_id) # todo just for debug
 
@@ -116,14 +116,14 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_instantiation(self):
         self.assertIsInstance(self.api, MessageModelInterface)
     
-    def test_create_message(self):
+    def test_create(self):
         json_str = json.dumps({
             "time_sent": self.mock_bilateral_timestamp,
             "sender_id": self.akatosh_id,  # MI is called with sender_id. MI then has sole responsibility for translating the MI to a user object literal.
             "chat_id": self.mock_chat_id_1,
             "text": self.single_sentence_text
         })
-        message_id = self.api.create_message(json_str)
+        message_id = self.api.create(json_str)
         self.assertIn(message_id, self.api._data)
     
     def test_tastes_updated_in_user_obj(self):
@@ -150,14 +150,13 @@ class TestHelloWorldThings(unittest.TestCase):
             "text": self.second_datapoint_tastes_message_text
         })
 
-        self.api.create_message(self.second_datapoint_tastes_message_json)
+        self.api.create(self.second_datapoint_tastes_message_json)
         akatosh_obj = self.db.get_object("user", self.akatosh_id)
         self.assertAlmostEqual(
             self.expected_sentiment_after_second_datapoint,
             akatosh_obj.taste_strength(self.akatosh_taste_name)
             )
         
-
         # That User should now have two datapoints total on that taste
         self.assertEqual(akatosh_obj.taste_datapoints(self.akatosh_taste_name), 2)
 

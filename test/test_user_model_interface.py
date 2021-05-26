@@ -45,7 +45,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.azura_existing_taste_name = "dawn"
         self.azura_existing_taste_strength = 0.9
         self.azura_existing_taste_datapoints = 3
-        self.azura_existing_tastes = { # This is the data in the object's internal format, for testing convenience not for a call to the external create_user()
+        self.azura_existing_tastes = { # This is the data in the object's internal format, for testing convenience not for a call to the external create()
             self.azura_existing_taste_name:
                 [self.azura_existing_taste_strength,
                 self.azura_existing_taste_datapoints]
@@ -57,7 +57,7 @@ class TestHelloWorldThings(unittest.TestCase):
         })
 
         # Todo this is very convoluted--it was a quick hacky way of forcing the preexisting tastes data into the test DB
-        assert self.api.create_user(azura_json) == self.azura_id # It should return the id
+        assert self.api.create(azura_json) == self.azura_id # It should return the id
         assert self.azura_id in self.api._data
         azura_obj = self.api.lookup_obj(self.azura_id)
         azura_obj._tastes = self.azura_existing_tastes # Directly set the private attribute
@@ -73,14 +73,14 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.boethiah_location,
             "force_key": self.boethiah_id
         })
-        assert self.api.create_user(boethiah_json) == self.boethiah_id
+        assert self.api.create(boethiah_json) == self.boethiah_id
         
-    def test_create_user(self):
+    def test_create(self):
         json_data = json.dumps({
             "name": "Grort",
             "current_location": (40.76346250260515, -73.98013893542904)
         })
-        new_user = self.api.create_user(json_data)
+        new_user = self.api.create(json_data)
         self.assertIn(new_user, self.api._data)
     
     def test_lookup_user(self):
