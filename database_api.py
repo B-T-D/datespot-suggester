@@ -10,7 +10,7 @@ import sys
 
 import model_interfaces
 
-import yelp_api_client
+import api_clients.yelp_api_client
 
 # todo: What's the best name for this module? "JSON_server"? "REST_server"? "REST_API"? "REST_backend"? "JSON_backend"?
     # It's not a full REST API. It's not meant to handle actual HTTP requests; it doesn't use appropriate URIs. It's meant to get the JSON 
@@ -30,7 +30,7 @@ class DatabaseAPI:
         self._live_google_maps = live_google_maps # todo implement different dispatching for the datespot queries based on this setting
         self._live_yelp = live_yelp # todo one combined boolean toggle "live mode"
 
-        self._yelp_client = yelp_api_client.YelpClient()
+        self._yelp_client = api_clients.yelp_api_client.YelpClient()
 
     def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
         """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.

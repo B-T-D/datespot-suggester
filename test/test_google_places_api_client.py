@@ -8,7 +8,7 @@ dotenv.load_dotenv(dotenv_path)
 
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 
-from google_places_api_client import Client
+from api_clients.google_places_api_client import Client
 
 class TestClientHelloWorld(unittest.TestCase):
     """Quick non-brokenness tests for the Client class."""
