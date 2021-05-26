@@ -67,7 +67,7 @@ class Chat(metaclass=DatespotAppType):
             return # todo not sure best thing to return 
         sentiments_sum = 0
         for message in self.messages:
-            sentiments_sum += message.sentiment_avg
+            sentiments_sum += message.sentiment
         self._sentiment_avg = round(sentiments_sum / len(self.messages), SENTIMENT_DECIMAL_PLACES)
         return self._sentiment_avg
     

@@ -19,6 +19,8 @@ import api_clients.yelp_api_client
 JSON_MAP_FILENAME = "jsonMap.json"
 DEFAULT_RADIUS = 2000
 
+# Todo: Use "object", not "obj" throughout. We care about readability, this is a portfolio project. 
+
 class DatabaseAPI:
 
     def __init__(self, json_map_filename: str=JSON_MAP_FILENAME, live_google_maps: bool=False, live_yelp: bool=False):
@@ -172,7 +174,6 @@ class DatabaseAPI:
             #   to still be in the LRU cache, then return cached results?
             return self._get_yelp_datespots_near(location, radius)
             
-    
     def _cache_datespots(self, datespot_dict_list: list):
         datespot_db = self._model_interface("datespot")
         for datespot_dict in datespot_dict_list:
@@ -224,31 +225,6 @@ class DatabaseAPI:
         """
         user_db = self._model_interface("user")
         return user_db.query_next_candidate(user_id)
-
-    def get_message_sentiment(self, message_id: str) -> float:
-        """Return the average sentiment for message matching this id."""
-        message_db = self._model_interface("message")    
-        json_data = json.loads(message_db.lookup_json(message_id))
-        return json_data["sentiment"]
-
-    def find(self, object_type: str, field: str, *args) -> str:
-        # See https://stackoverflow.com/questions/18591778/how-to-pass-an-operator-to-a-python-function
-        """
-        Returns JSON string of the corresponding object(s).
-
-        Args:
-            object_type (str): "user", "datespot", or "match"
-            field (str): key in the JSON object.
-            *args (str): Further query parameters, e.g. MongoDB-like query parameters. 
-
-        Returns:
-            str : JSON for the objects matching the query
-
-        Examples:
-            db.find("user", "name", "=", "Grort")  # Return users with name == "Grort"
-
-        """
-        pass
 
 def test_live_yelp(location, radius=DEFAULT_RADIUS):
     """Test function for use ad hoc use outside main tests suite."""

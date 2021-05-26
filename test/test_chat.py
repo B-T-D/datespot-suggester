@@ -99,7 +99,8 @@ class TestHelloWorldThings(unittest.TestCase):
 
         })
         self.first_message_id = self.db.post_object("message", self.first_message_json)
-        self.first_message_sentiment = self.db.get_message_sentiment(self.first_message_id)
+        self.first_message_obj = self.db.get_obj("message", self.first_message_id)
+        self.first_message_sentiment = self.first_message_obj.sentiment
 
         # Second message in same chat:
         self.second_timestamp = time.time()
@@ -111,7 +112,8 @@ class TestHelloWorldThings(unittest.TestCase):
             "text": self.second_message_text
         })
         self.second_message_id = self.db.post_object("message", self.second_message_json)
-        self.second_message_sentiment = self.db.get_message_sentiment(self.second_message_id)
+        self.second_message_obj = self.db.get_obj("message", self.second_message_id)
+        self.second_message_sentiment = self.second_message_obj.sentiment
 
         # create_message should append the message to the chat 
 

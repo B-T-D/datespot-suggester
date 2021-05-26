@@ -54,7 +54,7 @@ class Message(metaclass=DatespotAppType):
 
         self._sentences = []
         self._sentimient_avg = None
-        self.sentiment_avg = self._analyze_sentiment() # Sentence-wise mean sentiment from VADER
+        self.sentiment = self._analyze_sentiment() # Sentence-wise mean sentiment from VADER
         # Todo: Better for documentation not to just have a sentiment getter method with its own docstring?
 
     def __eq__(self, other):
@@ -81,7 +81,7 @@ class Message(metaclass=DatespotAppType):
             "sender_id": self.sender.id, # access the public id attribute of the User object
             "chat_id": self.chat_id,
             "text": self.text,
-            "sentiment": self.sentiment_avg
+            "sentiment": self.sentiment
         }
     
     def _tokenize(self):
