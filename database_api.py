@@ -12,9 +12,6 @@ import model_interfaces
 
 import api_clients.yelp_api_client
 
-# todo: What's the best name for this module? "JSON_server"? "REST_server"? "REST_API"? "REST_backend"? "JSON_backend"?
-    # It's not a full REST API. It's not meant to handle actual HTTP requests; it doesn't use appropriate URIs. It's meant to get the JSON 
-    #   that the actual web-facing REST API will return in HTTP responses.\
 
 # Todo: In a live app, the messages wouldn't go through this JSON backend for analysis before continuing on to the recipient(s). Something would copy them
 #   in the middle, send them immediately on to recipient, and then dispatch the data to the backend for analysis on a less urgent timeframe.
@@ -259,9 +256,6 @@ def test_live_yelp(location, radius=DEFAULT_RADIUS):
     live_db.get_datespots_near(location)
 
 def main():
-
-    for i in range(len(sys.argv)):
-            print(f"sys.argv[{i}] = {sys.argv[i]}")
 
     if len(sys.argv) > 2:
         
