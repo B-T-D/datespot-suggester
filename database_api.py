@@ -92,7 +92,7 @@ class DatabaseAPI:
         if new_object_id:
             return new_object_id
 
-    def get_obj(self, object_type, object_id): # todo need consistent naming. "Post" uses full word "object" not "obj"
+    def get_object(self, object_type, object_id):
     
         """
         Return an internal-model object literal for the data corresponding to the key "id".
@@ -108,7 +108,7 @@ class DatabaseAPI:
         model_db = self._model_interface(object_type)
         return model_db.lookup_obj(object_id)
     
-    def get_all_obj(self, object_type, object_id) -> str:
+    def get_all_object(self, object_type, object_id) -> str:
         self._validate_model_name(object_type)
         model_db = self._model_interface(object_type)
         return model_db._get_all_data() # todo don't use an internal method
@@ -205,20 +205,19 @@ class DatabaseAPI:
         """
 
         # Instantiate the Match object
-        match_obj = self.get_obj("match", match_id)
+        match_obj = self.get_object("match", match_id)
 
         # Ask it the midpoint to use
         midpoint = match_obj.midpoint
 
         # Perform a geographic query using that midpoint
-        candidate_datespots = self.query_datespot_objs_near(midpoint) # todo can one-liner this into passing match_obj.midpoint as the arg
+        candidate_datespots = self.get_datespot_objects_near(midpoint) # todo can one-liner this into passing match_obj.midpoint as the arg
 
         # Pass that list[Datespot] to Match's next_suggestion public method.
         return match_obj.suggestions(candidate_datespots) # todo TBD how much we care about returning just one vs. returning a prioritized queue
                                                     #   and letting the client handle swiping on restaurants without needing a new query every time
                                                     #   the users reject a suggestion. Would guess that latter approach is better practice.
 
-        
     def get_next_candidate(self, user_id: int) -> int:
         """
         Returns user id of next candidate.

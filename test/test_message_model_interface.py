@@ -110,7 +110,7 @@ class TestHelloWorldThings(unittest.TestCase):
         })
         self.negative_tastes_message_id = self.api.create_message(self.negative_tastes_message_json)
 
-        akatosh_obj = self.db.get_obj("user", self.akatosh_id) # todo just for debug
+        akatosh_obj = self.db.get_object("user", self.akatosh_id) # todo just for debug
 
     
     def test_instantiation(self):
@@ -128,7 +128,7 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_tastes_updated_in_user_obj(self):
         positive_expected_taste_strength = self.expected_sentiment_tastes_sentence
-        akatosh_obj = self.db.get_obj("user", self.akatosh_id)
+        akatosh_obj = self.db.get_object("user", self.akatosh_id)
         positive_actual_taste_strength = akatosh_obj.taste_strength(self.akatosh_taste_name)
         self.assertAlmostEqual(positive_expected_taste_strength, positive_actual_taste_strength)
 
@@ -151,7 +151,7 @@ class TestHelloWorldThings(unittest.TestCase):
         })
 
         self.api.create_message(self.second_datapoint_tastes_message_json)
-        akatosh_obj = self.db.get_obj("user", self.akatosh_id)
+        akatosh_obj = self.db.get_object("user", self.akatosh_id)
         self.assertAlmostEqual(
             self.expected_sentiment_after_second_datapoint,
             akatosh_obj.taste_strength(self.akatosh_taste_name)
