@@ -19,20 +19,19 @@ class DatabaseServer:
         """
         self.conn = server_conn
 
-    def _parse_request(self, request):
+    def _handle_request(self, request):
         print(f"server received request:\ntype {type(request)}\ncontent: {request}")
-    
-    def _form_response(self, request):
-        return f"Mock response: Thank you for your request of \ntype {type(request)}\ncontent: {request}"
-        
+        if request == "get users":
+            db = DatabaseAPI()
+            response = db.get_all_json("user")
+            return response
 
     def main(self):
         keep_alive = True
         while keep_alive:
             if self.conn.poll():
-                request = self.conn.recv()
-                self._parse_request(request) # request need not be a string
-                response = self._form_response(request)
+                request = self.conn.recv() # TODO NB the request/response can be native python objects--this isn't an HTTP server per se
+                response = self._handle_request(request)
                 self.conn.send(response)
 
 class DatabaseTerminal:
