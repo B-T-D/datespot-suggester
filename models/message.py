@@ -41,8 +41,6 @@ class Message(metaclass=DatespotAppType):
         self.chat_id = chat_id
         self.text = text
 
-        self.id = self._id()
-
         self._tastes_keywords = [] 
 
         with open(TASTES_KEYWORDS, 'r') as fobj:
@@ -57,6 +55,8 @@ class Message(metaclass=DatespotAppType):
         self.sentiment = self._analyze_sentiment() # Sentence-wise mean sentiment from VADER
         # Todo: Better for documentation not to just have a sentiment getter method with its own docstring?
 
+    ### Public methods ###
+
     def __eq__(self, other):
         return hash(self) == hash(other)
     
@@ -64,16 +64,10 @@ class Message(metaclass=DatespotAppType):
         """Returns the result of calling Python builtin hash() on string concatenated from timestamp and sender id."""
         return hash(str(self.time_sent) + self.sender.id)
     
-    def _id(self) -> str: # Todo Very easy to put this in an ABC
-        """
-        Return this Message's id string.
-        """
-        hex_str = str(hex(hash(self)))
-        return hex_str[2:] # strip "0x"
+    @property
+    def id(self):
+        return self._id()
     
-    def __str__(self) -> str:
-        return f"{self.time_sent}:\t{self.sender.id}:\t{self.text}"
-
     def serialize(self) -> dict:
         """Return data about this object instance that should be stored."""
         return {
@@ -83,6 +77,18 @@ class Message(metaclass=DatespotAppType):
             "text": self.text,
             "sentiment": self.sentiment
         }
+    
+    ### Private methods ###
+
+    def _id(self) -> str: # Todo Very easy to put this in an ABC
+        """
+        Return this Message's id string.
+        """
+        hex_str = str(hex(hash(self)))
+        return hex_str[2:] # strip "0x"
+    
+    def __str__(self) -> str:
+        return f"{self.time_sent}:\t{self.sender.id}:\t{self.text}"
     
     def _tokenize(self):
         """Tokenize the Message's text into individual sentences and store array of sentences in the private instance-variable."""

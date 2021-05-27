@@ -51,9 +51,6 @@ class Datespot(metaclass=DatespotAppType):
             )
         self.location = self._location
         self.name = name
-        self.id = self._id() # todo confirm this is correct and good practice
-            # Todo: Use @property decorator?
-        
         
         self.price_range = price_range # Todo reconcile google-yelp if still using google--google is [0..4], yelp is [0..3] apparently
         self.hours = hours
@@ -80,6 +77,8 @@ class Datespot(metaclass=DatespotAppType):
         for key in self.brand_reputations: # cast each non-associative array to a hash set for faster lookup
             self.brand_reputations[key] = set(self.brand_reputations[key])
 
+    ### Public methods ###
+
     def __eq__(self, other): # Must define if defining __hash__
         """
         Return True if self should be treated as equal to other, else False.
@@ -97,19 +96,35 @@ class Datespot(metaclass=DatespotAppType):
         string_to_hash = f"{self.name} {rounded_lat_lon}"
         return hash(string_to_hash)
 
+    @property
+    def id(self) -> str:
+        return self._id()
+
+    def score(self, user: user.User) -> float:
+        # Externally callable wrapper
+        return self._score(user)
+    
+    def serialize(self) -> dict:
+        """Return data about this object that should be stored."""
+        return {
+            "name": self.name,
+            "location": self.location,
+            "traits": self.traits,
+            "price_range": self.price_range,
+            "hours": self.hours,
+            "yelp_rating": self.yelp_rating,
+            "yelp_review_count": self.yelp_review_count,
+            "yelp_url": self.yelp_url
+        }
+
+    ### Private Methods ### 
+
     def _id(self) -> str:
         """
         Return this Datespot's id key to an external caller.
         """
         hex_str = str(hex(self.__hash__())) # todo can/should you just just "hash(self)"?
         return hex_str[2:] # strip the "0x"
-
-    # todo is_open queries might be better handled by direct DB queries, i.e. outside this module.
-    #   One of the DB APIs will be able to do stuff like "check if we already know the hours for this restaurant recently enough,
-    #       if so fetch them from DB, else request from the GM client". 
-    def is_open_now(self, day: int, hour: int) -> bool: # simple int in [0..6] for day, [0..23] for hour, for now
-        hours = locationsDB[self.id][day]
-        return hours[0] <= hour <= hours[1] # if between the opening time and the closing time
     
     def _apply_brand_reputations(self):
         """
@@ -131,9 +146,7 @@ class Datespot(metaclass=DatespotAppType):
             if trait in self.traits:
                 self.baseline_dateworthiness = max(0, self.baseline_dateworthiness + self.baseline_trait_weights[trait])
 
-    def score(self, user: user.User) -> float:
-        # Externally callable wrapper
-        return self._score(user)
+
 
     def _score(self, user:user.User) -> float:
         # Make sure all brand-related traits have been applied before updating the baseline dateworthiness.
@@ -164,16 +177,3 @@ class Datespot(metaclass=DatespotAppType):
                             #   Or: Weight ethnic-cuisine keywords lower, to avoid weird biased suggestions for users' whose ethnicity matches a cuisine genre
 
         return round(score, DATESPOT_SCORE_DECIMAL_PLACES)
-    
-    def serialize(self) -> dict:
-        """Return data about this object that should be stored."""
-        return {
-            "name": self.name,
-            "location": self.location,
-            "traits": self.traits,
-            "price_range": self.price_range,
-            "hours": self.hours,
-            "yelp_rating": self.yelp_rating,
-            "yelp_review_count": self.yelp_review_count,
-            "yelp_url": self.yelp_url
-        }

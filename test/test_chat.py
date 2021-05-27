@@ -134,6 +134,6 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_average_sentiment(self):
         """Does the average sentiment match the value expected from separate calculation on same values?"""
-        self.assertIsNotNone(self.chat_obj.sentiment())
+        self.assertIsNotNone(self.chat_obj.sentiment)
         expected_mean_sentiment = round((self.first_message_sentiment + self.second_message_sentiment) / 2, SENTIMENT_DECIMAL_PLACES)
-        self.assertEqual(expected_mean_sentiment, self.chat_obj.sentiment())
+        self.assertEqual(expected_mean_sentiment, self.chat_obj.sentiment)

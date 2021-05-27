@@ -57,6 +57,8 @@ class User(metaclass=DatespotAppType):
 
         # TODO Would it make sense to automatically put each User into their own blacklist, as a simple way to prevent them being in their own candidates feed?
     
+    ### Public methods ###
+
     def __eq__(self, other): # must define if defining __hash__
         return hash(self) == hash(other) # todo DRY into ABC? Identical code for all three of User, Datespot, and Match
 
@@ -70,34 +72,7 @@ class User(metaclass=DatespotAppType):
     def current_location(self):
         return tuple(self._current_location) # Easier to allow external code to just pass it in as a list as decoded from JSON
 
-    # YAGNI on __str__ so far. Nothing has needed a string representation. 
-
-    def _compute_predominant_location(self): # todo, placeholder for more sophisticated
-        return self.current_location
-
-    def update_tastes(self, taste: str, strength: float) -> None:
-        """
-        Update this User's tastes data. If taste is not yet in the tastes hashmap, add it as a new 
-        key with its strength-score and a one total datapoint. Otherwise, update that taste's weighted average
-        strength-score and increment its total datapoints count in the hashmap.
-
-        Args:
-            taste (str): String label of the taste. E.g. "thai", "italian", "loud", "quiet", "dark"
-            score (float): Strength of the preference from that datapoint. Normalized to between 
-                -1.0 and 1.0.
-        """
-        taste = taste.lower().strip() # todo is this cluttering, or worthwhile as a redundant, relatively easy/cheap check?
-
-        if not taste in self._tastes:
-            self._tastes[taste] = [strength, 1] # [strength_score, num_datapoints]
-        else:
-            prior_strength, prior_datapoints = self._tastes[taste][0], self._tastes[taste][1]
-            weighted_prior_strength = prior_strength * prior_datapoints
-            new_datapoints = prior_datapoints + 1
-            new_strength = (weighted_prior_strength + strength) / new_datapoints
-            self._tastes[taste] = [new_strength, new_datapoints]
-    
-    def taste_names(self): # todo would this be a good use case for a yield generator?
+    def taste_names(self):  # TODO would this be a good use case for a yield generator?
                             # i.e. lazily yield them one at a time for the caller to iterate over. The datespot scorer method iterates over them.
                             #   OTOH maybe useful to spend O(n) time then return them as a hash set?
                             # Todo: Or just store them as an alphabetized list and binary search, like the master tastes-lexicon of all recognized tastes.
@@ -130,3 +105,30 @@ class User(metaclass=DatespotAppType):
             "pending_likes": self.pending_likes,
             "match_blacklist": self.match_blacklist
         }
+    
+    def update_tastes(self, taste: str, strength: float) -> None:
+        """
+        Update this User's tastes data. If taste is not yet in the tastes hashmap, add it as a new 
+        key with its strength-score and a one total datapoint. Otherwise, update that taste's weighted average
+        strength-score and increment its total datapoints count in the hashmap.
+
+        Args:
+            taste (str): String label of the taste. E.g. "thai", "italian", "loud", "quiet", "dark"
+            score (float): Strength of the preference from that datapoint. Normalized to between 
+                -1.0 and 1.0.
+        """
+        taste = taste.lower().strip() # todo is this cluttering, or worthwhile as a redundant, relatively easy/cheap check?
+
+        if not taste in self._tastes:
+            self._tastes[taste] = [strength, 1] # [strength_score, num_datapoints]
+        else:
+            prior_strength, prior_datapoints = self._tastes[taste][0], self._tastes[taste][1]
+            weighted_prior_strength = prior_strength * prior_datapoints
+            new_datapoints = prior_datapoints + 1
+            new_strength = (weighted_prior_strength + strength) / new_datapoints
+            self._tastes[taste] = [new_strength, new_datapoints]
+
+    ### Private methods ###
+
+    def _compute_predominant_location(self): # todo, placeholder for more sophisticated
+        return self.current_location
