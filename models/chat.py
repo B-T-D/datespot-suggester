@@ -14,6 +14,8 @@ SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC
 class Chat(metaclass=DatespotAppType):
 
     def __init__(self, start_time: float, participant_ids: list, messages: list=[]):
+        # TODO Rationale for instantiating with the Message object literals: If we're instantiating a Chat object, then we're in a situation
+        #   where we'll want each access to the Messages (and the Chat model can't circularly use the DatabaseAPI). 
         """
         Args:
             start_time (float): UNIX timestamp of the time the chat began.

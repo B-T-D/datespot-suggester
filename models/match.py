@@ -14,6 +14,9 @@ class Match(metaclass=DatespotAppType):
         # Todo: Think about the (public) attributes in terms of what we want written to the persistent JSON representation of a Match
         #   object. 
 
+        # TODO we want to store the best-guess-so-far suggestions queue every time a Match object instantiates, to have it precomputed
+        #   for when the constituent users ask for a suggestion.
+
         """
         Args:
             user1 (UserObj): A user object.
@@ -24,7 +27,6 @@ class Match(metaclass=DatespotAppType):
         
         self.user1 = user1
         self.user2 = user2
-        self.id = self._id() # can't be called before the self.user1 and self.user2 attributes are initialized
         self.timestamp = timestamp # The time the users initially created their match
 
         self._midpoint = self._compute_midpoint() # lat lon location equidistant between the two users. 
@@ -100,6 +102,10 @@ class Match(metaclass=DatespotAppType):
     def __hash__(self): # Hash is the hash of the two users' ids
         return hash((self.user1.id, self.user2.id))
     
+    @property
+    def id(self) -> str:
+        return self._id()
+
     def _id(self) -> str:
         """
         Return this Match's id key string.

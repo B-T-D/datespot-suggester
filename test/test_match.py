@@ -48,7 +48,11 @@ class TestHelloWorldThings(unittest.TestCase):
         assert self.matchGrortDrobb.midpoint is not None
 
         # Get the candidates list that the DatabaseAPI would be giving to Match:
-        self.candidate_datespots_list = self.db.get_datespots_near(self.matchGrortDrobb.midpoint)
+        self.candidate_datespots_list = self.db.get_datespots_near(
+            json.dumps({
+                "location": self.matchGrortDrobb.midpoint
+                })
+            )
     
     def test_compute_midpoint(self):
         maxDelta = 0.01

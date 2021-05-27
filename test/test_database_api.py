@@ -63,7 +63,7 @@ class TestHelloWorldThings(unittest.TestCase):
         })
 
         # Data for mock Datespot
-        self.terrezanos_location = (40.72289821341384, -73.97993915779077)
+        self.terrezanos_location = (40.737291166191476, -74.00704685527774)
         self.terrezanos_name = "Terrezano's"
         self.terrezanos_traits = {
             "italian": [1.0, "discrete"],
@@ -240,9 +240,111 @@ class TestHelloWorldThings(unittest.TestCase):
         users_json = self.db.get_all_json("user")
         users_dict = json.loads(users_json)  # Load it back to a Python dict before testing len(), otherwise it's len of the string
         self.assertEqual(expected_len, len(users_dict))
-        
+
     # TODO complete for other models
 
+    ### Tests for put_json() ###
+
+    def test_put_json_update_user(self):
+
+        # Test updating a User's location:
+        new_data = {
+            "current_location": (40.737291166191476, -74.00704685527774),
+        }
+        self.db.put_json("user", self.azura_id, json.dumps(new_data))
+        azura_obj = self.db.get_object("user", self.azura_id)
+        self.assertAlmostEqual(new_data["current_location"], azura_obj.current_location)
+    
+    def test_updating_unsupported_model_raises_error(self):
+        """Does attempting to update a model for which updates aren't supported raise the 
+        expected error?"""
+        unsupported_models = ["review", "message"]
+        arbitrary_object_id = "a"
+        arbitrary_json = json.dumps({"foo": "bar"})
+        for model in unsupported_models:
+            with self.assertRaises(ValueError):
+                self.db.put_json(model, arbitrary_object_id, arbitrary_json)
+    
+    # TODO complete for other models and their main anticipated update cases
+
+    ### Tests for post_swipe() ###
+    def test_post_yes_swipe_no_match(self):
+        """Does posting a "yes" swipe that doesn't create a match return the expected JSON?"""
+        swipe_yes_json = json.dumps({
+            "user_id": self.azura_id,
+            "candidate_id": self.boethiah_id,
+            "outcome": True
+        })
+        expected_response_json = json.dumps({
+            "match_created": False
+        })
+        actual_response_json = self.db.post_swipe(swipe_yes_json)
+        self.assertEqual(expected_response_json, actual_response_json)
+    
+    def test_post_yes_swipe_yes_match(self):
+        """Does posting a "yes" swipe that creates a match return the expected JSON?"""
+        # Post a swipe of Azura liking Boethiah:
+        azura_swipe_yes_json = json.dumps({
+            "user_id": self.azura_id,
+            "candidate_id": self.boethiah_id,
+            "outcome": True
+        })
+        self.db.post_swipe(azura_swipe_yes_json)
+
+        # Post a second swipe of Boethiah liking Azura
+        boethiah_swipe_yes_json = json.dumps({
+            "user_id": self.boethiah_id,
+            "candidate_id": self.azura_id,
+            "outcome": True
+        })
+
+        expected_response_json = json.dumps({
+            "match_created": True
+        })
+
+        actual_response_json = self.db.post_swipe(boethiah_swipe_yes_json)
+        self.assertEqual(expected_response_json, actual_response_json)
+    
+    def test_post_no_swipe(self):
+        """Does posting a "no" swipe return the expected JSON?"""
+        swipe_no_json = json.dumps({
+            "user_id": self.azura_id,
+            "candidate_id": self.boethiah_id,
+            "outcome": False
+        })
+        expected_response_json = json.dumps({
+            "match_created": False
+        })
+        actual_response_json = self.db.post_swipe(swipe_no_json)
+        self.assertEqual(expected_response_json, actual_response_json)
+    
+    def test_non_boolean_outcome_raises_error(self):
+        """Does posting JSON without a boolean outcome raise the expected error?"""
+        bad_json = json.dumps({
+            "user_id": self.azura_id,
+            "candidate_id": self.boethiah_id,
+            "outcome": 2
+        })
+        with self.assertRaises(ValueError):
+            self.db.post_swipe(bad_json)
+
+    ### Tests for get_datespots_near() ###
+
+    # Code that makes live API calls isn't covered by the main tests suite
+
+    def test_get_datespots_near_cache_only_default_radius(self):
+        """Does the method return a string matching the expected shape of a JSON-ified list of Datespots
+        in response to a query that provides valid location but no radius?"""
+        location_query_json = json.dumps({
+            "location": (40.737291166191476, -74.00704685527774)
+        })
+        results = self.db.get_datespots_near(location_query_json)
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        first_result = results[0]
+        distance, datespot = first_result # it's a two-element tuple
+        self.assertIsInstance(distance, float)
+        self.assertIsInstance(datespot, models.Datespot)
 
 
     

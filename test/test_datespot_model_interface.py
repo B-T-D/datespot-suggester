@@ -110,7 +110,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "traits": {"not at a Terrezano's": [0.95, 1]}
         })
 
-        self.api.update_datespot(self.terrezanos_id, update_json=update_json)
+        self.api.update(self.terrezanos_id, update_json=update_json)
         self.assertIn(new_terrezanos_trait, self.api._data[self.terrezanos_id]["traits"]) # self.api._data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
         # update with a list:
         # todo

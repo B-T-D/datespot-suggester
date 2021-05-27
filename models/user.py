@@ -28,7 +28,7 @@ class User(metaclass=DatespotAppType):
         """
         self.id = user_id # Unlike Datespot and Match, the id isn't a function of hashing some attribute of the object; it comes from the chronological creation order in the DB
         self.name = name
-        self.current_location = current_location
+        self._current_location = current_location
         self.predominant_location = None
         if predominant_location:
             self.predominant_location = predominant_location # Todo: If no other data, return the current location to an external caller. If multiple current location data points, and no
@@ -63,6 +63,10 @@ class User(metaclass=DatespotAppType):
     
     def __hash__(self):
         return hash(self.id)
+    
+    @property
+    def current_location(self):
+        return tuple(self._current_location) # Easier to allow external code to just pass it in as a list as decoded from JSON
 
     # YAGNI on __str__ so far. Nothing has needed a string representation. 
 

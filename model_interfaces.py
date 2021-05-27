@@ -162,7 +162,7 @@ class UserModelInterface(ModelInterfaceABC):
 
         return user_obj
 
-    def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does.
+    def update(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does.
         # Todo support a "force datapoints count" option for updating tastes?
         """
         Takes JSON string, updates the native Python dict, and writes it to the stored master JSON.
@@ -356,7 +356,7 @@ class DatespotModelInterface(ModelInterfaceABC):
             yelp_url = datespot_data["yelp_url"]
         )
     
-    def update_datespot(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
+    def update(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
         self._read_json()
         datespot_data = self._data[id] # Todo: kwargs isn't the "standard" way the other MIs have been doing it. Take JSON.
@@ -552,9 +552,31 @@ class MatchModelInterface(ModelInterfaceABC):
         datespot_db = datespot_api.DatespotAPI()
         return datespot_db.lookup_json(datespot_id)
 
-    def update_match(self, data): # Todo
+    def update(self, object_id, json_data=None): # Todo
         # e.g. if the current location changed, meaning the Match.midpoint changed
-        raise NotImplementedError
+        """
+
+        Example calls:
+
+            my_match.update() 
+                 - Calling with no args applies any updates inferable from the constituent User objects. E.g. 
+                    if the Users' predominant locations, then the Match's midpoint changes, which could alter the
+                    suggestions queue.
+        """
+        self._read_json()
+        self._validate_object_id(object_id)
+        object_data = self._data[object_id]
+
+        # For a Match object as of this writing, we want to instantiate a Match object for any supported update. As imagined so far,
+        #   there's no such thing as "just update this one little think in the stored JSON, no need to instantiate an object". The most
+        #   common expected use of this method is to call it with no arguments, to cause an update of the suggestions queue.
+
+        object_instance = self.lookup_obj(object_id) # Instantiate it to trigger computations called by the constructor, then re-serialize it.
+        if not json_data:
+            self._data[object_id] = object_instance.serialize()
+        else: # TODO Do we care about enabling external code to update the suggestions queue? Intuition is that Match owns the suggestions queue, full stop--any
+                #   new information should be factored into suggestions by calling the methods in the Match model. 
+            raise NotImplementedError("Updating that field of a Match not supported")
 
     ### Private methods ###
 
@@ -610,12 +632,23 @@ class ReviewModelInterface(ModelInterfaceABC):
         # Todo: Could store only the review's hash in the DB. We likely don't care
         #   about anything other than checking whether a given review is already in the DB.
         #   Or maybe (id, sentiment, relevance) -- point being we don't want to store the text
-        #   of thousands of reviews. 
+        #   of thousands of reviews.
+
+        # TODO How to handle updates to the text of reviews? That will be a very common case if 
+        #   scraping/crawling the same restaurants repeatedly. Need a setup that allows tying a 
+        #   given review to a post on Yelp/Google/whatever without requiring identical text, to 
+        #   avoid counting a trivial edit as an entirely new review. 
+
+        # TODO Only store relevant Reviews, not all Reviews. 
 
         self._read_json()
         json_dict = json.loads(json_str)
 
         self._validate_json_fields(json_dict) # Validate fields
+
+        # TODO Model this on message MI create(): If the Review contains stuff that should be updated in the stored
+        #   info about the Datespot, then this create() method makes the necessary updates to the Datespot object's 
+        #   traits. 
 
         new_obj = models.Review( # Instantiate a model object
             datespot_id = json_dict["datespot_id"],

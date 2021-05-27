@@ -89,41 +89,74 @@ class DatabaseAPI:
     
     def put_json(self, object_model_name:str, object_id:int, new_json: str) -> None: # TODO return success/error message as JSON
         """
-        Update the stored JSON for the corresponding field of the corresponding object."""
+        Update the stored JSON for the corresponding field of the corresponding object.
+        """
+        supported_models = {"user", "datespot", "match", "chat"}  # Review and Message aren't updateable.
+
+        if not object_model_name in supported_models:
+            raise ValueError(f"Updating {object_model_name} model data not supported.")
 
         model_interface = self._model_interface(object_model_name)
         # TODO This should be codeable s/t a single line call to model_interface.update(object_id, new_json)
         #   works for all models. All the MIs should name their updater to work with that.
         model_interface = self._model_interface(object_model_name)
-        if object_model_name in  ["user", "chat"]:
-            model_interface.update(object_id, new_json)
+        model_interface.update(object_id, new_json)
     
-    def post_swipe(self, user_id, candidate_id, outcome_json: str) -> bool: # TODO don't return a bool, return JSON. 
+    def post_swipe(self, json_data: str) -> str:
         """
         Sends swipe data to the DB and returns True if the swipe completed a pending match (i.e. 
         other user had already swiped yes).
         
-        Args:
-            outcome_json (str): JSON in format "{'outcome': 1}" for yes or "{'outcome': 0} for no.
+        
+        json_data examples:
+
+            {
+                "user_id": "abc123",
+                "candidate_id: "987zyx",
+                "outcome": false
+            }
+
+            - false indicates user doesn't want to match with candidate
         """
-        outcome = json.loads(outcome_json)["outcome"]
-        if not (outcome == 0 or outcome == 1):
+        swipe_data = json.loads(json_data)
+        user_id, candidate_id, outcome = swipe_data["user_id"], swipe_data["candidate_id"], swipe_data["outcome"]
+        if not isinstance(outcome, bool): # TODO need comprehensive approach to validation
             raise ValueError
-        outcome = bool(outcome)
+        response = {"match_created": False}
         user_db = self._model_interface("user")
         if not outcome:
             user_db.blacklist(user_id, candidate_id)
-        else: # todo cleaner to just send the update as JSON?
-            # first check if the other user already like the active user:
+        else:
+            # first check if the other user already liked the active user:
             if user_db.lookup_is_user_in_pending_likes(candidate_id, user_id):
-                return True
+                response["match_created"] = True
             else:
                 user_db.add_to_pending_likes(user_id, candidate_id)
-        return False
+        return json.dumps(response)
 
-    def get_datespots_near(self, location: tuple, radius: int=2000) -> list:
+    def get_datespots_near(self, json_data) -> list:
+        """
+
+        Example json_data:
+
+            Location and non-default radius:
+                {
+                    "location": [40.737291166191476, -74.00704685527774],
+                    "radius": 4000
+                }
+
+            Location only, use default radius:
+                {
+                    "location": [40.737291166191476, -74.00704685527774]
+                }
+        """
         # Todo: Ultimately, we want to check the cache first, there might've just been a query at that location
         #   such that another API call is wasteful recomputation on the same reviews data.
+        geo_data = json.loads(json_data)
+        location = tuple(geo_data["location"]) # TODO validate json
+        radius = DEFAULT_RADIUS
+        if "radius" in geo_data:
+            radius = geo_data["radius"]
         if not self._live_yelp: # todo add "and if not live google"?
             return self._get_cached_datespots_near(location, radius)
         elif self._live_yelp:
@@ -206,7 +239,7 @@ class DatabaseAPI:
         return datespot_json_list # todo we want this and get_cached_datespots_near to return identically structured lists
                                     #  Rn, this returns list of strings, other one returns list of dicts. 
 
-    def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> list: # todo make private method?
+    def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
 

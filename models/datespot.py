@@ -9,17 +9,6 @@ BASELINE_SCORING_DATA = "data_static/datespot_baseline_scoring_data.json"
 MAX_LATLON_COORD_DECIMAL_PLACES = 8
 DATESPOT_SCORE_DECIMAL_PLACES = 4
 
-##### DB schema #####
-
-"""
-
-    restaurant pk   | name  | location coordinates  | traits (cuisines, etc. to match with user likes/dislikes) | budget bucket $ to $$$$$   | hours (table of weekly hours)
-    -------------------------------------------------------------------------------------------------------------------------------------------------------------
-                    |       |                       |                                                           |                           |
-
-"""
-#####  #####
-
 class Datespot(metaclass=DatespotAppType):
 
     # Todo: Plan as of 5/18 is that reviews per se aren't related to a datespot. Higher level info is extracted from the reviews--abstract traits about the 

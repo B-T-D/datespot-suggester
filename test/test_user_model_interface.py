@@ -110,7 +110,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": (40.737291166191476, -74.00704685527774),
         }
         new_json = json.dumps(new_data)
-        self.api.update_user(self.azura_id, new_json)
+        self.api.update(self.azura_id, new_json)
         updated_user_json = self.api.lookup_json(self.azura_id)
         updated_user_data = json.loads(updated_user_json) # todo this would not pass when checking the likes attribute of an "updates" User object literal--why? 
                                                             #   Indicates something wrong with the method that looks up a user object. 
@@ -122,7 +122,7 @@ class TestHelloWorldThings(unittest.TestCase):
         new_taste = "dusk"
         new_taste_strength = 0.9
         new_taste_json = json.dumps({"tastes": {new_taste: new_taste_strength}})
-        self.api.update_user(self.azura_id, new_taste_json)
+        self.api.update(self.azura_id, new_taste_json)
         azura_user_obj = self.api.lookup_obj(self.azura_id)
         self.assertIn(new_taste, azura_user_obj._tastes)
     
@@ -136,7 +136,7 @@ class TestHelloWorldThings(unittest.TestCase):
         update_json = json.dumps({
             "tastes": {self.azura_existing_taste_name: new_datapoint_strength}
         })
-        self.api.update_user(self.azura_id, update_json)
+        self.api.update(self.azura_id, update_json)
         actual_value = self.api._data[self.azura_id]["tastes"][self.azura_existing_taste_name][0]
         self.assertAlmostEqual(expected_value, actual_value)
         
@@ -155,7 +155,7 @@ class TestMatchCandidates(unittest.TestCase):
         """Does the method that queries for users near the current location return a non-empty list
         with elements of the same type as the user ids?"""
         user_location = self.api.lookup_obj(self.my_user_id).current_location
-        assert isinstance(user_location, list) # todo they're not tuples here, json module has parsed them to lists
+        assert isinstance(user_location, tuple)
         query_results = self.api.query_users_currently_near_location(user_location)
         self.assertIsInstance(query_results, list)
         self.assertGreater(len(query_results), 0)
