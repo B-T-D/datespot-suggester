@@ -24,32 +24,15 @@ class DatabaseAPI:
     def __init__(self, json_map_filename: str=JSON_MAP_FILENAME, live_google_maps: bool=False, live_yelp: bool=False):
         self._valid_model_names = {"user", "datespot", "match", "review", "message", "chat"}
         self._json_map_filename = json_map_filename
-        self._live_google_maps = live_google_maps # todo implement different dispatching for the datespot queries based on this setting
-        self._live_yelp = live_yelp # todo one combined boolean toggle "live mode"
+        self._live_google_maps = live_google_maps # TODO implement different dispatching for the datespot queries based on this setting
+        self._live_yelp = live_yelp # TODO one combined boolean toggle "live mode"
 
         self._yelp_client = api_clients.yelp_api_client.YelpClient()
 
-    def _model_interface(self, model_name: str): # todo integrate this approach below (change the separate constructor calls into calls to this)
-        """Return an instance of a model interface object for the specified model name.""" # goal is to avoid repetitive calls passing the relevant json filename.
-        self._validate_model_name(model_name)
-        if model_name == "user":
-            return model_interfaces.UserModelInterface(json_map_filename=self._json_map_filename)
-        elif model_name == "datespot":
-            return model_interfaces.DatespotModelInterface(json_map_filename=self._json_map_filename)
-        elif model_name == "match":
-            return model_interfaces.MatchModelInterface(json_map_filename=self._json_map_filename)
-        elif model_name == "review":
-            return model_interfaces.ReviewModelInterface(json_map_filename=self._json_map_filename)
-        elif model_name == "message":
-            return model_interfaces.MessageModelInterface(json_map_filename=self._json_map_filename)
-        elif model_name == "chat":
-            return model_interfaces.ChatModelInterface(json_map_filename=self._json_map_filename)
+    ### Public methods ### 
 
-    def _validate_model_name(self, model_name):
-        if not model_name in self._valid_model_names:
-            raise ValueError(f"Invalid model name: {model_name}")
-
-    def post_object(self, object_type: str, json_data: str, **kwargs) -> str: # todo kwargs should be deleteable now
+    # TODO: Decorator that calls string.lower() on object_model_name for any method that takes that as a string arg.
+    def post_object(self, object_model_name: str, json_data: str, **kwargs) -> str: # todo kwargs should be deleteable now
         """
         Add data for a new object to the database and return its id string.
 
@@ -66,31 +49,14 @@ class DatabaseAPI:
                 "force_key": "1"}
 
         """ # If force_key for creating a user, put that as JSON key/field.
-        self._validate_model_name(object_type)
-        new_object_id = None
-        object_type = object_type.lower()
-        if object_type == "user":
-            user_db = self._model_interface("user")
-            new_object_id = user_db.create_user(json_data)
-        elif object_type == "datespot":
-            datespot_db = self._model_interface("datespot")
-            datespot_db.create_datespot(json_data)
-        elif object_type == "match":
-            match_db = self._model_interface("match")
-            json_data = json.loads(json_data)
-            user_id_1, user_id_2 = json_data["users"]
-            new_object_id = match_db.create_match(user_id_1, user_id_2)
-        elif object_type == "message":
-            message_db = self._model_interface("message")
-            new_object_id = message_db.create_message(json_data)
-        elif object_type == "chat":
-            chat_db = self._model_interface("chat")
-            new_object_id = chat_db.create_chat(json_data)
-
+        self._validate_model_name(object_model_name)
+        new_object_id = self._model_interface(object_model_name).create(json_data)
         if new_object_id:
             return new_object_id
+        else:
+            raise Exception("Failed to post object")
 
-    def get_obj(self, object_type, object_id): # todo need consistent naming. "Post" uses full word "object" not "obj"
+    def get_object(self, object_type, object_id):
     
         """
         Return an internal-model object literal for the data corresponding to the key "id".
@@ -105,11 +71,6 @@ class DatabaseAPI:
         self._validate_model_name(object_type) # todo rename "object_type" arg to "model_name"
         model_db = self._model_interface(object_type)
         return model_db.lookup_obj(object_id)
-    
-    def get_all_obj(self, object_type, object_id) -> str:
-        self._validate_model_name(object_type)
-        model_db = self._model_interface(object_type)
-        return model_db._get_all_data() # todo don't use an internal method
 
     def get_json(self, object_type, object_id) -> str:
         """
@@ -123,56 +84,167 @@ class DatabaseAPI:
         """
         Return JSON of all objects of the specified type.
         """
-        self._validate_model_name(object_type)
         model_db = self._model_interface(object_type)
         return json.dumps(model_db._get_all_data()) # todo meant to be an internal method. Goal is to implement s/t can use model_db.data public attribute.
     
-    def put_json(self, object_model_name:str, object_id:int, new_json: str) -> None:
+    def put_json(self, object_model_name:str, object_id:int, new_json: str) -> None: # TODO return success/error message as JSON
         """
-        Update the stored JSON for the corresponding field of the corresponding object."""
+        Update the stored JSON for the corresponding field of the corresponding object.
+        """
+        supported_models = {"user", "datespot", "match", "chat"}  # Review and Message aren't updateable.
 
-        if object_model_name ==  "user":
-            user_db = self._model_interface("user")
-            user_db.update_user(object_id, new_json)
-        if object_model_name == "chat":
-            chat_db = self._model_interface("chat")
-            chat_db.update_cjat(object_id, new_json)
+        if not object_model_name in supported_models:
+            raise ValueError(f"Updating {object_model_name} model data not supported.")
+
+        model_interface = self._model_interface(object_model_name)
+        # TODO This should be codeable s/t a single line call to model_interface.update(object_id, new_json)
+        #   works for all models. All the MIs should name their updater to work with that.
+        model_interface = self._model_interface(object_model_name)
+        model_interface.update(object_id, new_json)
     
-    def post_swipe(self, user_id, candidate_id, outcome_json: str) -> bool:
+    def post_swipe(self, json_data: str) -> str:
         """
         Sends swipe data to the DB and returns True if the swipe completed a pending match (i.e. 
         other user had already swiped yes).
         
-        Args:
-            outcome_json (str): JSON in format "{'outcome': 1}" for yes or "{'outcome': 0} for no.
+        
+        json_data examples:
+
+            {
+                "user_id": "abc123",
+                "candidate_id: "987zyx",
+                "outcome": false
+            }
+
+            - false indicates user doesn't want to match with candidate
         """
-        outcome = json.loads(outcome_json)["outcome"]
-        if not (outcome == 0 or outcome == 1):
+        swipe_data = json.loads(json_data)
+        user_id, candidate_id, outcome = swipe_data["user_id"], swipe_data["candidate_id"], swipe_data["outcome"]
+        if not isinstance(outcome, bool): # TODO need comprehensive approach to validation
             raise ValueError
-        outcome = bool(outcome)
+        response = {"match_created": False}
         user_db = self._model_interface("user")
         if not outcome:
             user_db.blacklist(user_id, candidate_id)
-        else: # todo cleaner to just send the update as JSON?
-            # first check if the other user already like the active user:
+        else:
+            # first check if the other user already liked the active user:
             if user_db.lookup_is_user_in_pending_likes(candidate_id, user_id):
-                return True
+                response["match_created"] = True
             else:
                 user_db.add_to_pending_likes(user_id, candidate_id)
-        return False
+        return json.dumps(response)
+    
+    def get_next_candidate(self, json_data: str) -> str:  # TODO: Return censored JSON appropriate for a Tinder-type front-end.  A React front end calling this doesn't have
+                                                            #   much use for the user ID, but also don't want a swiping user to see all info about a candidate, so can't send back
+                                                            #   the entire serialized User. Need a separate "send censored user data JSON to client" method
+        """
+        Returns user id of next candidate.
 
-    def get_datespots_near(self, location: tuple, radius: int=2000) -> list:
+        Example JSON:
+
+            {
+                "user_id": "abc123"
+            }
+        """
+        user_id = json.loads(json_data)["user_id"]  # TODO validate
+        user_db = self._model_interface("user")
+        candidate_id = user_db.query_next_candidate(user_id)
+        return json.dumps({
+            "candidate_id": candidate_id
+        })
+
+    def get_datespots_near(self, json_data) -> list: # TODO if this returns Datespot objects it should prob be internal
+        """
+
+        Example json_data:
+
+            Location and non-default radius:
+                {
+                    "location": [40.737291166191476, -74.00704685527774],
+                    "radius": 4000
+                }
+
+            Location only, use default radius:
+                {
+                    "location": [40.737291166191476, -74.00704685527774]
+                }
+        """
         # Todo: Ultimately, we want to check the cache first, there might've just been a query at that location
         #   such that another API call is wasteful recomputation on the same reviews data.
+        geo_data = json.loads(json_data)
+        location = tuple(geo_data["location"]) # TODO validate json
+        radius = DEFAULT_RADIUS
+        if "radius" in geo_data:
+            radius = geo_data["radius"]
         if not self._live_yelp: # todo add "and if not live google"?
             return self._get_cached_datespots_near(location, radius)
-        elif self._live_yelp:
+        elif self._live_yelp: # TODO create a middleman script to permit 100% tests-coverage of this module?
             # Todo: First, analyze whether we have cached data sufficient to respond to the query. If so, return self._get_cached_datespots_near(),
             #   even if we're in live-yelp mode. Maybe an LRU cache of lat lon radius circles--if there was a search inside that circle recently enough
             #   to still be in the LRU cache, then return cached results?
             return self._get_yelp_datespots_near(location, radius)
-            
     
+    def get_datespot_suggestions(self, json_data: str) -> list:
+        """
+        Return list of Datespot objects and their distances from the Match's midpoint, ordered by distance.
+
+        Example json:
+
+            {
+                "match_id": "abc123"
+            }
+        """
+
+        # Instantiate the Match object
+        match_id = json.loads(json_data)["match_id"]
+        match_obj = self.get_object("match", match_id)
+
+        # Ask it the midpoint to use
+        midpoint = match_obj.midpoint
+
+        # Perform a geographic query using that midpoint
+        candidate_datespots = self.get_datespots_near(json.dumps({"location": midpoint})) # todo can one-liner this into passing match_obj.midpoint as the arg
+
+        # Pass that list[Datespot] to Match's next_suggestion public method.
+        return match_obj.suggestions(candidate_datespots) # todo TBD how much we care about returning just one vs. returning a prioritized queue
+                                                    #   and letting the client handle swiping on restaurants without needing a new query every time
+                                                    #   the users reject a suggestion. Would guess that latter approach is better practice.
+
+    ### Private methods ###
+
+    def _model_interface(self, model_name: str): # TODO integrate this approach below (change the separate constructor calls into calls to this)
+        """
+        Returns an instance of a model interface object for the specified model name.
+
+        Args:
+            model_name (str): String matching the name of a supported data model.
+        
+        Returns:
+            A model-interface object for the specified model.
+        """
+        self._validate_model_name(model_name)
+        # TODO Could shorten this a lot by using exec() on an fstring. Seems safe if this validates the model
+        #   name and is >=2 layers below any requests from the actual web, right? The Node web API and the 
+        #   backend JSON server entrypoint controller thing would be between this method and any attempt to pass
+        #   arbitrary code to exec(). 
+        #   Pro of using exec() would be lower maintenance in supporting further model names, or changes to model names.
+        if model_name == "user":
+            return model_interfaces.UserModelInterface(json_map_filename=self._json_map_filename)
+        elif model_name == "datespot":
+            return model_interfaces.DatespotModelInterface(json_map_filename=self._json_map_filename)
+        elif model_name == "match":
+            return model_interfaces.MatchModelInterface(json_map_filename=self._json_map_filename)
+        elif model_name == "review":
+            return model_interfaces.ReviewModelInterface(json_map_filename=self._json_map_filename)
+        elif model_name == "message":
+            return model_interfaces.MessageModelInterface(json_map_filename=self._json_map_filename)
+        elif model_name == "chat":
+            return model_interfaces.ChatModelInterface(json_map_filename=self._json_map_filename)
+
+    def _validate_model_name(self, model_name: str):
+        if not model_name in self._valid_model_names:
+            raise ValueError(f"Invalid model name: {model_name}")
+
     def _cache_datespots(self, datespot_dict_list: list):
         datespot_db = self._model_interface("datespot")
         for datespot_dict in datespot_dict_list:
@@ -186,7 +258,7 @@ class DatabaseAPI:
         return datespot_json_list # todo we want this and get_cached_datespots_near to return identically structured lists
                                     #  Rn, this returns list of strings, other one returns list of dicts. 
 
-    def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> list: # todo make private method?
+    def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> list:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
 
@@ -197,58 +269,6 @@ class DatabaseAPI:
         # todo validate the location and radius here?
         results = datespots_db.query_datespot_objs_near(location, radius)
         return results
-    
-    def get_datespot_suggestions(self, match_id) -> list:
-        """
-        Return list of Datespot objects and their distances from the Match's midpoint, ordered by distance.
-        """
-
-        # Instantiate the Match object
-        match_obj = self.get_obj("match", match_id)
-
-        # Ask it the midpoint to use
-        midpoint = match_obj.midpoint
-
-        # Perform a geographic query using that midpoint
-        candidate_datespots = self.query_datespot_objs_near(midpoint) # todo can one-liner this into passing match_obj.midpoint as the arg
-
-        # Pass that list[Datespot] to Match's next_suggestion public method.
-        return match_obj.suggestions(candidate_datespots) # todo TBD how much we care about returning just one vs. returning a prioritized queue
-                                                    #   and letting the client handle swiping on restaurants without needing a new query every time
-                                                    #   the users reject a suggestion. Would guess that latter approach is better practice.
-
-        
-    def get_next_candidate(self, user_id: int) -> int:
-        """
-        Returns user id of next candidate.
-        """
-        user_db = self._model_interface("user")
-        return user_db.query_next_candidate(user_id)
-
-    def get_message_sentiment(self, message_id: str) -> float:
-        """Return the average sentiment for message matching this id."""
-        message_db = self._model_interface("message")    
-        json_data = json.loads(message_db.lookup_json(message_id))
-        return json_data["sentiment"]
-
-    def find(self, object_type: str, field: str, *args) -> str:
-        # See https://stackoverflow.com/questions/18591778/how-to-pass-an-operator-to-a-python-function
-        """
-        Returns JSON string of the corresponding object(s).
-
-        Args:
-            object_type (str): "user", "datespot", or "match"
-            field (str): key in the JSON object.
-            *args (str): Further query parameters, e.g. MongoDB-like query parameters. 
-
-        Returns:
-            str : JSON for the objects matching the query
-
-        Examples:
-            db.find("user", "name", "=", "Grort")  # Return users with name == "Grort"
-
-        """
-        pass
 
 def test_live_yelp(location, radius=DEFAULT_RADIUS):
     """Test function for use ad hoc use outside main tests suite."""

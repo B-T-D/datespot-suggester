@@ -99,7 +99,8 @@ class TestHelloWorldThings(unittest.TestCase):
 
         })
         self.first_message_id = self.db.post_object("message", self.first_message_json)
-        self.first_message_sentiment = self.db.get_message_sentiment(self.first_message_id)
+        self.first_message_obj = self.db.get_object("message", self.first_message_id)
+        self.first_message_sentiment = self.first_message_obj.sentiment
 
         # Second message in same chat:
         self.second_timestamp = time.time()
@@ -111,12 +112,13 @@ class TestHelloWorldThings(unittest.TestCase):
             "text": self.second_message_text
         })
         self.second_message_id = self.db.post_object("message", self.second_message_json)
-        self.second_message_sentiment = self.db.get_message_sentiment(self.second_message_id)
+        self.second_message_obj = self.db.get_object("message", self.second_message_id)
+        self.second_message_sentiment = self.second_message_obj.sentiment
 
         # create_message should append the message to the chat 
 
         # Fetch the chat object at the end, to create one with the messages appended
-        self.chat_obj = self.db.get_obj("chat", self.chat_id)
+        self.chat_obj = self.db.get_object("chat", self.chat_id)
 
     def test_init(self):
         self.assertIsInstance(self.chat_obj, models.Chat)
@@ -127,11 +129,10 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_message_id_order(self):
         """Are both test messages in the Chat, and is the first message before the second?"""
-        # self.chat_obj.messages.append("test")
         self.assertEqual([message.id for message in self.chat_obj.messages], [self.first_message_id, self.second_message_id]) # todo hacky/obfuscating to have the list comp here
     
     def test_average_sentiment(self):
         """Does the average sentiment match the value expected from separate calculation on same values?"""
-        self.assertIsNotNone(self.chat_obj.sentiment())
+        self.assertIsNotNone(self.chat_obj.sentiment)
         expected_mean_sentiment = round((self.first_message_sentiment + self.second_message_sentiment) / 2, SENTIMENT_DECIMAL_PLACES)
-        self.assertEqual(expected_mean_sentiment, self.chat_obj.sentiment())
+        self.assertEqual(expected_mean_sentiment, self.chat_obj.sentiment)

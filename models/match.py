@@ -1,36 +1,33 @@
-from app_object_type import DatespotAppType
-
+from models.app_object_type import DatespotAppType
 import geo_utils
 
-import time
-
-import heapq
+from typing import Tuple
+import time, heapq
 
 class Match(metaclass=DatespotAppType):
 
-    # todo conform code style wrt underscores for "private" methods and attributes. 
     def __init__(self, user1, user2, timestamp=time.time(), suggestions_queue=[]):
 
-        # Todo: Think about the (public) attributes in terms of what we want written to the persistent JSON representation of a Match
-        #   object. 
+
+        # TODO we want to store the best-guess-so-far suggestions queue every time a Match object instantiates, to have it precomputed
+        #   for when the constituent users ask for a suggestion.
 
         """
         Args:
             user1 (UserObj): A user object.
             user2 (UserObj): A different user object.
-            timestamp (float): UNIX timestamp. Provide if instantiating a stored object, leave blank for new object.
+            timestamp (float): UNIX timestamp indicating the time the users first created this Match. Provide if instantiating a stored object,
+                leave blank for new object.
             suggestions_queue (list): Previously stored list of suggestions. Provide if instantiating a stored object, leave blank for new object.
         """
         
         self.user1 = user1
         self.user2 = user2
-        self.id = self._id() # can't be called before the self.user1 and self.user2 attributes are initialized
-        self.timestamp = timestamp # The time the users initially created their match
+        self.timestamp = timestamp
 
         self._midpoint = self._compute_midpoint() # lat lon location equidistant between the two users. 
             # todo nuances wrt home vs. current location
         self._distance = self._compute_distance() # How far apart the two user are in meters.
-        self.midpoint = self._midpoint
         self.distance = self._distance
 
         self.query_radius = None # Default value for datespot queries--how far out from the Match's 
@@ -58,21 +55,23 @@ class Match(metaclass=DatespotAppType):
 
         self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date. 
     
-    ### Public interface methods ###
+    ### Public methods ###
 
-    def serialize(self) -> dict:
-        """
-        Return the data about this object that should be store.
-        
-        Returns:
-            (dict): Native Python dictionary
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        return hash(self) == hash(other)
+    
+    def __hash__(self): # Hash is the hash of the two users' ids
+        return hash((self.user1.id, self.user2.id))
+    
+    @property
+    def id(self) -> str:
+        return self._id()
 
-        """
-        return {
-            "users": [self.user1.id, self.user2.id],
-            "timestamp": self.timestamp,
-            "suggestions_queue": self.suggestions_queue
-        }
+    @property
+    def midpoint(self) -> Tuple[float]:
+        return self._midpoint
 
     def suggestions(self, candidate_datespots) -> list:
         """
@@ -91,23 +90,42 @@ class Match(metaclass=DatespotAppType):
         # Todo compress to one-liner once it works
         return results
 
+    def get_joint_datespot_score(self, datespot) -> float:
+        # Todo: Intuition/hypothesis is that it won't make sense to try do better than a simple mean of the two users scores on that restaurant
+        #   any time soon, if ever. 
+        # To suggest a Datespot for a Match, you get the *initial queryset* based on the midpoint (and, at most, other stuff like price range (min, or based on confident
+        #   prediction as to who is paying), hours based on Users' schedule). But once that initial set of restaurants is hand, all further qualitative filtering should be 
+        #   based on scoring them for each User in isolation, then averaging--for now. Need to prune complexity anywhere possible, initially. 
+        """
+        Args:
+            datespot (datespot.Datespot object): A datespot object.
+        """
+        score1 = datespot.score(self.user1)
+        score2 = datespot.score(self.user2)
+        return (score1 + score2) / 2 # simple mean
 
-    ### Builtin customizations and operator overloads ###
+    def serialize(self) -> dict:
+        """
+        Return the data about this object that should be store.
+        
+        Returns:
+            (dict): Native Python dictionary
 
-    def __eq__(self, other): # Must define if defining __hash__
-        return hash(self) == hash(other)
-    
-    def __hash__(self): # Hash is the hash of the two users' ids
-        return hash((self.user1.id, self.user2.id))
-    
+        """
+        return {
+            "users": [self.user1.id, self.user2.id],
+            "timestamp": self.timestamp,
+            "suggestions_queue": self.suggestions_queue
+        }
+
+    ### Private methods ###
+
     def _id(self) -> str:
         """
         Return this Match's id key string.
         """
         hex_str = str(hex(hash(self)))
         return hex_str[2:] # strip "0x" from beginning
-
-    ### Private methods ###
 
     def _compute_distance(self) -> None:
         """
@@ -124,20 +142,6 @@ class Match(metaclass=DatespotAppType):
         #   depart for the date. 
         # Todo: OTOH, maybe sometimes they leave from office, other times from home?
         return geo_utils.midpoint(self.user1.current_location, self.user2.current_location)
-
-    # def get_suggestions(self) -> list: # todo if it's external then it returns something
-    #     """
-
-    #     Returns:
-    #         (list): List of Datespot objects
-    #     """
-    #     db = database_api.DatabaseAPI()
-    #     suggestions_heap = self._score_nearby_datespots()
-    #     # pop each from the heap and add to the main queue until queue is the desired length
-    #     while suggestions_heap and len(self.suggestions_queue) < self._max_suggestions_queue_length:
-    #         suggestion_key = heapq.heappop(suggestions_heap)[1] # [0] is the score that was used for the sort. 
-    #         self.suggestions_queue.append(db.get_obj("datespot", suggestion_key)) # todo should the externally returned thing still have the object literals?
-    #     return self.suggestions_queue
 
     def _score_nearby_datespots(self, candidate_datespots):
         """Compute the joint datespot score for each result, and push it to a max heap sorted on score.
@@ -163,17 +167,3 @@ class Match(metaclass=DatespotAppType):
                 # As of 5/19/21, Baseline dateworthiness is tiebreaker if they have the same score and heapq tries to use "<" between two 
                 #   Datespot objects.
         return suggestions_heap # todo this doesn't write directly back to the main queue, it returns to the supervisor external method which constructs that quue
-
-    def get_joint_datespot_score(self, datespot) -> float:
-        # Todo: Intuition/hypothesis is that it won't make sense to try do better than a simple mean of the two users scores on that restaurant
-        #   any time soon, if ever. 
-        # To suggest a Datespot for a Match, you get the *initial queryset* based on the midpoint (and, at most, other stuff like price range (min, or based on confident
-        #   prediction as to who is paying), hours based on Users' schedule). But once that initial set of restaurants is hand, all further qualitative filtering should be 
-        #   based on scoring them for each User in isolation, then averaging--for now. Need to prune complexity anywhere possible, initially. 
-        """
-        Args:
-            datespot (datespot.Datespot object): A datespot object.
-        """
-        score1 = datespot.score(self.user1)
-        score2 = datespot.score(self.user2)
-        return (score1 + score2) / 2 # simple mean

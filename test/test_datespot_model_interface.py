@@ -53,15 +53,6 @@ class TestHelloWorldThings(unittest.TestCase):
             }
         self.terrezanos_price_range = 2
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
-        """
-        self.terrezanos_id = self.api.create_datespot(
-            location = self.terrezanos_location,
-            name = self.terrezanos_name,
-            traits = self.terrezanos_traits,
-            price_range = self.terrezanos_price_range,
-            hours = self.terrezanos_hours,
-        )
-        """
 
         self.terrezanos_json = json.dumps({
                 "location" : self.terrezanos_location,
@@ -71,7 +62,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 "hours" : self.terrezanos_hours,
             })
 
-        self.terrezanos_id = self.api.create_datespot(self.terrezanos_json)
+        self.terrezanos_id = self.api.create(self.terrezanos_json)
         assert self.terrezanos_id in self.api._data
         
     def test_instantiation(self):
@@ -100,7 +91,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "hours" : domenicos_hours
         })
 
-        domenicos_key = self.api.create_datespot(domenicos_json)
+        domenicos_key = self.api.create(domenicos_json)
         self.assertIsInstance(domenicos_key, DATESPOT_ID_TYPE)
         domenicos = self.api.lookup_obj(domenicos_key)
         self.assertEqual(str(type(domenicos)), "DatespotObj")
@@ -119,7 +110,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "traits": {"not at a Terrezano's": [0.95, 1]}
         })
 
-        self.api.update_datespot(self.terrezanos_id, update_json=update_json)
+        self.api.update(self.terrezanos_id, update_json=update_json)
         self.assertIn(new_terrezanos_trait, self.api._data[self.terrezanos_id]["traits"]) # self.api._data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
         # update with a list:
         # todo

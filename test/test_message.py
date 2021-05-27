@@ -76,7 +76,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.mock_chat_id_1 = "1a"
         self.message_obj = models.Message(
             time_sent = self.mock_bilateral_timestamp,
-            sender = self.db.get_obj("user", self.akatosh_id),
+            sender = self.db.get_object("user", self.akatosh_id),
             chat_id = self.mock_chat_id_1,
             text = self.single_sentence_text
         )
@@ -88,7 +88,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.mock_chat_id_2 = "2a"
         self.multisentence_message_obj = models.Message(
             time_sent = time.time(),
-            sender = self.db.get_obj("user", self.akatosh_id),
+            sender = self.db.get_object("user", self.akatosh_id),
             chat_id = self.mock_chat_id_2,
             text = self.multisentence_text
         )

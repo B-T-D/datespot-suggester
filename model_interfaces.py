@@ -2,7 +2,6 @@
 import abc, json, uuid, time
 
 import models
-#import models.user, models.datespot, models.match, models.review, models.message, models.chat
 import geo_utils
 
 JSON_DB_NAME = "jsonMap.json"
@@ -17,6 +16,16 @@ class ModelInterfaceABC: # Abstract base class
         self._data = {}
         self.data = self._data #  todo what about assigning this to return of _read_json, and having that method return self._data?
 
+    ### Public methods ###
+
+    def lookup_json(self, object_id: str) -> str:
+        """Returns the JSON string for the stored object corresponding to object_id."""
+        self._read_json() # TODO is there any reason it'd be better to instantiate an object before returning its JSON?
+                            #   It's faster to just fetch the existing JSON than to fetch it, instantiate, call object.serialize(), etc.
+        self._validate_object_id(object_id)
+        return json.dumps(self._data[object_id])
+
+    ### Private methods ###
     def _set_datafile(self): # todo this is broken, it's not actually creating the file when the file doesn't exist.
         """Retrieve and set filename of this model's stored JSON."""
         with open(self._master_datafile, 'r') as fobj:
@@ -54,7 +63,8 @@ class ModelInterfaceABC: # Abstract base class
         if not object_id in self._data:
             raise KeyError(f"{self._model} with id (key) {object_id} not found.")
     
-    # todo convert all logic that uses the key-error-raiser one to use the boolean returning one?
+    # TODO convert all logic that uses the key-error-raiser one to use the boolean returning one?
+    #   https://softwareengineering.stackexchange.com/questions/330824/function-returning-true-false-vs-void-when-succeeding-and-throwing-an-exception
 
     def _is_valid_object_id(self, object_id: int) -> bool:
         return object_id in self._data
@@ -99,8 +109,10 @@ class UserModelInterface(ModelInterfaceABC):
             "match_blacklist",
             "force_key" # todo force_key isn't really a model field, conceptually
         }
-        
-    def create_user(self, json_data: str) -> int:
+    
+    ### Public methods ###
+
+    def create(self, json_data: str) -> int:
         """
         Takes json data in the app's internal format and returns the id key of the newly created user.
         Force key arg is for testing purposes to not always have huge unreadable uuids.
@@ -128,14 +140,6 @@ class UserModelInterface(ModelInterfaceABC):
         self._write_json()
         return user_id
 
-    def lookup_json(self, user_id: int) -> str: # todo have a lookup JSON method in the ABC, then have individual MIs override if they need to. 
-                                                #   For most models, simply reading the JSON and dumping back the data for object_id should suffice.
-        """
-        Return the JSON string for a user.
-        """
-        self._read_json() # todo User does it this way, Datespot does it by instantiating an object. If no reason for difference, determine which is better and standardize to that.
-        return json.dumps(self._data[user_id]) # ...This way seems more intuitive. Part of the point of storing stuff is to look it up without repeating computations. 
-
     def lookup_obj(self, user_id: str) -> models.User:
         """
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
@@ -158,7 +162,7 @@ class UserModelInterface(ModelInterfaceABC):
 
         return user_obj
 
-    def update_user(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does.
+    def update(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does.
         # Todo support a "force datapoints count" option for updating tastes?
         """
         Takes JSON string, updates the native Python dict, and writes it to the stored master JSON.
@@ -206,16 +210,6 @@ class UserModelInterface(ModelInterfaceABC):
         self._write_json()
         return
     
-    def _update_tastes(self, user_id: int, new_tastes_data:dict) -> None:
-        """Helper method to handle calling the User model's tastes updater method."""
-        # We assume the caller only ever sends one datapoint at a time--it doesn't need to access or modify the datapoints counter
-        #   for the taste that it's updating.
-        user_obj = self.lookup_obj(user_id)
-        for taste_name, strength in new_tastes_data.items():
-            user_obj.update_tastes(taste = taste_name, strength = strength)
-        self._data[user_id]["tastes"] = user_obj.serialize()["tastes"] # Since we have an object literal in memory anyway, just have it give back the tastes dict.
-        return # Caller is makes the _write_json call
-    
     # todo all the "query objects near" methods could probably be abstracted to the ABC.
     def query_users_currently_near_location(self, location: tuple, radius=50000) -> list: # todo is the radius parameter totally unnecessary? 
         """
@@ -249,14 +243,7 @@ class UserModelInterface(ModelInterfaceABC):
         self._write_json()
 
         return query_results
-
-    def _refresh_candidates(self, user_id) -> bool:
-        """Return True if this user's candidates cache is null, empty, or otherwise should be updated."""
-        user_data = self._data[user_id]
-        if not "cached_candidates" in user_data or len(user_data["cached_candidates"]) < 1:
-            return True
-        return False
-
+    
     def query_next_candidate(self, user_id) -> int:
         """Return the user id of the next candidate for user user_id to swipe on."""
         self._read_json()
@@ -265,8 +252,8 @@ class UserModelInterface(ModelInterfaceABC):
         user_data = self._data[user_id]
         candidate_id = user_data["cached_candidates"].pop()[1] # todo confusing code with the slice. Does the cache really need the distance?
         
-        blacklist = user_data["match_blacklist"]
-        while candidate_id in blacklist: # keep popping until a non blacklisted one is found
+        blacklist = user_data["match_blacklist"]  # TODO: The user's own ID never should've been in the candidates list to begin with; this is a redundancy here
+        while (candidate_id in blacklist) or (candidate_id == user_id): # keep popping until a non blacklisted one is found
             candidate_id = self._data[user_id]["cached_candidates"].pop()[1] # todo again, need the slice to access the id itself rather than the list containing [distance, id]
         self._write_json()
         return candidate_id
@@ -300,6 +287,25 @@ class UserModelInterface(ModelInterfaceABC):
             user_data["match_blacklist"][other_user_id] = time.time()
         self._write_json()
 
+    ### Private methods ###
+    
+    def _update_tastes(self, user_id: int, new_tastes_data:dict) -> None:
+        """Helper method to handle calling the User model's tastes updater method."""
+        # We assume the caller only ever sends one datapoint at a time--it doesn't need to access or modify the datapoints counter
+        #   for the taste that it's updating.
+        user_obj = self.lookup_obj(user_id)
+        for taste_name, strength in new_tastes_data.items():
+            user_obj.update_tastes(taste = taste_name, strength = strength)
+        self._data[user_id]["tastes"] = user_obj.serialize()["tastes"] # Since we have an object literal in memory anyway, just have it give back the tastes dict.
+        return # Caller is makes the _write_json call
+    
+    def _refresh_candidates(self, user_id) -> bool:
+        """Return True if this user's candidates cache is null, empty, or otherwise should be updated."""
+        user_data = self._data[user_id]
+        if not "cached_candidates" in user_data or len(user_data["cached_candidates"]) < 1:
+            return True
+        return False
+
 
 class DatespotModelInterface(ModelInterfaceABC):
 
@@ -311,7 +317,9 @@ class DatespotModelInterface(ModelInterfaceABC):
             super().__init__()
         self._valid_model_fields = ["name", "location", "traits", "price_range", "hours", "yelp_rating", "yelp_review_count", "yelp_url"]
 
-    def create_datespot(self, json_str: str) -> str:
+    ### Public methods ###
+
+    def create(self, json_str: str) -> str:
         """
         Creates a new Datespot object, serializes it to the persistent JSON, and returns its id key.
         """
@@ -325,16 +333,11 @@ class DatespotModelInterface(ModelInterfaceABC):
         self._write_json()
         return new_object_id
     
-    def _validate_new_datespot(self):
-    # todo query the db by name and location to avoid duplicates. I.e. does a restaurant with that name 
-    #   already exist at approximately that location in the db?
-        pass
-
     def lookup_json(self, id: int) -> str:
         """
         Return the JSON string for a Datespot in the DB.
         """
-        datespot_obj = self.lookup_obj(id)
+        datespot_obj = self.lookup_obj(id) # TODO is there a reason to override the ABC's method and do it via serialize instead of more quickly returning the stored data?
         return json.dumps(self._serialize_datespot(datespot_obj))
 
     def lookup_obj(self, id: int) -> models.Datespot:
@@ -353,46 +356,7 @@ class DatespotModelInterface(ModelInterfaceABC):
             yelp_url = datespot_data["yelp_url"]
         )
     
-    def is_in_db(self, json_str) -> bool:
-        """
-        Return True if the Datespot corresponding to this JSON info is already known to the database, else false.
-        """
-        # This relies on the hashing logic in Datespot--datespot with given name at given location should hash uniquely.
-        # Instantiate a datespot object with this JSON, then see if its ID string is in the DB.
-        self._read_json()
-        datespot_obj = self._instantiate_datespot_from_json(json_str)
-        return datespot_obj.id in self._data
-
-    def _instantiate_datespot_from_json(self, json_str: str) -> models.Datespot: # Helper for DRY-ness
-        """
-        Instantiate a Datespot object corresponding to this JSON, and return it without interacting with the database.
-        """
-        json_dict = json.loads(json_str)
-        self._validate_json_fields(json_dict)
-        location_tuple = tuple(json_dict["location"])
-                
-        # Instantiate an object with the data
-        datespot_obj = models.Datespot(
-            location = location_tuple,
-            name = json_dict["name"]
-        )
-
-        optional_fields =  {
-            "traits": datespot_obj.traits,
-            "price_range": datespot_obj.price_range,
-            "hours": datespot_obj.hours,
-            "yelp_rating": datespot_obj.yelp_rating,
-            "yelp_review_count": datespot_obj.yelp_review_count,
-            "yelp_url": datespot_obj.yelp_url
-            }
-        
-        for optional_field in optional_fields:
-            if optional_field in json_dict:
-                exec(f"datespot_obj.{optional_field} = json_dict[optional_field]") # Todo what's a better way than exec()? Or is this an ok use case for exec()?
-        
-        return datespot_obj
-
-    def update_datespot(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
+    def update(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
         self._read_json()
         datespot_data = self._data[id] # Todo: kwargs isn't the "standard" way the other MIs have been doing it. Take JSON.
@@ -480,6 +444,52 @@ class DatespotModelInterface(ModelInterfaceABC):
             query_results.append((distance,datespot_obj))
         return query_results
 
+    def is_in_db(self, json_str) -> bool:
+        """
+        Return True if the Datespot corresponding to this JSON info is already known to the database, else false.
+        """
+        # This relies on the hashing logic in Datespot--datespot with given name at given location should hash uniquely.
+        # Instantiate a datespot object with this JSON, then see if its ID string is in the DB.
+        self._read_json()
+        datespot_obj = self._instantiate_datespot_from_json(json_str)
+        return datespot_obj.id in self._data
+    
+    ### Private methods ###
+
+    def _validate_new_datespot(self):
+    # todo query the db by name and location to avoid duplicates. I.e. does a restaurant with that name 
+    #   already exist at approximately that location in the db?
+        pass
+
+    def _instantiate_datespot_from_json(self, json_str: str) -> models.Datespot: # Helper for DRY-ness
+        """
+        Instantiate a Datespot object corresponding to this JSON, and return it without interacting with the database.
+        """
+        json_dict = json.loads(json_str)
+        self._validate_json_fields(json_dict)
+        location_tuple = tuple(json_dict["location"])
+                
+        # Instantiate an object with the data
+        datespot_obj = models.Datespot(
+            location = location_tuple,
+            name = json_dict["name"]
+        )
+
+        optional_fields =  {
+            "traits": datespot_obj.traits,
+            "price_range": datespot_obj.price_range,
+            "hours": datespot_obj.hours,
+            "yelp_rating": datespot_obj.yelp_rating,
+            "yelp_review_count": datespot_obj.yelp_review_count,
+            "yelp_url": datespot_obj.yelp_url
+            }
+        
+        for optional_field in optional_fields:
+            if optional_field in json_dict:
+                exec(f"datespot_obj.{optional_field} = json_dict[optional_field]") # Todo what's a better way than exec()? Or is this an ok use case for exec()?
+        
+        return datespot_obj
+
 class MatchModelInterface(ModelInterfaceABC):
 
     def __init__(self, json_map_filename=None):
@@ -492,46 +502,15 @@ class MatchModelInterface(ModelInterfaceABC):
 
         self.user_api_instance = UserModelInterface(json_map_filename=self._master_datafile)
     
-    def _set_datafile(self):
-        """Set the filename of the specific file containing the match data JSON."""
-        with open(self._master_datafile, 'r') as fobj:
-            jsonMap = json.load(fobj)
-            fobj.seek(0)
-        self._datafile = jsonMap["match_data"]
+    ### Public methods ###
 
-    def _load_db(self):
-        """Load stored JSON into memory."""
-        jsonMap = None
-
-        with open(self._master_datafile, 'r') as fobj: # todo this can be DRY-ed. Identical for match, user, and datespot DB APIs.
-            jsonMap = json.load(fobj)
-            fobj.seek(0)
-        
-        self._datafile = jsonMap["match_data"]
-        matchJson = None
-        with open(self._datafile, 'r') as fobj:
-            matchJson = json.load(fobj)
-            fobj.seek(0)
-        
-        # convert each key to tuple literal:
-        jsonData = {}
-        for stringKey in jsonData:
-            tupleKey = self._string_key_to_tuple(stringKey)
-            self._data[tupleKey] = jsonData[stringKey]
-
-    def _tuple_key_to_string(self, tuple_key: tuple) -> str:
-        return str(tuple_key)
-
-    def _string_key_to_tuple(self, string_key: str) -> tuple:
-        stripped = string_key.strip('()')
-        values = [float(substring) for substring in stripped.split(sep=',')]
-        return tuple(values)
-    
-    def create_match(self, user1_id: str, user2_id: str) -> str:
+    def create(self, json_str: str) -> str:
         """
         Create a Match object from the two users and return its id key.
         """
         self._read_json()
+        json_dict = json.loads(json_str)
+        user1_id, user2_id = json_dict["user1_id"], json_dict["user2_id"]
         user1_obj, user2_obj = self.user_api_instance.lookup_obj(user1_id), self.user_api_instance.lookup_obj(user2_id)
         match_obj = models.Match(user1_obj, user2_obj)
         new_object_id = match_obj.id
@@ -573,9 +552,68 @@ class MatchModelInterface(ModelInterfaceABC):
         datespot_db = datespot_api.DatespotAPI()
         return datespot_db.lookup_json(datespot_id)
 
-    def update_match(self, data): # Todo
+    def update(self, object_id, json_data=None): # Todo
         # e.g. if the current location changed, meaning the Match.midpoint changed
-        pass
+        """
+
+        Example calls:
+
+            my_match.update() 
+                 - Calling with no args applies any updates inferable from the constituent User objects. E.g. 
+                    if the Users' predominant locations, then the Match's midpoint changes, which could alter the
+                    suggestions queue.
+        """
+        self._read_json()
+        self._validate_object_id(object_id)
+        object_data = self._data[object_id]
+
+        # For a Match object as of this writing, we want to instantiate a Match object for any supported update. As imagined so far,
+        #   there's no such thing as "just update this one little think in the stored JSON, no need to instantiate an object". The most
+        #   common expected use of this method is to call it with no arguments, to cause an update of the suggestions queue.
+
+        object_instance = self.lookup_obj(object_id) # Instantiate it to trigger computations called by the constructor, then re-serialize it.
+        if not json_data:
+            self._data[object_id] = object_instance.serialize()
+        else: # TODO Do we care about enabling external code to update the suggestions queue? Intuition is that Match owns the suggestions queue, full stop--any
+                #   new information should be factored into suggestions by calling the methods in the Match model. 
+            raise NotImplementedError("Updating that field of a Match not supported")
+
+    ### Private methods ###
+
+    def _set_datafile(self):
+        """Set the filename of the specific file containing the match data JSON."""
+        with open(self._master_datafile, 'r') as fobj: # TODO was there some reason for overriding the inherited ABC one, or is this artifact?
+            jsonMap = json.load(fobj)
+            fobj.seek(0)
+        self._datafile = jsonMap["match_data"]
+
+    def _load_db(self):
+        """Load stored JSON into memory."""
+        jsonMap = None
+
+        with open(self._master_datafile, 'r') as fobj: # todo this can be DRY-ed. Identical for match, user, and datespot DB APIs.
+            jsonMap = json.load(fobj)
+            fobj.seek(0)
+        
+        self._datafile = jsonMap["match_data"]
+        matchJson = None
+        with open(self._datafile, 'r') as fobj:
+            matchJson = json.load(fobj)
+            fobj.seek(0)
+        
+        # convert each key to tuple literal:
+        jsonData = {}
+        for stringKey in jsonData:
+            tupleKey = self._string_key_to_tuple(stringKey)
+            self._data[tupleKey] = jsonData[stringKey]
+
+    def _tuple_key_to_string(self, tuple_key: tuple) -> str:
+        return str(tuple_key)
+
+    def _string_key_to_tuple(self, string_key: str) -> tuple:
+        stripped = string_key.strip('()')
+        values = [float(substring) for substring in stripped.split(sep=',')]
+        return tuple(values)
 
 class ReviewModelInterface(ModelInterfaceABC):
 
@@ -587,17 +625,30 @@ class ReviewModelInterface(ModelInterfaceABC):
             super().__init__()
         self._valid_model_fields = ["datespot_id", "text"]
     
-    def create_review(self, json_str: str) -> str:
+    ### Public methods ###
+
+    def create(self, json_str: str) -> str:
 
         # Todo: Could store only the review's hash in the DB. We likely don't care
         #   about anything other than checking whether a given review is already in the DB.
         #   Or maybe (id, sentiment, relevance) -- point being we don't want to store the text
-        #   of thousands of reviews. 
+        #   of thousands of reviews.
+
+        # TODO How to handle updates to the text of reviews? That will be a very common case if 
+        #   scraping/crawling the same restaurants repeatedly. Need a setup that allows tying a 
+        #   given review to a post on Yelp/Google/whatever without requiring identical text, to 
+        #   avoid counting a trivial edit as an entirely new review. 
+
+        # TODO Only store relevant Reviews, not all Reviews. 
 
         self._read_json()
         json_dict = json.loads(json_str)
 
         self._validate_json_fields(json_dict) # Validate fields
+
+        # TODO Model this on message MI create(): If the Review contains stuff that should be updated in the stored
+        #   info about the Datespot, then this create() method makes the necessary updates to the Datespot object's 
+        #   traits. 
 
         new_obj = models.Review( # Instantiate a model object
             datespot_id = json_dict["datespot_id"],
@@ -607,6 +658,17 @@ class ReviewModelInterface(ModelInterfaceABC):
         self._data[new_obj_id] = new_obj.serialize() # Save with that id as the key
         self._write_json()
         return new_obj_id
+    
+    def lookup_obj(self, object_id: str) -> models.Review:
+        self._read_json()
+        self._validate_object_id(object_id)
+        object_data = self._data[object_id]
+        object_constructor = eval(f"models.{self._model.title()}") 
+        obj = object_constructor( # TODO Was experimenting with generalizing it as much as possible. Should be able to generalize the constructor call with aggressive use of eval/exec.
+            datespot_id = object_data["datespot_id"],
+            text = object_data["text"]
+        )
+        return obj
 
 class MessageModelInterface(ModelInterfaceABC):
 
@@ -622,7 +684,9 @@ class MessageModelInterface(ModelInterfaceABC):
             super().__init__()
         self._valid_model_fields = ["time_sent", "sender_id", "chat_id", "text"]
     
-    def create_message(self, json_data: str) -> str:
+    ### Public methods ###
+
+    def create(self, json_data: str) -> str:
         """
         Returns the new object's id key string.
 
@@ -698,12 +762,6 @@ class MessageModelInterface(ModelInterfaceABC):
             text = message_data["text"]
         ) # Todo: Not copying the sentiment because that can be recomputed on the object. Is that the right approach?
         #       Or maybe better to pull the cached sentiment? It'd still update as soon as anything called the Message's SA method.
-    
-    def lookup_json(self, object_id: str) -> str:
-        """Return the stored JSON string for the Message matching this id."""
-        self._read_json()
-        self._validate_object_id(object_id)
-        return json.dumps(self._data[object_id])
 
 class ChatModelInterface(ModelInterfaceABC):
 
@@ -715,7 +773,9 @@ class ChatModelInterface(ModelInterfaceABC):
             super().__init__()
         self._valid_model_fields = ["start_time", "participant_ids", "messages"]
     
-    def create_chat(self, new_obj_json: str):
+    ### Public methods ###
+
+    def create(self, new_obj_json: str):
         self._read_json()
         json_dict = json.loads(new_obj_json)
         self._validate_json_fields(json_dict)
@@ -770,4 +830,4 @@ class ChatModelInterface(ModelInterfaceABC):
             start_time = chat_data["start_time"],
             participant_ids = chat_data["participant_ids"],
             messages = message_objects
-        ) 
+        )

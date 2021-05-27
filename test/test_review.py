@@ -5,12 +5,32 @@ import models
 from database_api import DatabaseAPI
 
 TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
+SENTIMENT_DECIMAL_PLACES = 4
 
 class TestHelloWorldThings(unittest.TestCase):
 
     # Todo very important to test hard cases. Huge cases, edge cases, corner cases--try to break it. 
 
     def setUp(self):
+
+        # Blank out the test JSON files:
+        data_map = { # todo DRY, this is repeated in every model interface's tests module
+            "user_data": "test/testing_mockUserDB.json",
+            "datespot_data": "test/testing_mockDatespotDB.json",
+            "match_data": "test/testing_mockMatchData.json",
+            "review_data": "test/testing_mockReviewData.json",
+            "message_data": "test/testing_mockMessageData.json",
+            "chat_data": "test/testing_mockChatData.json"
+            }
+        with open(TEST_JSON_DB_NAME, 'w') as fobj:
+            json.dump(data_map, fobj)
+            fobj.seek(0)
+
+        # make sure all the test-mock JSONs exist
+        for filename in data_map:
+            with open(data_map[filename], 'w') as fobj:
+                json.dump({}, fobj)
+                fobj.seek(0)
 
         # Make a mock restaurant
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
@@ -30,7 +50,7 @@ class TestHelloWorldThings(unittest.TestCase):
         # Make mock text
         self.mock_text_positive_relevant = "This was a wonderful place to go on a date. I had the pasta. It was authentic and not from Pizza Hut."
         self.expected_sentiment = 0.1906 # todo hardcoded
-        self.expected_relevance = round(1 / len(self.mock_text_positive_relevant), 4) # i.e. "date" appears once.
+        self.expected_relevance = round(1 / len(self.mock_text_positive_relevant), SENTIMENT_DECIMAL_PLACES) # i.e. "date" appears once.
 
         # Connect to the database with the mock data set
         self.db = DatabaseAPI(json_map_filename=TEST_JSON_DB_NAME)
@@ -68,7 +88,7 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_analyze_relevance(self):
         self.review_obj._analyze_relevance()
-        self.assertAlmostEqual(self.expected_relevance, self.review_obj._relevance)
+        self.assertAlmostEqual(self.expected_relevance, self.review_obj._analyze_relevance())
     
     def test_public_relevance_attribute(self): # todo tbd if any external code ever needs this
         self.assertAlmostEqual(self.expected_relevance, self.review_obj.relevance)

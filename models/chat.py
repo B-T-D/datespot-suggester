@@ -1,4 +1,6 @@
-from app_object_type import DatespotAppType
+from models.app_object_type import DatespotAppType
+
+from typing import List
 
 from models.message import Message
 
@@ -13,7 +15,9 @@ SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC
 
 class Chat(metaclass=DatespotAppType):
 
-    def __init__(self, start_time: float, participant_ids: list, messages: list=[]):
+    def __init__(self, start_time: float, participant_ids: List[str], messages: List[Message]=[]):
+        # TODO Rationale for instantiating with the Message object literals: If we're instantiating a Chat object, then we're in a situation
+        #   where we'll want each access to the Messages (and the Chat model can't circularly use the DatabaseAPI). 
         """
         Args:
             start_time (float): UNIX timestamp of the time the chat began.
@@ -23,14 +27,17 @@ class Chat(metaclass=DatespotAppType):
         self.start_time = start_time
         self.participant_ids = participant_ids
         self.messages = messages
-        self.id = self._id()
 
         self._sentiment_avg = None
      
         # self.sentiment_avg = self._average_sentiment() # Todo Defining the public variable to equal the internal method's return got too complicated in unit testing with the mock DB.
         self.sentiment_std_dev = None # Todo, implement...standard deviation of the sentiment (variance across messages)
     
+    ### Public methods ###
+
     def __eq__(self, other):
+        if type(self) != type(other):
+            return False
         return hash(self) == hash(other)
     
     def __hash__(self):
@@ -38,18 +45,15 @@ class Chat(metaclass=DatespotAppType):
         # Start time will never change. Even if messages are deleted, participants join and leave, the start time can stay the same. 
         return hash(self.start_time)
     
-    def _id(self) -> str:
-        """
-        Return this Chat's id string.
-        """
-        hex_str = str(hex(hash(self)))
-        return hex_str[2:] # strip "0x"
+    @property
+    def id(self):
+        return self._id()
     
-    def _sort_messages_by_timestamp(self) -> None:
-        """Sort the messages data in ascending order of timestamp (i.e. earliest first)."""
-        # todo not sure how much sense this makes for performance. They should be going into the list in order anyway. 
-        pass
-
+    @property
+    def sentiment(self):
+        self._average_sentiment()
+        return self._sentiment_avg
+    
     def serialize(self) -> dict:
         """Return relevant data for storage, as a native Python dictionary."""
         # sort the messages by timestamp.
@@ -60,17 +64,22 @@ class Chat(metaclass=DatespotAppType):
             "participant_ids": self.participant_ids,
             "messages": message_ids
         }
+    
+    ### Private methods ###
+
+    def _id(self) -> str:
+        """
+        Return this Chat's id string.
+        """
+        hex_str = str(hex(hash(self)))
+        return hex_str[2:] # strip "0x"
 
     def _average_sentiment(self):
-        """Compute the mean sentiment of the Chat's component Messages.""" # Read in the JSON and average the cached values.
+        """Compute the mean sentiment of the Chat's component Messages."""
         if not self.messages:
             return # todo not sure best thing to return 
         sentiments_sum = 0
         for message in self.messages:
-            sentiments_sum += message.sentiment_avg
+            sentiments_sum += message.sentiment
         self._sentiment_avg = round(sentiments_sum / len(self.messages), SENTIMENT_DECIMAL_PLACES)
-        return self._sentiment_avg
-    
-    def sentiment(self):
-        self._average_sentiment()
         return self._sentiment_avg

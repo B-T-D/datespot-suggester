@@ -57,11 +57,11 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_instantiation(self):
         self.assertIsInstance(self.api, ReviewModelInterface)
     
-    def test_create_review(self):
+    def test_create(self):
         review_json = json.dumps({
             "datespot_id": self.terrezanos_id,
             "text": self.mock_text_positive_relevant
         })
-        review_id = self.api.create_review(review_json)
+        review_id = self.api.create(review_json)
         self.assertIn(review_id, self.api._data)
         
