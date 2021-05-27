@@ -50,9 +50,9 @@ class User(metaclass=DatespotAppType):
          
         self.match_blacklist = {} # Users with whom this user should never be matched. Keys are user ids, values timestamps indicating when the blacklisting happened. 
 
-        # Todo: How much data do we need to confidently assign a "hard" preference like vegan, kosher, halal?
+        # TODO How much data do we need to confidently assign a "hard" preference like vegan, kosher, halal?
 
-        # Todo: We don't want the chat-reader to e.g. massively over-weight Korean restaurants in suggestions for a user who says "I'm Korean" meaning ethnicity.
+        # TODO We don't want the chat-reader to e.g. massively over-weight Korean restaurants in suggestions for a user who says "I'm Korean" meaning ethnicity.
         #   Maybe there will be enough non-ethnic restaurant traits for it to wash out, TBD.
 
         # TODO Would it make sense to automatically put each User into their own blacklist, as a simple way to prevent them being in their own candidates feed?
@@ -60,10 +60,9 @@ class User(metaclass=DatespotAppType):
     ### Public methods ###
 
     def __eq__(self, other): # must define if defining __hash__
-        return hash(self) == hash(other) # todo DRY into ABC? Identical code for all three of User, Datespot, and Match
-
-        # Todo: Is this good practice?
-        #   Todo: Make sure it at least returns False if not comparing to same class, same for other models' __eq__
+        if type(self) != type(other):
+            return False
+        return hash(self) == hash(other) # TODO DRY into ABC? Identical code for all three of User, Datespot, and Match
     
     def __hash__(self):
         return hash(self.id)

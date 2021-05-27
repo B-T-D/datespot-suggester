@@ -57,7 +57,9 @@ class Match(metaclass=DatespotAppType):
     
     ### Public methods ###
 
-    def __eq__(self, other): # Must define if defining __hash__
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
         return hash(self) == hash(other)
     
     def __hash__(self): # Hash is the hash of the two users' ids

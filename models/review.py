@@ -3,7 +3,7 @@ from models.app_object_type import DatespotAppType
 import nltk
 from vaderSentiment import vaderSentiment as vs
 
-SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC shared by Review, Message, and any other
+SENTIMENT_DECIMAL_PLACES = 4 # TODO this should be an EV or a constant in an ABC shared by Review, Message, and any other
                                 #   code that calls VSA methods that return floats.
 
 class Review(metaclass=DatespotAppType):
@@ -14,7 +14,7 @@ class Review(metaclass=DatespotAppType):
 
         self._date_related_words = {"date", "datespot", "datenight"}
 
-        self._sentences = [] # todo workable to just tokenize it at init?
+        self._sentences = [] # TODO workable to just tokenize it at init?
         self._sentiment = self._analyze_sentiment()
         self._relevance = self._analyze_relevance()
         
@@ -22,11 +22,13 @@ class Review(metaclass=DatespotAppType):
     ### Public methods ###
 
     def __eq__(self, other):
+        if type(self) != type(other):
+            return False
         return hash(self) == hash(other)
     
     def __hash__(self):
         return hash(self.text) # If the text was updated, we don't want it to hash to the same integer.
-        # Todo: But we care that it's an update on a prior review, rather than an entirely new review. Slightly updated
+        # TODO But we care that it's an update on a prior review, rather than an entirely new review. Slightly updated
         #   review shouldn't be treated as an additional review for stats purposes.
         #   Can hash the text to check for equality without having that be "the hash" of the whole Review object...
     
@@ -80,14 +82,14 @@ class Review(metaclass=DatespotAppType):
         self._sentiment = sentiments_mean
         return self._sentiment
     
-    def _analyze_relevance(self) -> float: # todo quick hello world. Better to implement something super simple than nothing.
-        # Todo: Quick hack version: The proportion of all words in the text that are "date", expressed as float in [0..1]
+    def _analyze_relevance(self) -> float: # TODO quick hello world. Better to implement something super simple than nothing.
+        # TODO Quick hack version: The proportion of all words in the text that are "date", expressed as float in [0..1]
         # Tokenize should already have happened in the init order
         date_words_count = 0
         for sentence in self._sentences:
             for word in sentence.split():
-                word = word.rstrip('.,;:/').lower() # todo very hacky, will miss lots of cases. Use isletter on the first and last character
+                word = word.rstrip('.,;:/').lower() # TODO very hacky, will miss lots of cases. Use isletter on the first and last character
                 if word in self._date_related_words:
                     date_words_count += 1
-        self._relevance = round(date_words_count / len(self.text), SENTIMENT_DECIMAL_PLACES) # todo starting point is to at least normalize it better, this will never get close to 1.0
+        self._relevance = round(date_words_count / len(self.text), SENTIMENT_DECIMAL_PLACES) # TODO starting point is to at least normalize it better, this will never get close to 1.0
         return self._relevance

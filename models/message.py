@@ -58,6 +58,8 @@ class Message(metaclass=DatespotAppType):
     ### Public methods ###
 
     def __eq__(self, other):
+        if type(self) != type(other):
+            return False
         return hash(self) == hash(other)
     
     def __hash__(self):
