@@ -1,4 +1,10 @@
-from multiprocessing import Process, Pipe
+# Plan 5/27: This is one end of named pipes, the Node web server is the other.
+
+
+from multiprocessing import Process, Pipe # TODO Tbd if there will be any communication between Python processes that can use this instead of the IPC FIFO pipes
+
+import os
+import select
 
 
 from database_api import DatabaseAPI
@@ -6,6 +12,9 @@ from database_api import DatabaseAPI
 import argparse
 import time
 import sys
+
+IPC_FIFO_NAME_A = "ponche_a" # the named pipes that will be used to communicate with Node
+IPC_FIFO_NAME_B = "ponche_b"
 
 def foo(q):
     q.put(f"test {time.time()}")
@@ -53,10 +62,7 @@ class DatabaseTerminal:
             print(f"self.conn = {self.conn}")
             self.conn.send(data) 
             
-            
-    
-
-
+        
 
 def main():
     server_conn, client_conn = Pipe(duplex=True)
