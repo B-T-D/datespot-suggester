@@ -252,8 +252,8 @@ class UserModelInterface(ModelInterfaceABC):
         user_data = self._data[user_id]
         candidate_id = user_data["cached_candidates"].pop()[1] # todo confusing code with the slice. Does the cache really need the distance?
         
-        blacklist = user_data["match_blacklist"]
-        while candidate_id in blacklist: # keep popping until a non blacklisted one is found
+        blacklist = user_data["match_blacklist"]  # TODO: The user's own ID never should've been in the candidates list to begin with; this is a redundancy here
+        while (candidate_id in blacklist) or (candidate_id == user_id): # keep popping until a non blacklisted one is found
             candidate_id = self._data[user_id]["cached_candidates"].pop()[1] # todo again, need the slice to access the id itself rather than the list containing [distance, id]
         self._write_json()
         return candidate_id

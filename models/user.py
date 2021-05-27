@@ -53,7 +53,9 @@ class User(metaclass=DatespotAppType):
         # Todo: How much data do we need to confidently assign a "hard" preference like vegan, kosher, halal?
 
         # Todo: We don't want the chat-reader to e.g. massively over-weight Korean restaurants in suggestions for a user who says "I'm Korean" meaning ethnicity.
-        #   Maybe there will be enough non-ethnic restaurant traits for it to wash out, TBD. 
+        #   Maybe there will be enough non-ethnic restaurant traits for it to wash out, TBD.
+
+        # TODO Would it make sense to automatically put each User into their own blacklist, as a simple way to prevent them being in their own candidates feed?
     
     def __eq__(self, other): # must define if defining __hash__
         return hash(self) == hash(other) # todo DRY into ABC? Identical code for all three of User, Datespot, and Match
