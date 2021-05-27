@@ -133,8 +133,27 @@ class DatabaseAPI:
             else:
                 user_db.add_to_pending_likes(user_id, candidate_id)
         return json.dumps(response)
+    
+    def get_next_candidate(self, json_data: str) -> str:  # TODO: Return censored JSON appropriate for a Tinder-type front-end.  A React front end calling this doesn't have
+                                                            #   much use for the user ID, but also don't want a swiping user to see all info about a candidate, so can't send back
+                                                            #   the entire serialized User. Need a separate "send censored user data JSON to client" method
+        """
+        Returns user id of next candidate.
 
-    def get_datespots_near(self, json_data) -> list:
+        Example JSON:
+
+            {
+                "user_id": "abc123"
+            }
+        """
+        user_id = json.loads(json_data)["user_id"]  # TODO validate
+        user_db = self._model_interface("user")
+        candidate_id = user_db.query_next_candidate(user_id)
+        return json.dumps({
+            "candidate_id": candidate_id
+        })
+
+    def get_datespots_near(self, json_data) -> list: # TODO if this returns Datespot objects it should prob be internal
         """
 
         Example json_data:
@@ -159,37 +178,37 @@ class DatabaseAPI:
             radius = geo_data["radius"]
         if not self._live_yelp: # todo add "and if not live google"?
             return self._get_cached_datespots_near(location, radius)
-        elif self._live_yelp:
+        elif self._live_yelp: # TODO create a middleman script to permit 100% tests-coverage of this module?
             # Todo: First, analyze whether we have cached data sufficient to respond to the query. If so, return self._get_cached_datespots_near(),
             #   even if we're in live-yelp mode. Maybe an LRU cache of lat lon radius circles--if there was a search inside that circle recently enough
             #   to still be in the LRU cache, then return cached results?
             return self._get_yelp_datespots_near(location, radius)
     
-    def get_datespot_suggestions(self, match_id) -> list:
+    def get_datespot_suggestions(self, json_data: str) -> list:
         """
         Return list of Datespot objects and their distances from the Match's midpoint, ordered by distance.
+
+        Example json:
+
+            {
+                "match_id": "abc123"
+            }
         """
 
         # Instantiate the Match object
+        match_id = json.loads(json_data)["match_id"]
         match_obj = self.get_object("match", match_id)
 
         # Ask it the midpoint to use
         midpoint = match_obj.midpoint
 
         # Perform a geographic query using that midpoint
-        candidate_datespots = self.get_datespot_objects_near(midpoint) # todo can one-liner this into passing match_obj.midpoint as the arg
+        candidate_datespots = self.get_datespots_near(json.dumps({"location": midpoint})) # todo can one-liner this into passing match_obj.midpoint as the arg
 
         # Pass that list[Datespot] to Match's next_suggestion public method.
         return match_obj.suggestions(candidate_datespots) # todo TBD how much we care about returning just one vs. returning a prioritized queue
                                                     #   and letting the client handle swiping on restaurants without needing a new query every time
                                                     #   the users reject a suggestion. Would guess that latter approach is better practice.
-
-    def get_next_candidate(self, user_id: int) -> int:
-        """
-        Returns user id of next candidate.
-        """
-        user_db = self._model_interface("user")
-        return user_db.query_next_candidate(user_id)
 
     ### Private methods ###
 

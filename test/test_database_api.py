@@ -345,9 +345,51 @@ class TestHelloWorldThings(unittest.TestCase):
         distance, datespot = first_result # it's a two-element tuple
         self.assertIsInstance(distance, float)
         self.assertIsInstance(datespot, models.Datespot)
-
-
     
+    def test_get_datespots_near_cache_only_nondefault_radius(self):
+        """Does the method return the expected JSON in response to a query that provides valid location
+        and specifies a non-default_radius?"""
+        location_query_json = json.dumps({
+            "location": (40.737291166191476, -74.00704685527774),
+            "radius": 4000
+        })
+        results = self.db.get_datespots_near(location_query_json)
+        self.assertIsInstance(results, list)
+        self.assertGreater(len(results), 0)
+        first_result = results[0]
+        distance, datespot = first_result # it's a two-element tuple
+        self.assertIsInstance(distance, float)
+        self.assertIsInstance(datespot, models.Datespot)
+    
+    ### Tests for get_datespot_suggestions() ###
+
+    def test_get_datespot_suggestions(self):
+        """Does the method return the expected JSON in response to JSON matching with a valid Match?"""
+
+        # Put a Match in the mock DB
+        match_json = json.dumps({
+            "user1_id": self.azura_id,
+            "user2_id": self.boethiah_id
+        })
+        match_id = self.db.post_object("match", match_json)
+        match_obj = self.db.get_object("match", match_id)
+
+        query_json = json.dumps({
+            "match_id": match_id
+        })
+
+        results = self.db.get_datespot_suggestions(query_json)
+        self.assertIsInstance(results, list)
+    
+    ### Tests for other public methods ###
+    def test_get_next_candidate(self):  # We have two Users in the DB, so one will be the other's candidate
+        query_json = json.dumps({
+            "user_id": self.azura_id
+        })
+        result = self.db.get_next_candidate(query_json)
+        candidate_id = json.loads(result)["candidate_id"]
+        self.assertEqual(self.boethiah_id, candidate_id)
+
     # TODO Post / get obj / get json for all of:
     #     user
     #     datespot
