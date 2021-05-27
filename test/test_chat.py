@@ -129,7 +129,6 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_message_id_order(self):
         """Are both test messages in the Chat, and is the first message before the second?"""
-        # self.chat_obj.messages.append("test")
         self.assertEqual([message.id for message in self.chat_obj.messages], [self.first_message_id, self.second_message_id]) # todo hacky/obfuscating to have the list comp here
     
     def test_average_sentiment(self):
