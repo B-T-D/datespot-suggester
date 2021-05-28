@@ -38,9 +38,6 @@ reservation availability.
 ### SQL vs. NoSQL
   I wasn't sure whether SQL or a non-SQL data architecture would be best. For some parts of the app, I felt SQL might be helpful (the restaurants data, which I expect would remain fairly relational and rigid in its schema), but for others I felt the flexibility and hypothetical concurrency and horizontal scalability of a non-SQL system would be valuable. I ended up implementing a JSON-based system, primarily to avoid prematurely spending time worrying about database architecture, while still having a system that could interface easily with the third-party, JSON-serving web APIs that much of the app's core data will come from. This quickly paid off when it came time to code the parsing of Google Maps API requests. 
   
-### Computing the distance between two latitude-longitude coordinate pairs.
-  This required a bit more math than I anticipated this app needing (the simple Euclidean distance isn't useful when the "coordinates" are lat lon decimals), but it was straightforward with the correct formulae.
-  
 ### Efficient lookup of keyword strings: binary search vs. hash tables
   As part of analyzing user chats to learn restaurant preferences, I wanted to look up each word in a chat message in a list of known relevant keywords--e.g. "Thai", "vegetarian", "coffee"--and then use the net sentiment of the sentence containing the keyword as a proxy for the user's feelings toward that keyword ("I love Thai food" boosts Thai restaurants in that user's suggestions). In a real dating app, each of the thousands of users would send dozens or hundreds of messages daily, so the performance of the keyword lookup would be important. 
   
