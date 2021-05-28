@@ -33,7 +33,7 @@ reservation availability.
 * Good suggestions for tiny geographic area > mediocre suggestions worldwide
 * Good restaurant suggestions > mediocre suggestions for fuller range of locations and activities
 
-## Problems encountered
+## Problems, challenges, and issues
 
 ### SQL vs. NoSQL
   I wasn't sure whether SQL or a non-SQL data architecture would be best. For some parts of the app, I felt SQL might be helpful (the restaurants data, which I expect would remain fairly relational and rigid in its schema), but for others I felt the flexibility and hypothetical concurrency and horizontal scalability of a non-SQL system would be valuable. I ended up implementing a JSON-based system, primarily to avoid prematurely spending time worrying about database architecture, while still having a system that could interface easily with the third-party, JSON-serving web APIs that much of the app's core data will come from. This quickly paid off when it came time to code the parsing of Google Maps API requests. 
@@ -47,6 +47,17 @@ reservation availability.
   My first instinct was to store the keywords in a hash set, for average-case O(1) time lookup. But the Python JSON encode/decode library doesn't decode to a Python set object by default; doing so would require creating a custom encoder (https://stackoverflow.com/questions/8230315/how-to-json-serialize-sets). So until I had time to write the custom encoder, I decided to store the keyword strings in a lexicographically sorted Python list (i.e. array) and look them up with binary search in worst-case O(log(n)) time. I expected this data to be quite static (i.e. not gaining new keywords very often), so I was not concerned about the time complexity of sorting the array or inserting new elements.
 
 ### Avoiding redundant iteration over message texts
+  Solution TBD.
+  
   The vaderSentiment analyzer iterates over each character of the text it analyzes, but does not readily support certain tasks, such as matching strings against keywords relevant to a user's restaurant preferences. If the algorithms that analyze each message run the vaderSentiment analyzer once on the text to compute the sentiment, and then iterate over each word to check for keywords, that's a lot of duplicative work--two passes over the string when a single pass could perform both analyses.
   
   This is an open todo. I plan to solve it by forking the vaderSentiment repo and customizing the relevant methods to have them check for keywords in the same loop as they analyze the sentiment.
+
+### Inter-process communication between Python and NodeJS
+  I wanted to implement the REST web API using NodeJS rather than Python. I felt node was a better choice than Python web frameworks like Flask and Django because this project will eventually include a chat functionality, and Node performs better than Python in a context that requires lots of concurrency. 
+  This raised the issue of how best to have the Node HTTP server send JSON to and receive JSON from the Python database/model layer. In my initial implementation, I chose to do this with Linux named pipes.
+
+### Pre-computing suggestions
+  Solution TBD. 
+  
+  The date location suggestor requires lots of computationally intensive text processing. I expect that even when decently optimized, the system will be far too slow if it only begins computing suggestions the moment the users request one. To solve this, I plan to compute best-guess suggestions at some appropriate intervals between the moment two users match with each other and the moment they actually request a date location suggestion, and then cache that suggestions heap.
