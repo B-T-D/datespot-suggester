@@ -4,11 +4,8 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var candidatesRouter = require('./routes/candidates');
-
-var candidatesRouter = express.Router();
 
 var app = express();
 module.exports = app;
@@ -16,7 +13,7 @@ module.exports = app;
 const PORT = process.env.PORT || 8000;
 
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(__dirname, 'views')); // TODO disused
 app.set('view engine', 'jade');
 
 app.use(logger('dev'));
@@ -25,21 +22,21 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// candidatesRouter.get('/', (req, res, next) => {
-//   res.send('hello world from app.js override')
-// });
 
-app.use('/', (req, res, next) => {
-  console.log(`${req.method} request received`);
-  next();
-})
 
-app.use('/candidates', (req, res, next) => {
-  console.log(`request matched path '/candidates'`);
-  console.log(`candidatesRouter = ${candidatesRouter}`)
-  res.send('that request matched /candidates');
-  next();
-})
+const apiRouter = express.Router();
+
+apiRouter.use('/candidates', candidatesRouter);
+
+// apiRouter.use('/candidates', (req, res, next) => {
+//   console.log(`${req.method} matched '/candidates`)
+//   next()
+// })
+
+app.use('/api/v1', apiRouter);
+
+
+
 
 // app.use('/', indexRouter);
 app.use('/users', usersRouter);
