@@ -8,6 +8,9 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
 var app = express();
+module.exports = app;
+
+const PORT = process.env.PORT || 8000;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -38,4 +41,6 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`Node-Express server listening on port ${PORT}`)
+})
