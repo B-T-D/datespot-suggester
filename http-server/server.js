@@ -1,5 +1,11 @@
 var createError = require('http-errors');
 var express = require('express');
+const cors = require('cors');
+
+var app = express();
+app.use('/', cors()); // TODO too permissive for real deployment?
+// app.options('*', cors()); 
+
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
@@ -7,22 +13,23 @@ var logger = require('morgan');
 var usersRouter = require('./routes/users');
 var candidatesRouter = require('./routes/candidates');
 
-var app = express();
-module.exports = app;
+
+module.exports = app; // TODO do we still care about exporting it?
 
 const PORT = process.env.PORT || 8000;
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views')); // TODO disused
-app.set('view engine', 'jade');
+// TODO temp crude logging
+app.use('/', (req, res, next) => {
+  console.log(`${req.method} request received`);
+  next();
+})
+
 
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
-
-
 
 const apiRouter = express.Router();
 
