@@ -10,6 +10,13 @@ const MOCK_CANDIDATE_JSON = {
     "distance": "some distance"
 }
 
+const MOCK_REQUEST_JSON = {
+    "method": "get_next_candidate",
+    "json_data": {
+        "user_id": "1"
+    }
+}
+
 function pipeHelloWorld() {
     let pipeIn = spawn('mkfifo', [path_b]); // Create the inbound pipe
     console.log(`Node pipeIn = ${pipeIn}`)
@@ -24,7 +31,7 @@ function pipeHelloWorld() {
 
         setInterval(() => {
             console.log('-----   Send packet   -----');
-            fifoWriteStream.write(JSON.stringify(MOCK_CANDIDATE_JSON));
+            fifoWriteStream.write(JSON.stringify(MOCK_REQUEST_JSON));
         }, 1000); // Write data at 1 second interval
 
         fifoReadStream.on('data', data => {

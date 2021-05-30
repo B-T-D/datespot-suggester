@@ -9,7 +9,8 @@ from multiprocessing import Process, Pipe # TODO Tbd if there will be any commun
 
 import os
 import select
-
+from typing import ByteString
+import json
 
 from database_api import DatabaseAPI
 
@@ -20,11 +21,136 @@ import sys
 FIFO_WEB_TO_DB = 'http-server/fifo_node_to_python'
 FIFO_DB_TO_WEB = 'http-server/fifo_python_to_node'
 
-def get_message(fifo):
+DEFAULT_PACKET_SIZE = 1024
+
+class DatabaseServer:
+
+    def __init__(self):
+
+        self._pipe_in = None
+        self._pipe_out = None
+
+        self._valid_database_methods = { # TODO Programmatically list all public methods of DatabaseAPI class, for easier maintenance.
+                                        #   See https://stackoverflow.com/questions/1911281/how-do-i-get-list-of-methods-in-a-python-class
+                                        # Probably need to parse to get only methods and only methods that don't start with underscore.
+            "get_next_candidate"
+        }
+    
+    def _read_request_bytes(self, bytes=DEFAULT_PACKET_SIZE):
+        """
+        Read bytes bytes from inbound pipe.
+
+        Args:
+            bytes (int): Number of bytes to read. Defaults to the max packet size constant.
+        
+        Returns:
+            (bytesring): Bytestring of the bytes read from the pipe.
+        """
+        # TODO Do we transmit the number of bytes in the data right before the data as an int of known byte length,
+        #   and then use the number of bytes thereby specified as "n"?
+        #   Or, instead, just reassemble split packets as needed? Would still need to transmit start/end signals to do that.
+
+        # TODO what's the max buffer size on the machine on which this server would be running?
+
+        # TODO see https://stackoverflow.com/questions/2078053/packets-down-a-named-pipe-single-byte-buffer-or-pre-sized for discussion
+        #   of approaches. Seems like best practice is a TCP/IP-like protocol whereby packet headers state the size of the incoming data.
+
+        # TODO for reference...
+        # This JSON string is 103 bytes per sys.getsizeof():
+        #   '{"name": "Azura", "location": [70.867567, -44.098098]}'
+        # Python integer object 103 is 28 bytes (not the size of the int literal in the pipe, the size of the python object and its overhead)
+
+        # TODO it may be, in practice, that if only sending JSON, none of the transmissions will be anywhere near the max buffer size,
+        #   and that setting a comfortably large buffer won't cause problems. These are strings not image files.
+
+        return os.read(self._pipe_in, bytes)
+    
+    def _handle_request(self):
+        """
+
+        Returns:
+            (ByteString): Bytes ready to be written into the outbound DB->Web pipe
+        """
+        request_bytes = self._read_request_bytes()
+        request_json = self._decode_request_bytes(request_bytes)
+        response_json = None
+        if self._is_valid_request(request_json):
+            response_json = self._dispatch_request(request_json)
+        else:
+            response_json = json.dumps({"error": "Bad request to database server"})
+        return response_json.encode("utf-8")
+        
+    def _decode_request_bytes(self, request_bytes: ByteString):
+        assert isinstance(request_bytes, ByteString)
+        request_json = request_bytes.decode("utf-8")  # TODO "ENCODING" global constant?
+        return request_json
+    
+    def _is_valid_request(self, request_json: str) -> bool:
+        """Returns True if the request is appropriate JSON to pass to the DatabaseAPI, else False."""
+        # TODO Can't rely on the dict being properly formatted; could be arbitrary additional keys
+        #   beyond just method and json-arg
+        # TODO Have a precursor helper method that strips everything from the dict except the expected keys.
+        request_dict = json.loads(request_json) # TODO hypothetically are there malicious strings that would be problematic to read into a dict blindly?
+        if len(request_dict) != 2: # Should have exactly two keys: Method and arguments dict/object
+            return False
+        if not "method" in request_dict or request_dict["method"] not in self._valid_database_methods:
+            return False
+        # TODO validate the args? Or is DB API best positioned to validate the args to its methods?
+        return True
+
+    def _dispatch_request(self, request_json: str):
+        request_dict = json.loads(request_json)
+        method, json_data = request_dict["method"], request_dict["json_data"]
+        return f"Request method was {method}, json data was {json_data}"
+
+    def run_listener(self):
+        """Listens for data transmitted throught the web -> DB pipe."""
+        try:
+            os.mkfifo(FIFO_WEB_TO_DB) # Create inbound pipe (web -> DB)
+        except FileExistsError: # TODO it should never already exist in this namespace, right? Because that would mean a non-normal
+                                #   exit happened, since this script is supposed to remove both named pipes as its last action.
+            print(f"Named pipe web -> DB already existed; continuing")
+        
+        try:
+            self._pipe_in = os.open(FIFO_WEB_TO_DB, os.O_RDONLY | os.O_NONBLOCK) # Open Web->DB pipe read-only and in non-blocking mode
+            print("Python inbound pipe-end ready")
+
+            while True: # Wait for the web server to create the DB->Web pipe
+                try:
+                    self._pipe_out = os.open(FIFO_DB_TO_WEB, os.O_WRONLY) # Outbound DB-Web pipe is write-only
+                    print("Python outbound pipe-end ready")
+                    break
+                except FileNotFoundError: # Fail loudly on other errors
+                    pass # If file not created yet, keep trying
+            
+            try:
+                poll = select.poll()
+                poll.register(self._pipe_in, select.POLLIN)
+
+                try:
+                    while True:  # TODO what's the best polling frequency?
+                        if (self._pipe_in, select.POLLIN) in poll.poll(1000):  # Poll every 1 second
+                            # TODO just one method call here, response = self.handle_request(), then write response to the out pipe
+                            response = self._handle_request()
+                            
+                            
+                            os.write(self._pipe_out, response)
+                
+                finally:
+                    poll.unregister(self._pipe_in)
+            finally:
+                os.close(self._pipe_in)
+        finally:
+            os.remove(FIFO_WEB_TO_DB)
+            os.remove(FIFO_DB_TO_WEB)
+
+
+def get_message(fifo, bytes=DEFAULT_PACKET_SIZE):
     """
     Read n bytes from pipe.
     
     Args:
+        bytes (int): Number of bytes to read
         fifo (file descriptor): File descriptor returned by os.open()
     
     Returns:
@@ -32,17 +158,9 @@ def get_message(fifo):
         (bytestring): A bytestring containing the bytes read
 
     """
-    # TODO Do we transmit the number of bytes in the data right before the data as an int of known byte length,
-    #   and then use the number of bytes thereby specified as "n"?
-
-    # TODO for reference...
-    # This JSON string is 103 bytes per sys.getsizeof():
-    #   '{"name": "Azura", "location": [70.867567, -44.098098]}'
-    # Python integer object 103 is 28 bytes (not the size of the int literal in the pipe, the size of the python object and its overhead)
 
 
-    n = 24 # TODO hardcoded from example
-    return os.read(fifo, n)
+    return os.read(fifo, bytes)
 
 def process_message(message): # TODO copied from example, need to infer the typing
     """Process message read from pipe."""
@@ -79,13 +197,11 @@ def fifo_main():
 
         while True: 
             try:
-                print(f"Checking for Node-> Python pipe")
                 pipe_out = os.open(FIFO_DB_TO_WEB, os.O_WRONLY) # Outbound pipe is write-only
                 print("Python outbound pipe-end ready")
                 break
             except FileNotFoundError: # If Node process didn't create its inbound pipe yet, wait until it does so
                 #print(f"Python didn't find outbound (node inbound) pipe")
-                print(f"waiting for Node -> Python pipe")
                 time.sleep(2)
                 #break
                 pass
@@ -103,10 +219,15 @@ def fifo_main():
                     if (pipe_in, select.POLLIN) in poll.poll(1000): # Poll every 1 second
                         message = get_message(pipe_in) # Read from the inbound pipe
                         message = process_message(message)
-                        os.write(pipe_out, message) # Write to the outbound pipe
 
                         print('----- Received from JS -----')
-                        print("    " + message.decode("utf-8")) # TODO presumably this can just go in the process message func
+                        print(f"type(message) = {type(message)}")
+                        request_json = message.decode("utf-8")
+                        print(f"request_json = {request_json}")
+                        response = parse_request(request_json) # TODO do we want an internal response object?
+                        response = response.encode("utf-8")
+                        os.write(pipe_out, response)
+
             finally:
                 poll.unregister(pipe_in)
             
@@ -116,8 +237,14 @@ def fifo_main():
         os.remove(FIFO_WEB_TO_DB) # Delete the named pipes
         os.remove(FIFO_DB_TO_WEB)
 
+def parse_request(request_json: str):
+    print(f"request was {request_json}")
+    return "test response"
+
 
 if __name__ == "__main__":
-    fifo_main()
+    #fifo_main()
     #fifo_read_only_kiss()
+    server = DatabaseServer()
+    server.run_listener()
     
