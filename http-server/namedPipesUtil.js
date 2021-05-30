@@ -1,6 +1,12 @@
+/* TODO rename it to "DB something...", it's more than a util unless there's a further middleman between
+this and the express routers */
+
+
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { response } = require('express');
+
+
 
 
 const path_a = 'fifo_node_to_python';

@@ -33,7 +33,8 @@ class DatabaseServer:
         self._valid_database_methods = { # TODO Programmatically list all public methods of DatabaseAPI class, for easier maintenance.
                                         #   See https://stackoverflow.com/questions/1911281/how-do-i-get-list-of-methods-in-a-python-class
                                         # Probably need to parse to get only methods and only methods that don't start with underscore.
-            "get_next_candidate"
+            "get_next_candidate",
+            "get_login_user_info"
         }
     
     def _read_request_bytes(self, bytes=DEFAULT_PACKET_SIZE):
@@ -73,6 +74,7 @@ class DatabaseServer:
         """
         request_bytes = self._read_request_bytes()
         request_json = self._decode_request_bytes(request_bytes)
+        print(f"request_json = {request_json}")
         response_json = None
         if self._is_valid_request(request_json):
             print(f"request was valid")
@@ -93,9 +95,15 @@ class DatabaseServer:
         #   beyond just method and json-arg
         # TODO Have a precursor helper method that strips everything from the dict except the expected keys.
         request_dict = json.loads(request_json) # TODO hypothetically are there malicious strings that would be problematic to read into a dict blindly?
+        print(f"in validator: request_dict = {request_dict}\nwith type {type(request_dict)}")
         if len(request_dict) != 2: # Should have exactly two keys: Method and arguments dict/object
+            print(f"Request dict should have exactly two keys, len was {len(request_dict)}")
             return False
-        if not "method" in request_dict or request_dict["method"] not in self._valid_database_methods:
+        if not "method" in request_dict:
+            print(f"method wasn't in request dict")
+            return False
+        elif request_dict["method"] not in self._valid_database_methods:
+            print(f"invalid method: {request_dict['method']}")
             return False
         # TODO validate the args? Or is DB API best positioned to validate the args to its methods?
         return True
@@ -138,6 +146,7 @@ class DatabaseServer:
                     while True:  # TODO what's the best polling frequency?
                         if (self._pipe_in, select.POLLIN) in poll.poll(1000):  # Poll every 1 second
                             # TODO just one method call here, response = self.handle_request(), then write response to the out pipe
+                            print(f"received request")
                             response = self._handle_request()
                             
                             

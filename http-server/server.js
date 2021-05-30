@@ -34,6 +34,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const apiRouter = express.Router();
 
 apiRouter.use('/candidates', candidatesRouter);
+apiRouter.use('/users', usersRouter);
 
 // apiRouter.use('/candidates', (req, res, next) => {
 //   console.log(`${req.method} matched '/candidates`)

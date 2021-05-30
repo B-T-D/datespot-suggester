@@ -133,12 +133,70 @@ class DatabaseAPI:
             else:
                 user_db.add_to_pending_likes(user_id, candidate_id)
         return json.dumps(response)
+
+    def _prune_data_user(self, user_id: str) -> dict:
+        """
+        Returns JSON data about the user appropriate for display to that same user (what
+        a user should be able to see about themself while logged in). Prunes undesired fields
+        but does not alter data from server-side format (e.g. doesn't convert the user's matches
+        to a usefully renderable list, instead leaves it as a list of user id strings.)
+        """
+        user_data = json.loads(self.get_json("user", user_id))
+        user_safe_fields = self._model_interface("user").user_safe_model_fields
+        pruned_data = {}
+        for field in user_data:
+            if field in user_safe_fields:
+                pruned_data[field] = user_data[field]
+        return pruned_data
+
+    def _prune_data_candidate(self, candidate_id: str) -> dict:
+        """
+        Returns JSON of those user fields suitable for display as a candidate to some other user.
+        JSON arg is the user id of the user to render data for.
+
+        Example JSON:
+
+            {
+                "user_id": "abc123"
+            }
+
+        """
+        candidate_data = json.loads(self.get_json("user", candidate_id))
+        candidate_safe_fields = self._model_interface("user").candidate_safe_model_fields
+        pruned_data = {}
+        for field in candidate_data:
+            if field in candidate_safe_fields:
+                pruned_data[field] = candidate_data[field]
+        return pruned_data
     
+    # TODO have the methods that return HTTP-facing JSON be named with HTTP verbs, and ones that return server-side JSON
+    #   be named differently?
+
+    def get_login_user_info(self, json_data: str) -> str:
+        """
+        Returns JSON data in response to a login request. Either data about the user suitable for frontend rendering if valid login, else
+        JSON containing an error message.
+
+        Example JSON:
+
+            {
+                "user_id": "abc123"
+            }
+        """
+        response = {}
+        user_id = json.loads(json_data)["user_id"]
+        user_db = self._model_interface("user")
+        if not user_db.validate_object_id(user_id):
+            response["error"] = f"Invalid user id: '{user_id}'"
+        else:
+            response = self._prune_data_user(user_id)
+        return json.dumps(response)
+
     def get_next_candidate(self, json_data: str) -> str:  # TODO: Return censored JSON appropriate for a Tinder-type front-end.  A React front end calling this doesn't have
                                                             #   much use for the user ID, but also don't want a swiping user to see all info about a candidate, so can't send back
                                                             #   the entire serialized User. Need a separate "send censored user data JSON to client" method
         """
-        Returns user id of next candidate.
+        Returns JSON data about next candidate appropriate for display to an unknown other user.
 
         Example JSON:
 
@@ -149,9 +207,7 @@ class DatabaseAPI:
         user_id = json.loads(json_data)["user_id"]  # TODO validate
         user_db = self._model_interface("user")
         candidate_id = user_db.query_next_candidate(user_id)
-        return json.dumps({
-            "candidate_id": candidate_id
-        })
+        return json.dumps(self._prune_data_candidate(candidate_id))
 
     def get_datespots_near(self, json_data) -> list: # TODO if this returns Datespot objects it should prob be internal
         """

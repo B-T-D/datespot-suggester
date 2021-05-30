@@ -24,6 +24,12 @@ class ModelInterfaceABC: # Abstract base class
                             #   It's faster to just fetch the existing JSON than to fetch it, instantiate, call object.serialize(), etc.
         self._validate_object_id(object_id)
         return json.dumps(self._data[object_id])
+    
+    def validate_object_id(self, object_id: str) -> bool:
+        """Returns True if the object_id corresponds to one in the database, else False."""
+        self._read_json()
+        print(f"object_id = {object_id}\ntype(object_id) = {type(object_id)}")
+        return self._is_valid_object_id(object_id)
 
     ### Private methods ###
     def _set_datafile(self): # todo this is broken, it's not actually creating the file when the file doesn't exist.
@@ -108,6 +114,17 @@ class UserModelInterface(ModelInterfaceABC):
             "pending_likes", 
             "match_blacklist",
             "force_key" # todo force_key isn't really a model field, conceptually
+        }
+        self.user_safe_model_fields = { # model fields appropriate for viewing by the user whose data it is
+            "id",
+            "name",
+            "predominant_location",
+            "matches",
+            "pending_likes"
+        }
+
+        self.candidate_safe_model_fields = { # model fields appropriate for sharing with other users
+            "name"
         }
     
     ### Public methods ###
@@ -244,7 +261,7 @@ class UserModelInterface(ModelInterfaceABC):
 
         return query_results
     
-    def query_next_candidate(self, user_id) -> int:
+    def query_next_candidate(self, user_id) -> str:
         """Return the user id of the next candidate for user user_id to swipe on."""
         self._read_json()
         if self._refresh_candidates(user_id): # todo check if user's location changed by enough to warrant new query rather than pulling from cache
