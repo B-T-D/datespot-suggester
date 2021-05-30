@@ -5,6 +5,10 @@ const { spawn, fork } = require('child_process');
 const path_a = 'fifo_node_to_python';
 const path_b = 'fifo_python_to_node';
 
+const MOCK_CANDIDATE_JSON = {
+    "name": "Boethiah",
+    "distance": "some distance"
+}
 
 function pipeHelloWorld() {
     let pipeIn = spawn('mkfifo', [path_b]); // Create the inbound pipe
@@ -20,7 +24,7 @@ function pipeHelloWorld() {
 
         setInterval(() => {
             console.log('-----   Send packet   -----');
-            fifoWriteStream.write(`${new Date().toISOString()}`);
+            fifoWriteStream.write(JSON.stringify(MOCK_CANDIDATE_JSON));
         }, 1000); // Write data at 1 second interval
 
         fifoReadStream.on('data', data => {
@@ -40,10 +44,7 @@ pipeHelloWorld()
 
 /* Temp mock function to call */
 
-const MOCK_CANDIDATE_JSON = {
-    "name": "Boethiah",
-    "distance": "some distance"
-}
+
 
 /**
  * Returns JSON according to args.
