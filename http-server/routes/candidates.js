@@ -15,10 +15,11 @@ var mockDataIn = {
     }
 }
 
-candidatesRouter.get('/', function(req, res, next) {
+candidatesRouter.get('/', async function(req, res, next) {
     //pipeHelloWorld();
-    var responseJSON = databaseRequest(mockDataIn);
-    console.log(`in candidates router: responseJSON = ${responseJSON}`);
+    var responseJSON = await databaseRequest(mockDataIn);
+    console.log(`in candidates router: responseJSON = ${responseJSON}`)
+    res.send(responseJSON);
     next()
     //console.log('candidates router called');
     //var pipesDataOut = namedPipesInterface(mockDataIn);
