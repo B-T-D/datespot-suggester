@@ -5,7 +5,7 @@ var usersRouter = express.Router();
 /* GET users listing. */
 usersRouter.get('/', function(req, res, next) {
   res.send('respond with a resource');
-  res.next()
+  next()
 });
 
 /* TODO post request to login should include the location since that's required for User init;
@@ -13,7 +13,8 @@ that's why create new user needs to be POST not GET */
 
 usersRouter.get('/login', (req, res, next) => {
   console.log(`received get request to users/login`);
-  res.next();
+  console.log(`path was ${req.path}`)
+  next();
 })
 
 /* TODO isn't it better to wrap these somehow so not every single DB-accessing Express-middleware
@@ -28,9 +29,18 @@ usersRouter.get('/login/:userId', async (req, res, next) => {
       "user_id": userId
     }
   }
-  var responseJSON = await databaseRequest(dbRequestJSON);
-  res.send(responseJSON)
-  res.next();
-})
+  let responseJSON = await databaseRequest(dbRequestJSON);
+  if (responseJSON instanceof Error) {
+    console.log("YES");
+    return next(responseJSON);
+  } else {
+    console.log("NO");
+  }
+  // responseJSON = JSON.parse(responseJSON);
+  console.log(`in usersrouter: responseJSON = ${JSON.stringify(responseJSON)} with type ${typeof(responseJSON)}`);
+  console.log(`object keys = ${Object.keys(responseJSON)}`);
+  res.send(responseJSON);
+  next();
+});
 
 module.exports = usersRouter;

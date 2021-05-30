@@ -3,7 +3,7 @@ var express = require('express');
 const cors = require('cors');
 
 var app = express();
-app.use('/', cors()); // TODO too permissive for real deployment?
+app.use(cors()); // TODO too permissive for real deployment?
 // app.options('*', cors()); 
 
 var path = require('path');
@@ -18,14 +18,7 @@ module.exports = app; // TODO do we still care about exporting it?
 
 const PORT = process.env.PORT || 8000;
 
-// TODO temp crude logging
-app.use('/', (req, res, next) => {
-  console.log(`${req.method} request received`);
-  next();
-})
-
-
-app.use(logger('dev'));
+app.use(logger('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -36,25 +29,14 @@ const apiRouter = express.Router();
 apiRouter.use('/candidates', candidatesRouter);
 apiRouter.use('/users', usersRouter);
 
-// apiRouter.use('/candidates', (req, res, next) => {
-//   console.log(`${req.method} matched '/candidates`)
-//   next()
-// })
 
 app.use('/api/v1', apiRouter);
 
 
-
-
 // app.use('/', indexRouter);
-app.use('/users', usersRouter);
-app.use('/candidates', candidatesRouter);
+// app.use('/users', usersRouter);
+// app.use('/candidates', candidatesRouter);
 
-app.use((req, res, next) => {
-  console.log(`next thing in the middleware chain was called`)
-  console.log(`req was ${req.body} to base url ${req.baseUrl}`)
-  next()
-})
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -67,9 +49,11 @@ app.use(function(err, req, res, next) {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
+  // serve the error JSON
   res.status(err.status || 500);
-  res.render('error');
+  console.log(err);
+  console.log(err.message);
+  res.send(err.message);
 });
 
 app.listen(PORT, () => {
