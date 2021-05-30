@@ -250,14 +250,13 @@ class UserModelInterface(ModelInterfaceABC):
         if self._refresh_candidates(user_id): # todo check if user's location changed by enough to warrant new query rather than pulling from cache
             self.query_users_near_user(user_id)
         user_data = self._data[user_id]
-        candidate_id = user_data["cached_candidates"].pop()[1] # todo confusing code with the slice. Does the cache really need the distance?
+        candidate_id = user_data["cached_candidates"][-1][1] # todo confusing code with the slice. Does the cache really need the distance?
         
         blacklist = user_data["match_blacklist"]  # TODO: The user's own ID never should've been in the candidates list to begin with; this is a redundancy here
         while (candidate_id in blacklist) or (candidate_id == user_id): # keep popping until a non blacklisted one is found
             candidate_id = self._data[user_id]["cached_candidates"].pop()[1] # todo again, need the slice to access the id itself rather than the list containing [distance, id]
         self._write_json()
         return candidate_id
-        # We can pop the candidate, because that id is coming back either as a match or as a blacklist, assuming the tinder model.
 
     def add_to_pending_likes(self, user_id_1: int, user_id_2: int): # todo think about most intuitive and maintainable architecture for this
         """Add a second user that this user swiped "yes" on to this user's hash map of pending likes."""

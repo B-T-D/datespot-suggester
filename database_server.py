@@ -75,9 +75,11 @@ class DatabaseServer:
         request_json = self._decode_request_bytes(request_bytes)
         response_json = None
         if self._is_valid_request(request_json):
+            print(f"request was valid")
             response_json = self._dispatch_request(request_json)
         else:
             response_json = json.dumps({"error": "Bad request to database server"})
+        print(f"response_json = {response_json}")
         return response_json.encode("utf-8")
         
     def _decode_request_bytes(self, request_bytes: ByteString):
@@ -100,8 +102,13 @@ class DatabaseServer:
 
     def _dispatch_request(self, request_json: str):
         request_dict = json.loads(request_json)
-        method, json_data = request_dict["method"], request_dict["json_data"]
-        return f"Request method was {method}, json data was {json_data}"
+        method, json_arg = request_dict["method"], json.dumps(request_dict["json_arg"])
+        assert isinstance(json_arg, str)
+        print(f"json_arg = \n{json_arg}")
+        db = DatabaseAPI() # Let it use default JSON map
+        response_json = eval(f"db.{method}(json_data=json_arg)")
+        print(f"in dispatch request: response_json = {response_json}")
+        return response_json
 
     def run_listener(self):
         """Listens for data transmitted throught the web -> DB pipe."""
@@ -144,107 +151,7 @@ class DatabaseServer:
             os.remove(FIFO_WEB_TO_DB)
             os.remove(FIFO_DB_TO_WEB)
 
-
-def get_message(fifo, bytes=DEFAULT_PACKET_SIZE):
-    """
-    Read n bytes from pipe.
-    
-    Args:
-        bytes (int): Number of bytes to read
-        fifo (file descriptor): File descriptor returned by os.open()
-    
-    Returns:
-
-        (bytestring): A bytestring containing the bytes read
-
-    """
-
-
-    return os.read(fifo, bytes)
-
-def process_message(message): # TODO copied from example, need to infer the typing
-    """Process message read from pipe."""
-    return message
-
-# TODO can this be done the opposite way, s/t each of Node and Python creates its 
-#   outbound pipe and waits on the other to create the inbound pipe? Seems more intuitive.
-
-def fifo_read_only_kiss():
-    pipe_in = os.open(FIFO_WEB_TO_DB, os.O_RDONLY | os.O_NONBLOCK)
-
-    poll = select.poll()
-    poll.register(pipe_in, select.POLLIN)
-
-    if (pipe_in, select.POLLIN) in poll.poll(1000):
-        message = get_message(pipe_in)
-        message = process_message(message)
-        print('----- Received from JS -----')
-        print("    " + message.decode("utf-8"))
-
-
-
-def fifo_main():
-    try:
-        os.mkfifo(FIFO_WEB_TO_DB) # Create the inbound pipe
-    except FileExistsError:
-        print(f"file already existed, continuing")
-        pass
-
-    try:
-        pipe_in = os.open(FIFO_WEB_TO_DB, os.O_RDONLY | os.O_NONBLOCK) # Inbound pipe is opened as read-only and in non-blocking mode
-        print("Python inbound pipe-end ready")
-        print(f"Python pipe_in = {pipe_in} with type {type(pipe_in)}")
-
-        while True: 
-            try:
-                pipe_out = os.open(FIFO_DB_TO_WEB, os.O_WRONLY) # Outbound pipe is write-only
-                print("Python outbound pipe-end ready")
-                break
-            except FileNotFoundError: # If Node process didn't create its inbound pipe yet, wait until it does so
-                #print(f"Python didn't find outbound (node inbound) pipe")
-                time.sleep(2)
-                #break
-                pass
-        
-        try:
-            poll = select.poll()
-            print(f"poll = {poll}")
-            poll.register(pipe_in, select.POLLIN)
-            print(f"select.POLLIN = {select.POLLIN}")
-
-            print(f"does the file descriptor have any pending I/O events?\n\t{poll.poll(1000)}")
-
-            try:
-                while True: # TODO adjust the polling frequency
-                    if (pipe_in, select.POLLIN) in poll.poll(1000): # Poll every 1 second
-                        message = get_message(pipe_in) # Read from the inbound pipe
-                        message = process_message(message)
-
-                        print('----- Received from JS -----')
-                        print(f"type(message) = {type(message)}")
-                        request_json = message.decode("utf-8")
-                        print(f"request_json = {request_json}")
-                        response = parse_request(request_json) # TODO do we want an internal response object?
-                        response = response.encode("utf-8")
-                        os.write(pipe_out, response)
-
-            finally:
-                poll.unregister(pipe_in)
-            
-        finally:
-            os.close(pipe_in)
-    finally:
-        os.remove(FIFO_WEB_TO_DB) # Delete the named pipes
-        os.remove(FIFO_DB_TO_WEB)
-
-def parse_request(request_json: str):
-    print(f"request was {request_json}")
-    return "test response"
-
-
 if __name__ == "__main__":
-    #fifo_main()
-    #fifo_read_only_kiss()
     server = DatabaseServer()
     server.run_listener()
     

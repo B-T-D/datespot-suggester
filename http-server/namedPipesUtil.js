@@ -12,7 +12,7 @@ const MOCK_CANDIDATE_JSON = {
 
 const MOCK_REQUEST_JSON = {
     "method": "get_next_candidate",
-    "json_data": {
+    "json_arg": {
         "user_id": "1"
     }
 }
