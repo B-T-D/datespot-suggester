@@ -84,7 +84,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 "hours" : self.terrezanos_hours,
             })
         
-        self.terrezanos_id = self.db.post_object("datespot", self.terrezanos_json)
+        self.terrezanos_id = self.db.post_object(json.dumps({"object_model_name": "datespot", "json_data": self.terrezanos_json}))
 
         # Data for mock Review of Terrezano's
 
@@ -98,8 +98,8 @@ class TestHelloWorldThings(unittest.TestCase):
 
 
         # Add two users for use in testing compound objects
-        self.db.post_object("user", self.azura_json)
-        self.db.post_object("user", self.boethiah_json)
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": self.azura_json}))
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": self.boethiah_json}))
 
         # Data for mock Message and Chat
         self.mock_bilateral_timestamp = time.time()
@@ -107,7 +107,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "start_time": time.time(),
             "participant_ids": [self.azura_id, self.boethiah_id]
         })
-        self.mock_chat_id_1 = self.db.post_object("chat", self.quick_mock_chat_json)  # Need a Chat to create a Message
+        self.mock_chat_id_1 = self.db.post_object(json.dumps({"object_model_name": "chat", "json_data": self.quick_mock_chat_json}))  # Need a Chat to create a Message
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
 
@@ -152,7 +152,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": talos_location,
             "force_key": expected_talos_id
         })
-        actual_talos_id = self.db.post_object("user", talos_json)
+        actual_talos_id = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": talos_json}))
         talos_obj = self.db.get_object("user", actual_talos_id)
         self.assertIsInstance(talos_obj, models.User)
         self.assertEqual(expected_talos_id, actual_talos_id)
@@ -180,7 +180,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "hours" : domenicos_hours
         })
         
-        domenicos_id = self.db.post_object("datespot", domenicos_json)
+        domenicos_id = self.db.post_object(json.dumps({"object_model_name": "datespot", "json_data": domenicos_json}))
         domenicos_obj = self.db.get_object("datespot", domenicos_id)
 
         self.assertIsInstance(domenicos_obj, models.Datespot)
@@ -190,22 +190,22 @@ class TestHelloWorldThings(unittest.TestCase):
             "user1_id": self.azura_id,
             "user2_id": self.boethiah_id
         })
-        match_id = self.db.post_object("match", match_json)
+        match_id = self.db.post_object(json.dumps({"object_model_name": "match", "json_data": match_json}))
         match_obj = self.db.get_object("match", match_id)
         self.assertIsInstance(match_obj, models.Match)
     
     def test_post_and_get_obj_review(self):
-        review_id = self.db.post_object("review", self.terrezanos_review_json)
+        review_id = self.db.post_object(json.dumps({"object_model_name": "review", "json_data": self.terrezanos_review_json}))
         review_obj = self.db.get_object("review", review_id)
         self.assertIsInstance(review_obj, models.Review)
     
     def test_post_and_get_obj_message(self):
-        message_id = self.db.post_object("message", self.mock_bilateral_message_json)
+        message_id = self.db.post_object(json.dumps({"object_model_name": "message", "json_data": self.mock_bilateral_message_json}))
         message_obj = self.db.get_object("message", message_id)
         self.assertIsInstance(message_obj, models.Message)
     
     def test_post_and_get_obj_chat(self):
-        chat_id = self.db.post_object("chat", self.quick_mock_chat_json)
+        chat_id = self.db.post_object(json.dumps({"object_model_name": "chat", "json_data": self.quick_mock_chat_json}))
         chat_obj = self.db.get_object("chat", chat_id)
         self.assertIsInstance(chat_obj, models.Chat)
     
@@ -371,7 +371,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "user1_id": self.azura_id,
             "user2_id": self.boethiah_id
         })
-        match_id = self.db.post_object("match", match_json)
+        match_id = self.db.post_object(json.dumps({"object_model_name": "match", "json_data": match_json}))
         match_obj = self.db.get_object("match", match_id)
 
         query_json = json.dumps({
@@ -387,8 +387,9 @@ class TestHelloWorldThings(unittest.TestCase):
             "user_id": self.azura_id
         })
         result = self.db.get_next_candidate(query_json)
-        candidate_id = json.loads(result)["candidate_id"]
-        self.assertEqual(self.boethiah_id, candidate_id)
+        print(f"result = {result}")
+        candidate_name = json.loads(result)["name"]
+        self.assertEqual(self.boethiah_name, candidate_name)
 
     # TODO Post / get obj / get json for all of:
     #     user
