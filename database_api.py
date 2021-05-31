@@ -32,7 +32,8 @@ class DatabaseAPI:
     ### Public methods ### 
 
     # TODO: Decorator that calls string.lower() on object_model_name for any method that takes that as a string arg.
-    def post_object(self, object_model_name: str, json_data: str, **kwargs) -> str: # todo kwargs should be deleteable now
+    
+    def post_object(self, json_arg: str) -> str:
         """
         Add data for a new object to the database and return its id string.
 
@@ -44,11 +45,22 @@ class DatabaseAPI:
         json_data examples:
 
             Creating a user with forced key:
-                {"name": myUserName,
-                "current_location": [40.00, -71.00],
-                "force_key": "1"}
+
+                {
+                    "object_model_name": "user",
+                    "json_data": {
+                        "name": myUserName,
+                        "current_location": [40.00, -71.00],
+                        "force_key": "1"
+                    }
+                }
+            
+            - Location and name are required to create a new user
 
         """ # If force_key for creating a user, put that as JSON key/field.
+        json_arg = json.loads(json_arg)
+        object_model_name = json_arg["object_model_name"]
+        json_data = json_arg["json_data"]
         self._validate_model_name(object_model_name)
         new_object_id = self._model_interface(object_model_name).create(json_data)
         if new_object_id:

@@ -146,7 +146,7 @@ class DatabaseServer:
                     while True:  # TODO what's the best polling frequency?
                         if (self._pipe_in, select.POLLIN) in poll.poll(1000):  # Poll every 1 second
                             # TODO just one method call here, response = self.handle_request(), then write response to the out pipe
-                            print(f"received request")
+                            print(f"--------  received request  --------")
                             response = self._handle_request()
                             
                             

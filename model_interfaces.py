@@ -133,6 +133,16 @@ class UserModelInterface(ModelInterfaceABC):
         """
         Takes json data in the app's internal format and returns the id key of the newly created user.
         Force key arg is for testing purposes to not always have huge unreadable uuids.
+
+        json_data examples:
+
+            {
+                "name": "foo",
+                "current_location": [40.00, -71.00]
+            }
+        
+            - Name and location are required
+
         """
         
         self._read_json()
