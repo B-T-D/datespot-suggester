@@ -1,5 +1,5 @@
 var express = require('express');
-const databaseRequest = require('../namedPipesUtil');
+const queryDb = require('../namedPipesUtil');
 var usersRouter = express.Router();
 
 /* GET users listing. */
@@ -31,7 +31,8 @@ usersRouter.get('/login/:userId', async (req, res, next) => {
         "user_id": userId
       }
     }
-    responseJSON = await databaseRequest(dbRequestJSON);
+    responseJSON = await queryDb(dbRequestJSON);
+    console.log(`in userRouter: responseJSON type = ${typeof(responseJSON)}`)
     console.log(`in usersrouter: responseJSON = ${JSON.stringify(responseJSON)} with type ${typeof(responseJSON)}`);
     console.log(`object keys = ${Object.keys(responseJSON)}`);
     res.json(responseJSON);
