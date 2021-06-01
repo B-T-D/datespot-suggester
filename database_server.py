@@ -4,6 +4,38 @@
 #   why they communicate with named pipes. It's not a separate "Web server" and "DB server" because
 #   the Node process and the Python process *must* run on the same machine, as set up here. 
 
+# TODO conform code to the standardized request/response "protocol" in the docstring
+
+"""
+Protocol:
+    - Requests and Responses are JSON-legal strings.
+    - Requests state the packet size in bytes and then have the main request as nested JSON
+    - Responses state the packet size in bytes, a binary status code, and the main response as nested JSON
+    - Status codes are 0 for normal response, 1 for error
+    - If error, the main response JSON provides an error message.
+
+Request format:
+
+    request (str) = {
+        "packet_size": <int>,
+        "request_json": {
+            "database_method": <str>,
+            "json_arg": {<args to the relevant DatabaseAPI method>}
+        }
+    }
+
+Response format:
+
+    response (str) = {
+        "packet_size": <int>,
+        "status_code": <int>,
+        "response_json": {
+            <return value of the underlying DatabaseAPI method, or error message>
+        }
+    }
+
+"""
+
 
 from multiprocessing import Process, Pipe # TODO Tbd if there will be any communication between Python processes that can use this instead of the IPC FIFO pipes
 
@@ -93,6 +125,11 @@ class DatabaseServer:
     
     def _is_valid_request(self, request_json: str) -> bool:
         """Returns True if the request is appropriate JSON to pass to the DatabaseAPI, else False."""
+
+        # TODO Instead of the bool, have it raise various errors with custom messages, so that a try-except caller
+        #   can then pass those messages back to Node to (a) let this server keep running without having to be restarted
+        #   and (b) give info to Node that's more helpful than just unspecified "bad request"
+
         # TODO Can't rely on the dict being properly formatted; could be arbitrary additional keys
         #   beyond just method and json-arg
         # TODO Have a precursor helper method that strips everything from the dict except the expected keys.
@@ -123,7 +160,7 @@ class DatabaseServer:
         return response_json
 
     def run_listener(self):
-        """Listens for data transmitted throught the web -> DB pipe."""
+        """Listens for data transmitted through the web -> DB pipe."""
         try:
             os.mkfifo(FIFO_WEB_TO_DB) # Create inbound pipe (web -> DB)
         except FileExistsError: # TODO it should never already exist in this namespace, right? Because that would mean a non-normal
@@ -149,7 +186,6 @@ class DatabaseServer:
                 try:
                     while True:  # TODO what's the best polling frequency?
                         if (self._pipe_in, select.POLLIN) in poll.poll(1000):  # Poll every 1 second
-                            # TODO just one method call here, response = self.handle_request(), then write response to the out pipe
                             print(f"--------  received request at {time.time()} --------")
                             response = self._handle_request()
                             

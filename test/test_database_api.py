@@ -267,10 +267,10 @@ class TestHelloWorldThings(unittest.TestCase):
     
     # TODO complete for other models and their main anticipated update cases
 
-    ### Tests for post_swipe() ###
-    def test_post_yes_swipe_no_match(self):
-        """Does posting a "yes" swipe that doesn't create a match return the expected JSON?"""
-        swipe_yes_json = json.dumps({
+    ### Tests for post_decision() ###
+    def test_post_yes_decision_no_match(self):
+        """Does posting a "yes" decision that doesn't create a match return the expected JSON?"""
+        decision_yes_json = json.dumps({
             "user_id": self.azura_id,
             "candidate_id": self.boethiah_id,
             "outcome": True
@@ -278,21 +278,21 @@ class TestHelloWorldThings(unittest.TestCase):
         expected_response_json = json.dumps({
             "match_created": False
         })
-        actual_response_json = self.db.post_swipe(swipe_yes_json)
+        actual_response_json = self.db.post_decision(decision_yes_json)
         self.assertEqual(expected_response_json, actual_response_json)
     
-    def test_post_yes_swipe_yes_match(self):
-        """Does posting a "yes" swipe that creates a match return the expected JSON?"""
-        # Post a swipe of Azura liking Boethiah:
-        azura_swipe_yes_json = json.dumps({
+    def test_post_yes_decision_yes_match(self):
+        """Does posting a "yes" decision that creates a match return the expected JSON?"""
+        # Post a decision of Azura liking Boethiah:
+        azura_decision_yes_json = json.dumps({
             "user_id": self.azura_id,
             "candidate_id": self.boethiah_id,
             "outcome": True
         })
-        self.db.post_swipe(azura_swipe_yes_json)
+        self.db.post_decision(azura_decision_yes_json)
 
-        # Post a second swipe of Boethiah liking Azura
-        boethiah_swipe_yes_json = json.dumps({
+        # Post a second decision of Boethiah liking Azura
+        boethiah_decision_yes_json = json.dumps({
             "user_id": self.boethiah_id,
             "candidate_id": self.azura_id,
             "outcome": True
@@ -302,12 +302,12 @@ class TestHelloWorldThings(unittest.TestCase):
             "match_created": True
         })
 
-        actual_response_json = self.db.post_swipe(boethiah_swipe_yes_json)
+        actual_response_json = self.db.post_decision(boethiah_decision_yes_json)
         self.assertEqual(expected_response_json, actual_response_json)
     
-    def test_post_no_swipe(self):
-        """Does posting a "no" swipe return the expected JSON?"""
-        swipe_no_json = json.dumps({
+    def test_post_no_decision(self):
+        """Does posting a "no" decision return the expected JSON?"""
+        decision_no_json = json.dumps({
             "user_id": self.azura_id,
             "candidate_id": self.boethiah_id,
             "outcome": False
@@ -315,7 +315,7 @@ class TestHelloWorldThings(unittest.TestCase):
         expected_response_json = json.dumps({
             "match_created": False
         })
-        actual_response_json = self.db.post_swipe(swipe_no_json)
+        actual_response_json = self.db.post_decision(decision_no_json)
         self.assertEqual(expected_response_json, actual_response_json)
     
     def test_non_boolean_outcome_raises_error(self):
@@ -326,7 +326,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "outcome": 2
         })
         with self.assertRaises(ValueError):
-            self.db.post_swipe(bad_json)
+            self.db.post_decision(bad_json)
 
     ### Tests for get_datespots_near() ###
 

@@ -25,7 +25,7 @@ class ModelInterfaceABC: # Abstract base class
         self._validate_object_id(object_id)
         return json.dumps(self._data[object_id])
     
-    def validate_object_id(self, object_id: str) -> bool:
+    def is_valid_object_id(self, object_id: str) -> bool:
         """Returns True if the object_id corresponds to one in the database, else False."""
         self._read_json()
         print(f"object_id = {object_id}\ntype(object_id) = {type(object_id)}")

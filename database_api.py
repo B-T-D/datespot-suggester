@@ -6,18 +6,22 @@ Goal is for external calling code to be unaffected by SQL vs. NoSQL and similar 
 """
 
 import json
-import sys
+import sys, os, dotenv
 
 import model_interfaces
 
 import api_clients.yelp_api_client
-
+from project_constants import *
 
 # Todo: In a live app, the messages wouldn't go through this JSON backend for analysis before continuing on to the recipient(s). Something would copy them
 #   in the middle, send them immediately on to recipient, and then dispatch the data to the backend for analysis on a less urgent timeframe.
 
+# dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+# dotenv.load_dotenv(dotenv_path)
+
 JSON_MAP_FILENAME = "jsonMap.json"
-DEFAULT_RADIUS = 2000
+# DEFAULT_RADIUS = os.environ.get("DEFAULT_RADIUS")
+# LAT_LON_DECIMAL_PLACES = os.environ.get("LAT_LON_DECIMAL_PLACES")  
 
 class DatabaseAPI:
 
@@ -150,6 +154,7 @@ class DatabaseAPI:
 
             - false indicates user doesn't want to match with candidate
         """
+        print(f"json_arg input with type {type(json_arg)} = \n{json_arg}")
         swipe_data = json.loads(json_arg)
         user_id, candidate_id, outcome = swipe_data["user_id"], swipe_data["candidate_id"], swipe_data["outcome"]
         # if not self._is_valid_decision:  # TODO implement--requires updating User model to have a candidates data structure
@@ -230,7 +235,7 @@ class DatabaseAPI:
         response = {}
         user_id = json.loads(json_arg)["user_id"]
         user_db = self._model_interface("user")
-        if not user_db.validate_object_id(user_id):
+        if not user_db.is_valid_object_id(user_id):
             response["error"] = f"Invalid user id: '{user_id}'"
         else:
             response = self._prune_data_user(user_id)

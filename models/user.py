@@ -1,8 +1,14 @@
 from models.app_object_type import DatespotAppType
 
-TASTE_STRENGTH_DECIMAL_PLACES = 6 # Todo confirm this is however many significant figures VSA includes
+import collections
+
+from project_constants import TASTE_STRENGTH_DECIMAL_PLACES
+
 
 class User(metaclass=DatespotAppType):
+
+    # TODO this should store Candidates list, probably as a list of User objects rather than IDs. If that is storage/memory/time intensive,
+    #   then can shrink the size of the candidates queue--user can only ever swipe on one at a time.
 
     def __init__(
         self,
@@ -11,6 +17,7 @@ class User(metaclass=DatespotAppType):
         current_location,
         predominant_location: tuple=None,
         tastes: dict={},
+        candidates: list=[],
         matches: dict={},
         pending_likes: dict={},
         match_blacklist: dict={},
@@ -44,7 +51,7 @@ class User(metaclass=DatespotAppType):
                                 #   one match. If user said to someone else "Terrezano's is the worst
                                 # restaurant on earth", that's relevant to all future matches containing
                                 #   that user.
-
+        self.candidates = collections.deque(candidates)
         self.matches = {} # Users this user matched with and therefore can chat with.
         self.pending_likes = {} # Users this user swiped "accept" on, but who haven't yet swiped back. Keys are user ids, values are time.time() timestamps
          
@@ -88,7 +95,11 @@ class User(metaclass=DatespotAppType):
     def taste_strength(self, taste) -> float: # Public method so external callers aren't affected by the confusing indexing in the tastes dict values
         """
         Return the current weighted average strength-score for this taste.
+
+        Args:
+            taste (str): Name of one of the tastes in this user's tasts attribute.
         """
+        print(TASTE_STRENGTH_DECIMAL_PLACES)
         return round(self._tastes[taste][0], TASTE_STRENGTH_DECIMAL_PLACES)
     
     def taste_datapoints(self, taste) -> int: # toto YAGNI?
@@ -107,8 +118,9 @@ class User(metaclass=DatespotAppType):
             "predominant_location": self.predominant_location,
             "tastes": self._tastes,
             "travel_propensity": self.travel_propensity,
-            "matches": self.matches,
+            "candidates": list(self.candidates),  # TODO customize json module to make it serialize a collections.deque automatically
             "pending_likes": self.pending_likes,
+            "matches": self.matches,
             "match_blacklist": self.match_blacklist
         }
     
@@ -133,6 +145,55 @@ class User(metaclass=DatespotAppType):
             new_datapoints = prior_datapoints + 1
             new_strength = (weighted_prior_strength + strength) / new_datapoints
             self._tastes[taste] = [new_strength, new_datapoints]
+    
+    def next_candidate(self):
+        """
+        Returns the next candidate from this User's candidates queue.
+        
+        Returns:
+            (User): User object for the next candidate.
+
+        """
+        raise NotImplementedError
+    
+    def accept_candidate(self, accepted_candidate) -> bool:
+        """
+        Moves an accepted candidate ("yes" decision) from this User's candidates queue to either their 
+        matches (if other User already submitted a "yes" decision on this User) or their pending 
+        matches (if not). Returns True if a match was created, else False.
+
+        Args:
+            accepted_candidate (User): User object for the accepted candidate.
+
+        Returns:
+            (bool): True if a match was created, else False
+        """
+        raise NotImplementedError
+    
+    def reject_candidate(self, rejected_candidate) -> None:
+        """
+        Moves a rejected candidate ("no" decision) from this User's candidates queue to their blacklist.
+        If this User was in the rejected candidate's pending matches, removes it.
+        Args:
+            rejected_candidate (User): User object for the rejected candidate.
+        
+        Returns:
+            None
+        """
+        raise NotImplementedError
+    
+    def defer_candidate(self, deferred_candidate) -> None:
+        """
+        Moves a deferred candidate ("pass"/"maybe later" decision) from the head of this User's candidates queue
+        to the end.
+        """
+        raise NotImplementedError
+    
+    def _blacklist(self, rejected_candidate) -> None:
+        """Adds a rejected candidate to this User's blacklist."""
+        raise NotImplementedError
+    
+
 
     ### Private methods ###
 

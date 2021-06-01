@@ -3,8 +3,7 @@ from models.app_object_type import DatespotAppType
 import nltk
 from vaderSentiment import vaderSentiment as vs
 
-SENTIMENT_DECIMAL_PLACES = 4 # TODO this should be an EV or a constant in an ABC shared by Review, Message, and any other
-                                #   code that calls VSA methods that return floats.
+from project_constants import *
 
 class Review(metaclass=DatespotAppType):
 

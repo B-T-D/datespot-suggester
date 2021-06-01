@@ -3,11 +3,7 @@ import models.user as user
 
 import json
 
-import hashlib, struct
-
-BASELINE_SCORING_DATA = "data_static/datespot_baseline_scoring_data.json"
-MAX_LATLON_COORD_DECIMAL_PLACES = 8
-DATESPOT_SCORE_DECIMAL_PLACES = 4
+from project_constants import *
 
 class Datespot(metaclass=DatespotAppType):
 
@@ -46,8 +42,8 @@ class Datespot(metaclass=DatespotAppType):
         assert isinstance(location, tuple)
         assert isinstance(traits, dict)
         self._location = ( # External code shouldn't mess with this, e.g. e.g. inadvertently casting to string or changing number of decimal places
-            round(location[0], MAX_LATLON_COORD_DECIMAL_PLACES),
-            round(location[1], MAX_LATLON_COORD_DECIMAL_PLACES)
+            round(location[0], LAT_LON_DECIMAL_PLACES),
+            round(location[1], LAT_LON_DECIMAL_PLACES)
             )
         self.location = self._location
         self.name = name
