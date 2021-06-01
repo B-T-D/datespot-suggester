@@ -164,6 +164,12 @@ class DatabaseAPI:
             # first check if the other user already liked the active user:
             if user_db.lookup_is_user_in_pending_likes(candidate_id, user_id):
                 response["match_created"] = True
+                match_db = self._model_interface("match")  # Handle Match creation here
+                match_id = match_db.create(json.dumps({
+                    "user1_id": user_id,
+                    "user2_id": candidate_id
+                }))
+                
             else:
                 user_db.add_to_pending_likes(user_id, candidate_id)
         return json.dumps(response)

@@ -53,7 +53,14 @@ class Match(metaclass=DatespotAppType):
                                     # Todo: How often to update with fresh data? Whenever data on either user's preferences changed?
         self._max_suggestions_queue_length = 50
 
-        self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date. 
+        self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date.
+
+        # Make sure each User's dict of Matches includes this one:
+        if not self.id in self.user1.matches:
+            self.user1.matches[self.id] = self.timestamp
+        if not self.id in self.user2.matches:
+            self.user2.matches[self.id] = self.timestamp
+            
     
     ### Public methods ###
 

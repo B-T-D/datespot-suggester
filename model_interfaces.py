@@ -88,6 +88,20 @@ class ModelInterfaceABC: # Abstract base class
         self._read_json()
         return self._data
     
+    def sync(self, object) -> None:
+        """
+        Overwrites database entry for the passed object with that object's current serialized data. Meant to be called
+        by one model interface when it updates some other model, e.g. when the MatchMI creates a Match and needs to update each of 
+        the two Users.
+        
+        Args:
+            object: User, Datespot, Match, etc. instance.
+        
+        """
+        self._read_json()
+        self._data[object.id] = object.serialize()
+        self._write_json()
+    
     def delete(self, object_id: int) -> None:
         """Delete the data for key object_id."""
         self._read_json()
@@ -233,12 +247,11 @@ class UserModelInterface(ModelInterfaceABC):
                 self._update_tastes(user_id, new_tastes_data)
             elif entry_type == list:
                 self._data[user_id][key].extend(new_data[key])
-            elif isinstance(entry, set):
-                entry |= new_data[key] # todo this would require the new data to have been parsed to a set
             else:
                 self._data[user_id][key] = new_data[key]
         self._write_json()
         return
+
     
     # todo all the "query objects near" methods could probably be abstracted to the ABC.
     def query_users_currently_near_location(self, location: tuple, radius=50000) -> list: # todo is the radius parameter totally unnecessary? 
@@ -536,7 +549,15 @@ class MatchModelInterface(ModelInterfaceABC):
 
     def create(self, json_str: str) -> str:
         """
-        Create a Match object from the two users and return its id key.
+        Creates a Match object from the two users and return its id key.  Handles adding the Match reference to stored data
+        for each constituent User.
+
+        json example:
+            {
+                "user1_id": "abc123",
+                "user2_id": "zyx987"
+            }
+
         """
         self._read_json()
         json_dict = json.loads(json_str)
@@ -546,6 +567,11 @@ class MatchModelInterface(ModelInterfaceABC):
         new_object_id = match_obj.id
         self._data[new_object_id] = match_obj.serialize()
         self._write_json()
+
+        # Update each of the two User objects' stored data:
+        self.user_api_instance.sync(user1_obj)
+        self.user_api_instance.sync(user2_obj)
+
         return new_object_id
     
     def lookup_obj(self, match_id: int) -> models.Match:
