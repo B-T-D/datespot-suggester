@@ -29,13 +29,13 @@ class User(metaclass=DatespotAppType):
         self.id = user_id # Unlike Datespot and Match, the id isn't a function of hashing some attribute of the object; it comes from the chronological creation order in the DB
         self.name = name
         self._current_location = current_location
-        self.predominant_location = None
         if predominant_location:
-            self.predominant_location = predominant_location # Todo: If no other data, return the current location to an external caller. If multiple current location data points, and no
+            self._predominant_location = predominant_location # Todo: If no other data, return the current location to an external caller. If multiple current location data points, and no
                                                             # confident fixed "this is where they live", compute predominant_location to be a time-weighted average location (weighted for how long the user spent at each point).
                                                         # Todo: Ideally, could watch for the user to state in chat where they live, and then lock the predominant_location to that.                                             #   e.g. translate "East Village" or "72nd and amsterdam" into an approximate lat lon.
         else:
-            self.predominant_location = self._compute_predominant_location()
+            self._predominant_location = self._compute_predominant_location()
+        self._fixed_predominant_location = False  # True if e.g. the User provided their home address
 
         self._tastes = tastes # Private attribute, because the structure of the dict's values is a confusing implementation detail.
 
@@ -70,6 +70,13 @@ class User(metaclass=DatespotAppType):
     @property
     def current_location(self):
         return tuple(self._current_location) # Easier to allow external code to just pass it in as a list as decoded from JSON
+    
+    @property
+    def predominant_location(self):
+        for coord in self._predominant_location:  # Make sure coords go out as floats, even if they somehow got written into the model layer as strings
+            if isinstance(coord, str):  
+                self._predominant_location = (float(self._predominant_location[0]), float(self._predominant_location[1]))
+        return self._predominant_location
 
     def taste_names(self):  # TODO would this be a good use case for a yield generator?
                             # i.e. lazily yield them one at a time for the caller to iterate over. The datespot scorer method iterates over them.
@@ -130,4 +137,5 @@ class User(metaclass=DatespotAppType):
     ### Private methods ###
 
     def _compute_predominant_location(self): # todo, placeholder for more sophisticated
+
         return self.current_location

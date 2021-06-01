@@ -41,22 +41,30 @@ usersRouter.get('/login/:userId', async (req, res, next) => {
   }
 });
 
-usersRouter.post('/signup', (req, res, next) => {
-  console.log(`received signup post request with query = ${JSON.stringify(req.query)}}`)
-  let name = req.query.name;
-  let location = [req.query.latitude, req.query.longitude];
-  let dbRequestJSON = {
-    "method": "post_object",
-    "json_arg": {
-      "object_model_name": "user",
-      "json_data": {
-        "name": name,
-        "current_location": location
+usersRouter.post('/signup', async (req, res, next) => {
+  try {
+
+  
+    console.log(`received signup post request with query = ${JSON.stringify(req.query)}`)
+    let name = req.query.name;
+    let location = [req.query.latitude, req.query.longitude];
+    let dbRequestJSON = {
+      "method": "post_object",
+      "json_arg": {
+        "object_model_name": "user",
+        "json_data": {
+          "name": name,
+          "current_location": location
+          }
         }
       }
-    }
-  console.log(`dbRequest data is ${JSON.stringify(dbRequestJSON)}`);
-  next();
+    console.log(`dbRequest data is ${JSON.stringify(dbRequestJSON)}`);
+    responseJSON = await queryDb(dbRequestJSON);
+    res.json(responseJSON);
+    next();
+  } catch(err) {
+    return next(err)
+  }
 })
 
 module.exports = usersRouter;

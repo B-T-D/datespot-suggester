@@ -34,7 +34,8 @@ class DatabaseServer:
                                         #   See https://stackoverflow.com/questions/1911281/how-do-i-get-list-of-methods-in-a-python-class
                                         # Probably need to parse to get only methods and only methods that don't start with underscore.
             "get_next_candidate",
-            "get_login_user_info"
+            "get_login_user_info",
+            "post_object"
         }
     
     def _read_request_bytes(self, bytes=DEFAULT_PACKET_SIZE):
@@ -74,13 +75,13 @@ class DatabaseServer:
         """
         request_bytes = self._read_request_bytes()
         request_json = self._decode_request_bytes(request_bytes)
-        print(f"request_json = {request_json}")
+        print(f"request_json = {request_json} \n\t type {type(request_json)}\n\tlen = {len(request_json)}")
         response_json = None
         if self._is_valid_request(request_json):
             print(f"request was valid")
             response_json = self._dispatch_request(request_json)
         else:
-            response_json = json.dumps({"error": "Bad request to database server"})
+            response_json = json.dumps({"error": f"Bad request to database server at {time.time()}"})
         print(f"response_json = {response_json}")
         return response_json.encode("utf-8")
         
@@ -94,6 +95,8 @@ class DatabaseServer:
         # TODO Can't rely on the dict being properly formatted; could be arbitrary additional keys
         #   beyond just method and json-arg
         # TODO Have a precursor helper method that strips everything from the dict except the expected keys.
+        if not request_json or not isinstance(request_json, str):
+            return False
         request_dict = json.loads(request_json) # TODO hypothetically are there malicious strings that would be problematic to read into a dict blindly?
         print(f"in validator: request_dict = {request_dict}\nwith type {type(request_dict)}")
         if len(request_dict) != 2: # Should have exactly two keys: Method and arguments dict/object
@@ -114,7 +117,7 @@ class DatabaseServer:
         assert isinstance(json_arg, str)
         print(f"json_arg = \n{json_arg}")
         db = DatabaseAPI() # Let it use default JSON map
-        response_json = eval(f"db.{method}(json_data=json_arg)")
+        response_json = eval(f"db.{method}(json_arg=json_arg)")
         print(f"in dispatch request: response_json = {response_json}")
         return response_json
 
@@ -146,7 +149,7 @@ class DatabaseServer:
                     while True:  # TODO what's the best polling frequency?
                         if (self._pipe_in, select.POLLIN) in poll.poll(1000):  # Poll every 1 second
                             # TODO just one method call here, response = self.handle_request(), then write response to the out pipe
-                            print(f"--------  received request  --------")
+                            print(f"--------  received request at {time.time()} --------")
                             response = self._handle_request()
                             
                             

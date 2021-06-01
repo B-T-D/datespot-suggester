@@ -64,7 +64,7 @@ class DatabaseAPI:
         self._validate_model_name(object_model_name)
         new_object_id = self._model_interface(object_model_name).create(json_data)
         if new_object_id:
-            return new_object_id
+            return self.get_login_user_info(json.dumps({"user_id": new_object_id}))
         else:
             raise Exception("Failed to post object")
 
@@ -84,13 +84,33 @@ class DatabaseAPI:
         model_db = self._model_interface(object_type)
         return model_db.lookup_obj(object_id)
 
-    def get_json(self, object_type, object_id) -> str:
+    def get_json(self, json_arg: str) -> str:
+        """
+        Return the JSON for the object corresponding to object_id.
+
+        json_arg examples:
+
+            Get a user by id:
+
+                {
+                    "object_model_name": "user",
+                    "object_id": "abc123"
+                }
+        """
+        json_arg = json.loads(json_arg)
+        object_model_name = json_arg["object_model_name"]
+        object_id = json_arg["object_id"]
+        self._validate_model_name(object_model_name)
+        model_db = self._model_interface(object_model_name)
+        return model_db.lookup_json(object_id)
+    
+    def _get_json(self, object_type, object_id) -> str: # internal version that doesn't require tedious JSON arg
         """
         Return the JSON for the object corresponding to object_id.
         """
         self._validate_model_name(object_type)
         model_db = self._model_interface(object_type)
-        return model_db.lookup_json(object_id) # todo not implemented for match model interface
+        return model_db.lookup_json(object_id)
 
     def get_all_json(self, object_type) -> str:
         """
@@ -153,7 +173,7 @@ class DatabaseAPI:
         but does not alter data from server-side format (e.g. doesn't convert the user's matches
         to a usefully renderable list, instead leaves it as a list of user id strings.)
         """
-        user_data = json.loads(self.get_json("user", user_id))
+        user_data = json.loads(self._get_json("user", user_id))
         user_safe_fields = self._model_interface("user").user_safe_model_fields
         pruned_data = {}
         for field in user_data:
@@ -173,7 +193,7 @@ class DatabaseAPI:
             }
 
         """
-        candidate_data = json.loads(self.get_json("user", candidate_id))
+        candidate_data = json.loads(self._get_json("user", candidate_id))
         candidate_safe_fields = self._model_interface("user").candidate_safe_model_fields
         pruned_data = {}
         for field in candidate_data:
@@ -184,7 +204,7 @@ class DatabaseAPI:
     # TODO have the methods that return HTTP-facing JSON be named with HTTP verbs, and ones that return server-side JSON
     #   be named differently?
 
-    def get_login_user_info(self, json_data: str) -> str:
+    def get_login_user_info(self, json_arg: str) -> str:
         """
         Returns JSON data in response to a login request. Either data about the user suitable for frontend rendering if valid login, else
         JSON containing an error message.
@@ -196,7 +216,7 @@ class DatabaseAPI:
             }
         """
         response = {}
-        user_id = json.loads(json_data)["user_id"]
+        user_id = json.loads(json_arg)["user_id"]
         user_db = self._model_interface("user")
         if not user_db.validate_object_id(user_id):
             response["error"] = f"Invalid user id: '{user_id}'"
@@ -204,7 +224,7 @@ class DatabaseAPI:
             response = self._prune_data_user(user_id)
         return json.dumps(response)
 
-    def get_next_candidate(self, json_data: str) -> str:  # TODO: Return censored JSON appropriate for a Tinder-type front-end.  A React front end calling this doesn't have
+    def get_next_candidate(self, json_arg: str) -> str:  # TODO: Return censored JSON appropriate for a Tinder-type front-end.  A React front end calling this doesn't have
                                                             #   much use for the user ID, but also don't want a swiping user to see all info about a candidate, so can't send back
                                                             #   the entire serialized User. Need a separate "send censored user data JSON to client" method
         """
@@ -216,7 +236,7 @@ class DatabaseAPI:
                 "user_id": "abc123"
             }
         """
-        user_id = json.loads(json_data)["user_id"]  # TODO validate
+        user_id = json.loads(json_arg)["user_id"]  # TODO validate
         user_db = self._model_interface("user")
         candidate_id = user_db.query_next_candidate(user_id)
         return json.dumps(self._prune_data_candidate(candidate_id))

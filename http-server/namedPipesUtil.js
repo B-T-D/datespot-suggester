@@ -47,6 +47,7 @@ function queryDb(queryData) {
             dbResponse.removeAllListeners();
             resolve(responseData)
         }).on('error', (error) => {
+            console.log(`emitted error event`);
             reject(error);
         }).on('resume', () => {
             console.log(`emitted resume event`);  

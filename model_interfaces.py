@@ -146,7 +146,9 @@ class UserModelInterface(ModelInterfaceABC):
         """
         
         self._read_json()
-        json_dict = json.loads(json_data)
+        json_dict = json_data
+        if isinstance(json_dict, str): # Just in case it somehow made it here as a string
+            json_dict = json.loads(json_dict)
         self._validate_json_fields(json_dict)
         if "force_key" in json_dict:
             force_key = json_dict["force_key"]
@@ -154,7 +156,7 @@ class UserModelInterface(ModelInterfaceABC):
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
             user_id = force_key
         else:
-            user_id  = str(uuid.uuid1().int)
+            user_id  = uuid.uuid1().hex  
         new_user = models.User(
             user_id = user_id,
             name=json_dict["name"],
@@ -245,12 +247,13 @@ class UserModelInterface(ModelInterfaceABC):
         # Defaults to a very high radius, expectation is that radius won't be specified in most queries.
 
         if (not location) or (not geo_utils.is_valid_lat_lon(location)): # todo best architectural place for validating this?
-            raise ValueError(f"Bad lat lon location: {location}")
+            raise ValueError(f"Bad lat lon location: {location}\n\ttype = {type(location)}")
         self._read_json()
         query_results = []
         for user_id in self._data:
-            user = self._data[user_id]
-            user_location = user["current_location"]
+            user = self.lookup_obj(user_id)
+            user_location = user.predominant_location
+            assert isinstance(user_location[0], float), f"user_location = {user_location}"
             distance = geo_utils.haversine(location, user_location)
             if distance < radius:
                 query_results.append((distance, user_id)) # todo no need to put the whole dict into the results, right?
