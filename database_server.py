@@ -36,7 +36,6 @@ Response format:
 
 """
 
-
 from multiprocessing import Process, Pipe # TODO Tbd if there will be any communication between Python processes that can use this instead of the IPC FIFO pipes
 
 import os
@@ -71,12 +70,12 @@ class DatabaseServer:
             "post_decision"
         }
     
-    def _read_request_bytes(self, bytes=DEFAULT_PACKET_SIZE):
+    def _read_request_bytes(self, packet_size=DEFAULT_PACKET_SIZE):
         """
-        Read bytes bytes from inbound pipe.
+        Read packet_size bytes from inbound pipe.
 
         Args:
-            bytes (int): Number of bytes to read. Defaults to the max packet size constant.
+            packet_size (int): Number of bytes to read. Defaults to the max packet size constant.
         
         Returns:
             (bytesring): Bytestring of the bytes read from the pipe.
@@ -98,11 +97,10 @@ class DatabaseServer:
         # TODO it may be, in practice, that if only sending JSON, none of the transmissions will be anywhere near the max buffer size,
         #   and that setting a comfortably large buffer won't cause problems. These are strings not image files.
 
-        return os.read(self._pipe_in, bytes)
+        return os.read(self._pipe_in, packet_size)
     
     def _handle_request(self):
         """
-
         Returns:
             (ByteString): Bytes ready to be written into the outbound DB->Web pipe
         """
@@ -203,4 +201,3 @@ class DatabaseServer:
 if __name__ == "__main__":
     server = DatabaseServer()
     server.run_listener()
-    

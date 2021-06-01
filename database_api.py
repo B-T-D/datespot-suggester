@@ -43,10 +43,10 @@ class DatabaseAPI:
 
         Args:
             
-            object_type (str): "user", "datespot", or "match"
-            json_data (str): String in correct JSON format.
+            json_arg (str): JSON string specifying the object-model name to create, and providing
+                the initialization data for the new object.
         
-        json_data examples:
+        json_arg examples:
 
             Creating a user with forced key:
 
@@ -68,7 +68,7 @@ class DatabaseAPI:
         self._validate_model_name(object_model_name)
         new_object_id = self._model_interface(object_model_name).create(json_data)
         if new_object_id:
-            return self.get_login_user_info(json.dumps({"user_id": new_object_id}))
+            return new_object_id
         else:
             raise Exception("Failed to post object")
 

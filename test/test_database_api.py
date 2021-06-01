@@ -153,6 +153,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "force_key": expected_talos_id
         })
         actual_talos_id = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": talos_json}))
+        self.assertIsInstance(actual_talos_id, str)
         talos_obj = self.db.get_object("user", actual_talos_id)
         self.assertIsInstance(talos_obj, models.User)
         self.assertEqual(expected_talos_id, actual_talos_id)
@@ -215,7 +216,7 @@ class TestHelloWorldThings(unittest.TestCase):
         # Get the expected JSON from the model interface one layer down from the DB API being tested here:
         user_db = model_interfaces.UserModelInterface(TEST_JSON_DB_NAME)
         expected_json = user_db.lookup_json(self.azura_id)
-        actual_json = self.db.get_json("user", self.azura_id)
+        actual_json = self.db.get_json(json.dumps({"object_model_name": "user", "object_id": self.azura_id}))
         self.assertEqual(expected_json, actual_json)
     
     def test_get_json_datespot(self): # TODO Complete these for thoroughness. More presisng stuff 5/26; these aren't needed for simple coverage.
@@ -325,7 +326,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "candidate_id": self.boethiah_id,
             "outcome": 2
         })
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             self.db.post_decision(bad_json)
 
     ### Tests for get_datespots_near() ###
