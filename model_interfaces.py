@@ -192,19 +192,41 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_object_id(user_id)
         user_data = self._data[user_id]
+        #  Use Candidate objects to avoid recursively initializing User objects for candidates of candidates
+        candidates = []
+        for candidate_id in user_data["candidates"]:
+            candidates.append(self._lookup_candidate_obj(candidate_id))
+
         user_obj = models.User(
             user_id = user_id,
             name=user_data["name"],
             current_location=user_data["current_location"],
             predominant_location = user_data["predominant_location"],
             tastes = user_data["tastes"],
+            travel_propensity = user_data["travel_propensity"],
+            candidates = candidates,
             matches = user_data["matches"],
             pending_likes = user_data["pending_likes"],
             match_blacklist = user_data["match_blacklist"],
-            travel_propensity = user_data["travel_propensity"]
         )
 
         return user_obj
+    
+    def _lookup_candidate_obj(self, candidate_id: str) -> models.Candidate:
+        """
+        Instantiates a Candidate helper-object and returns it.
+        """
+        self._read_json() #  The relevant data is the wider User data
+        self._validate_object_id(candidate_id)
+        candidate_data = self._data[candidate_id]
+        return models.Candidate(
+            user_id=candidate_id,
+            name=candidate_data["name"],
+            current_location=candidate_data["current_location"],
+            predominant_location=candidate_data["predominant_location"],
+            tastes = candidate_data["tastes"],
+            travel_propensity = candidate_data["travel_propensity"]
+        )
 
     def update(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does.
         # Todo support a "force datapoints count" option for updating tastes?
@@ -288,19 +310,33 @@ class UserModelInterface(ModelInterfaceABC):
 
         return query_results
     
-    def query_next_candidate(self, user_id) -> str:
-        """Return the user id of the next candidate for user user_id to swipe on."""
-        self._read_json()
-        if self._refresh_candidates(user_id): # todo check if user's location changed by enough to warrant new query rather than pulling from cache
-            self.query_users_near_user(user_id)
-        user_data = self._data[user_id]
-        candidate_id = user_data["cached_candidates"][-1][1] # todo confusing code with the slice. Does the cache really need the distance?
+    def query_next_candidate(self, user_id: str) -> str:
+        """
+        Returns the user id of the next candidate for this user to decide on.
+
+        Args:
+            user_id (str): User ID string
         
-        blacklist = user_data["match_blacklist"]  # TODO: The user's own ID never should've been in the candidates list to begin with; this is a redundancy here
-        while (candidate_id in blacklist) or (candidate_id == user_id): # keep popping until a non blacklisted one is found
-            candidate_id = self._data[user_id]["cached_candidates"].pop()[1] # todo again, need the slice to access the id itself rather than the list containing [distance, id]
-        self._write_json()
-        return candidate_id
+        Returns:
+            (str): User ID string of the next candidate
+        """
+        self._read_json()
+        user_obj = self.lookup_obj(user_id) 
+        return user_obj.next_candidate().id  # Model layer handles the queue, blacklisting, etc.
+
+    # def query_next_candidate(self, user_id) -> str:
+    #     """Return the user id of the next candidate for user user_id to swipe on."""
+    #     self._read_json()
+    #     if self._refresh_candidates(user_id): # todo check if user's location changed by enough to warrant new query rather than pulling from cache
+    #         self.query_users_near_user(user_id)
+    #     user_data = self._data[user_id]
+    #     candidate_id = user_data["cached_candidates"][-1][1] # todo confusing code with the slice. Does the cache really need the distance?
+        
+    #     blacklist = user_data["match_blacklist"]  # TODO: The user's own ID never should've been in the candidates list to begin with; this is a redundancy here
+    #     while (candidate_id in blacklist) or (candidate_id == user_id): # keep popping until a non blacklisted one is found
+    #         candidate_id = self._data[user_id]["cached_candidates"].pop()[1] # todo again, need the slice to access the id itself rather than the list containing [distance, id]
+    #     self._write_json()
+    #     return candidate_id
 
     def add_to_pending_likes(self, user_id_1: int, user_id_2: int): # todo think about most intuitive and maintainable architecture for this
         """Add a second user that this user swiped "yes" on to this user's hash map of pending likes."""
@@ -348,7 +384,6 @@ class UserModelInterface(ModelInterfaceABC):
         if not "cached_candidates" in user_data or len(user_data["cached_candidates"]) < 1:
             return True
         return False
-
 
 class DatespotModelInterface(ModelInterfaceABC):
 
