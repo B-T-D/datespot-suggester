@@ -134,13 +134,13 @@ class DatabaseAPI:
         model_interface = self._model_interface(object_model_name)
         model_interface.update(object_id, new_json)
     
-    def post_swipe(self, json_data: str) -> str:
+    def post_decision(self, json_arg: str) -> str:
         """
         Sends swipe data to the DB and returns True if the swipe completed a pending match (i.e. 
         other user had already swiped yes).
         
         
-        json_data examples:
+        json_arg examples:
 
             {
                 "user_id": "abc123",
@@ -150,10 +150,12 @@ class DatabaseAPI:
 
             - false indicates user doesn't want to match with candidate
         """
-        swipe_data = json.loads(json_data)
+        swipe_data = json.loads(json_arg)
         user_id, candidate_id, outcome = swipe_data["user_id"], swipe_data["candidate_id"], swipe_data["outcome"]
+        # if not self._is_valid_decision:  # TODO implement--requires updating User model to have a candidates data structure
+        #     raise ValueError("Invalid decision, e.g. that user wasn't supposed to have been deciding on that candidate")
         if not isinstance(outcome, bool): # TODO need comprehensive approach to validation
-            raise ValueError
+            raise TypeError(f"Expected outcome to be of type bool, actual type was {type(outcome)}")
         response = {"match_created": False}
         user_db = self._model_interface("user")
         if not outcome:
@@ -165,6 +167,10 @@ class DatabaseAPI:
             else:
                 user_db.add_to_pending_likes(user_id, candidate_id)
         return json.dumps(response)
+    
+    def _is_valid_decision(self, user_id, candidate_id) -> bool:
+        # TODO return False if candidate_id not in User.candidates
+        raise NotImplementedError
 
     def _prune_data_user(self, user_id: str) -> dict:
         """

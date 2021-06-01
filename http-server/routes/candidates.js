@@ -34,5 +34,24 @@ candidatesRouter.get('/next', async (req, res, next) => {
     }
 })
 
+candidatesRouter.post('/decision', async (req, res, next) => {
+    try {
+        let outcome = req.query.outcome === "true" ? true : false // TODO put it to lowercase before comparing
+        let dbRequestJSON = {
+            "method": "post_decision",
+            "json_arg": {
+                "user_id": req.query.userId,
+                "candidate_id": req.query.candidateId,
+                "outcome": outcome
+            }
+        }
+        responseJSON = await queryDb(dbRequestJSON);
+        res.json(responseJSON)
+        next()
+    } catch(err) {
+        return next(err)
+    }
+})
+
 
 module.exports = candidatesRouter;

@@ -35,7 +35,8 @@ class DatabaseServer:
                                         # Probably need to parse to get only methods and only methods that don't start with underscore.
             "get_next_candidate",
             "get_login_user_info",
-            "post_object"
+            "post_object",
+            "post_decision"
         }
     
     def _read_request_bytes(self, bytes=DEFAULT_PACKET_SIZE):

@@ -124,6 +124,7 @@ class UserModelInterface(ModelInterfaceABC):
         }
 
         self.candidate_safe_model_fields = { # model fields appropriate for sharing with other users
+            "id",
             "name"
         }
     
