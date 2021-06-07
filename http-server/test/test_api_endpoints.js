@@ -1,3 +1,4 @@
+const assert = require('assert');
 const request = require('supertest');
 const { get } = require('../routes/users');
 
@@ -9,11 +10,10 @@ describe('API root URL', () => {
             
             // Exercise
             const response = await request(server)
-            .get('api/v1');
+            .get('/api/v1');
 
             // Verify
             assert.equal(response.status, 200);
-
 
         })
     })
