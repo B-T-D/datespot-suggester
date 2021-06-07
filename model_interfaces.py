@@ -1,5 +1,6 @@
 """Objects for interfacing between stored data and model-object instances."""
 import abc, json, uuid, time
+from typing import List
 
 import models
 import geo_utils
@@ -123,7 +124,8 @@ class UserModelInterface(ModelInterfaceABC):
             "current_location",
             "predominant_location",
             "tastes", 
-            "travel_propensity", 
+            "travel_propensity",
+            "candidates",
             "matches", 
             "pending_likes", 
             "match_blacklist",
@@ -194,8 +196,9 @@ class UserModelInterface(ModelInterfaceABC):
         user_data = self._data[user_id]
         #  Use Candidate objects to avoid recursively initializing User objects for candidates of candidates
         candidates = []
-        for candidate_id in user_data["candidates"]:
-            candidates.append(self._lookup_candidate_obj(candidate_id))
+        if "candidates" in user_data and len(user_data["candidates"]) > 0:
+            for candidate_id in user_data["candidates"]:
+                candidates.append(self._lookup_candidate_obj(candidate_id))
 
         user_obj = models.User(
             user_id = user_id,
@@ -209,6 +212,11 @@ class UserModelInterface(ModelInterfaceABC):
             pending_likes = user_data["pending_likes"],
             match_blacklist = user_data["match_blacklist"],
         )
+        if not len(user_obj.candidates) > 0: # TODO SRP. This shouldn't be responsible for refreshing candidates, its only job should be converting the stored data into an object instance
+            nearby_candidate_query_results = self.query_users_currently_near_location(user_obj.predominant_location)
+            for result in nearby_candidate_query_results[::-1]:  # Iterate backward, because query results are sorted by descending distance from user
+                assert isinstance(result[1], models.Candidate)
+                user_obj.candidates.append(result[1])  # Second element of the result tuple is the user id
 
         return user_obj
     
@@ -276,9 +284,9 @@ class UserModelInterface(ModelInterfaceABC):
 
     
     # todo all the "query objects near" methods could probably be abstracted to the ABC.
-    def query_users_currently_near_location(self, location: tuple, radius=50000) -> list: # todo is the radius parameter totally unnecessary? 
+    def query_users_currently_near_location(self, location: tuple, radius=50000) -> List[models.Candidate]: # todo is the radius parameter totally unnecessary? 
         """
-        Return list of serialized users whose current location is within radius meters of location.
+        Return list of Candidate objects whose current location is within radius meters of location.
         """
         # Defaults to a very high radius, expectation is that radius won't be specified in most queries.
 
@@ -287,12 +295,12 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         query_results = []
         for user_id in self._data:
-            user = self.lookup_obj(user_id)
-            user_location = user.predominant_location
+            candidate = self._lookup_candidate_obj(user_id)
+            user_location = candidate.predominant_location
             assert isinstance(user_location[0], float), f"user_location = {user_location}"
             distance = geo_utils.haversine(location, user_location)
             if distance < radius:
-                query_results.append((distance, user_id)) # todo no need to put the whole dict into the results, right?
+                query_results.append((distance, candidate)) # todo no need to put the whole dict into the results, right?
         query_results.sort()
         query_results.reverse() # Put nearest candidate at end, for performant pop() calls. 
         return query_results

@@ -30,6 +30,10 @@ class UserBase(metaclass=DatespotAppType):
         if type(self) != type(other):
             return False
         return hash(self) == hash(other)
+    
+    def __lt__(self, other): # TODO: Sorts on name to break ties; needed it for sorting nearby candidates results
+        return self.name < other.name
+
 
     def __hash__(self):
         return hash(self.id)
@@ -52,7 +56,7 @@ class Candidate(UserBase):  # Stripped-down version of a User that omits Candida
     queue.
     """
     def __init__(self, *args, **kwargs):
-        super().__init(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 class User(UserBase):
 
@@ -70,9 +74,9 @@ class User(UserBase):
         tastes: dict={},
         travel_propensity: float=0.0,
         candidates: list=[],
+        pending_likes: dict={},
         matches: dict={},
         match_blacklist: dict={},
-        
         ):
         """
         Args:
@@ -190,7 +194,7 @@ class User(UserBase):
             (Candidate): Candidate object for the next candidate.
 
         """
-        raise NotImplementedError
+        return self.candidates[0]
     
     def _pop_interacted_candidate(self, candidate):  # The interacted-with candidate (decided yes/no/defer on) should generally be at the head of the queue, but may not always be
         """

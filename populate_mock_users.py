@@ -31,14 +31,8 @@ def main():
         json.dump({}, fobj)
 
 
-
     random.seed(1)
     names = [
-        "An old boot",
-        "Foo",
-        "Bar",
-        "Baz",
-        "Quux",
         "Akatosh",
         "Arkay",
         "Dibella",
@@ -67,14 +61,17 @@ def main():
         "Vaermina",
     ]
 
-    
     for i in range(len(names)):
-        json_data = json.dumps({
+        json_data = {
             "name": names[i],
             "current_location": random_lat_lon(),
             "force_key": str(i)
+        }
+        json_arg = json.dumps({
+            "object_model_name": "user",
+            "json_data": json_data
         })
-        db.post_object("user", json_data, force_key = i)
+        db.post_object(json_arg)
 
 
 if __name__ == "__main__":
