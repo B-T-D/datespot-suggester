@@ -33,7 +33,9 @@ class UserBase(metaclass=DatespotAppType):
     
     def __lt__(self, other): # TODO: Sorts on name to break ties; needed it for sorting nearby candidates results
         return self.name < other.name
-
+    
+    def __le__(self, other):
+        return self.name <= other.name
 
     def __hash__(self):
         return hash(self.id)

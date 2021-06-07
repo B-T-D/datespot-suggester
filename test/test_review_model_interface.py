@@ -47,7 +47,7 @@ class TestHelloWorldThings(unittest.TestCase):
         })
         
         self.db = DatabaseAPI(json_map_filename=TEST_JSON_DB_NAME)
-        self.terrezanos_id = self.db.post_object("datespot", terrezanos_json)
+        self.terrezanos_id = self.db.post_object(json.dumps({"object_model_name": "datespot", "json_data": terrezanos_json}))
 
         # Make mock text
         self.mock_text_positive_relevant = "This was a wonderful place to go on a date. I had the pasta. It was authentic and not from Pizza Hut."

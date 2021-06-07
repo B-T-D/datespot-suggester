@@ -49,7 +49,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.akatosh_location,
             "force_key": self.akatosh_id
         })
-        self.db.post_object("user", akatosh_json) # Don't need to store the key returned by this, forced it to "1"
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": akatosh_json})) # Don't need to store the key returned by this, forced it to "1"
 
         self.stendarr_name = "Stendarr"
         self.stendarr_location = (40.74769591216627, -73.99447266003756)
@@ -59,7 +59,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.stendarr_location,
             "force_key": self.stendarr_id
         })
-        self.db.post_object("user", stendarr_json)
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": stendarr_json}))
 
         self.talos_name = "Talos"
         self.talos_location = (40.76346250260515, -73.98013893542904)
@@ -69,7 +69,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.talos_location,
             "force_key": self.talos_id
         })
-        self.db.post_object("user", talos_json)
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": talos_json}))
 
 
         # Instantiate chat object with two participants
@@ -83,7 +83,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "participant_ids": [self.akatosh_id, self.stendarr_id]
         })
 
-        self.chat_id = self.db.post_object("chat", self.chat_json)
+        self.chat_id = self.db.post_object(json.dumps({"object_model_name": "chat", "json_data": self.chat_json}))
         
 
         # Mock messages
@@ -98,7 +98,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "text": self.first_message_text
 
         })
-        self.first_message_id = self.db.post_object("message", self.first_message_json)
+        self.first_message_id = self.db.post_object(json.dumps({"object_model_name": "message", "json_data": self.first_message_json}))
         self.first_message_obj = self.db.get_object("message", self.first_message_id)
         self.first_message_sentiment = self.first_message_obj.sentiment
 
@@ -111,7 +111,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "chat_id": self.chat_id,
             "text": self.second_message_text
         })
-        self.second_message_id = self.db.post_object("message", self.second_message_json)
+        self.second_message_id = self.db.post_object(json.dumps({"object_model_name": "message", "json_data": self.second_message_json}))
         self.second_message_obj = self.db.get_object("message", self.second_message_id)
         self.second_message_sentiment = self.second_message_obj.sentiment
 

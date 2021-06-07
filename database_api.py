@@ -72,7 +72,7 @@ class DatabaseAPI:
         else:
             raise Exception("Failed to post object")
 
-    def get_object(self, object_type, object_id):
+    def get_object(self, object_type, object_id): # TODO take a single json string arg, same as other external methods?
     
         """
         Return an internal-model object literal for the data corresponding to the key "id".

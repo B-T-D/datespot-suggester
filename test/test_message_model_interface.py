@@ -49,7 +49,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.akatosh_location,
             "force_key": self.akatosh_id
         })
-        actual_key = self.db.post_object("user", akatosh_json) # Don't need to store the key returned by this, forced it to "1"
+        actual_key = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": akatosh_json})) # Don't need to store the key returned by this, forced it to "1"
 
         self.stendarr_name = "Stendarr"
         self.stendarr_location = (40.74769591216627, -73.99447266003756)
@@ -59,7 +59,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.stendarr_location,
             "force_key": self.stendarr_id
         })
-        self.db.post_object("user", stendarr_json)
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": stendarr_json}))
 
         self.talos_name = "Talos"
         self.talos_location = (40.76346250260515, -73.98013893542904)
@@ -69,7 +69,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.talos_location,
             "force_key": self.talos_id
         })
-        self.db.post_object("user", talos_json)
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": talos_json}))
 
         # Mock message data:
 
@@ -78,7 +78,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "start_time": time.time(),
             "participant_ids": [self.akatosh_id, self.stendarr_id]
         })
-        self.mock_chat_id_1 = self.db.post_object("chat", self.quick_mock_chat_json)
+        self.mock_chat_id_1 = self.db.post_object(json.dumps({"object_model_name": "chat", "json_data": self.quick_mock_chat_json}))
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
 
@@ -109,9 +109,6 @@ class TestHelloWorldThings(unittest.TestCase):
             "text": self.negative_tastes_message_text
         })
         self.negative_tastes_message_id = self.api.create(self.negative_tastes_message_json)
-
-        akatosh_obj = self.db.get_object("user", self.akatosh_id) # todo just for debug
-
     
     def test_instantiation(self):
         self.assertIsInstance(self.api, MessageModelInterface)

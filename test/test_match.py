@@ -29,7 +29,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "name": grortName,
             "current_location": grortCurrentLocation
         })
-        self.grort_user_id = self.db.post_object("user", grort_json)
+        self.grort_user_id = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": grort_json}))
         userGrort = self.db.get_object("user", self.grort_user_id)
 
         drobbName = "Drobb"
@@ -38,7 +38,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "name": drobbName,
             "current_location": drobbCurrentLocation
         })
-        self.drobb_user_id = self.db.post_object("user", drobb_json)
+        self.drobb_user_id = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": drobb_json}))
         userDrobb = self.db.get_object("user", self.drobb_user_id)
 
         # distance should be approx 2610m

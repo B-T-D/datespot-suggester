@@ -45,7 +45,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.akatosh_location,
             "force_key": self.akatosh_id
         })
-        self.db.post_object("user", akatosh_json) # Don't need to store the key returned by this, forced it to "1"
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": akatosh_json})) # Don't need to store the key returned by this, forced it to "1"
 
         self.stendarr_name = "Stendarr"
         self.stendarr_location = (40.74769591216627, -73.99447266003756)
@@ -55,7 +55,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.stendarr_location,
             "force_key": self.stendarr_id
         })
-        self.db.post_object("user", stendarr_json)
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": stendarr_json}))
 
         self.talos_name = "Talos"
         self.talos_location = (40.76346250260515, -73.98013893542904)
@@ -65,7 +65,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.talos_location,
             "force_key": self.talos_id
         })
-        self.db.post_object("user", talos_json)
+        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": talos_json}))
 
         # Instantiate mock simple bilateral message (one recipient)
 

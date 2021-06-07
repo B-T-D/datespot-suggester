@@ -48,7 +48,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.grort_tastes = {
             "italian": [0.1, 1]
         }
-        self.grort_user_id = self.db.post_object("user", grort_json)
+        self.grort_user_id = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": grort_json}))
         self.user_grort = self.db.get_object("user", self.grort_user_id)
         self.user_grort._tastes = self.grort_tastes # todo quick hack to force it into the data
 
