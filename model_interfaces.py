@@ -321,7 +321,9 @@ class UserModelInterface(ModelInterfaceABC):
             (str): User ID string of the next candidate
         """
         self._read_json()
-        user_obj = self.lookup_obj(user_id) 
+        user_obj = self.lookup_obj(user_id)
+        self._data[user_id] = user_obj.serialize()
+        self._write_json()
         return user_obj.next_candidate().id  # Model layer handles the queue, blacklisting, etc.
 
     # def query_next_candidate(self, user_id) -> str:
@@ -349,7 +351,7 @@ class UserModelInterface(ModelInterfaceABC):
         """Remove user2 from user1's pending likes."""
         pass
 
-    def lookup_is_user_in_pending_likes(self, current_user_id: int, other_user_id:int) -> bool:
+    def lookup_is_user_in_pending_likes(self, current_user_id: int, other_user_id:int) -> bool: # TODO re-implement in the object-composition based way. Use a User objects, call their method(s), then write each back to the DB
         """Return true if current user previously swiped "yes" on other user, else False."""
         self._read_json()
         return str(other_user_id) in self._data[current_user_id]["pending_likes"] # todo the keys in the pending likes dict are strings at this point in execution, very confusing
