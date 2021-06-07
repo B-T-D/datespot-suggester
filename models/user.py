@@ -109,6 +109,8 @@ class User(UserBase):
         self.matches = matches # References to Matches of which this User is a constituent.
 
         self.match_blacklist = match_blacklist # References to Users with whom this user should never be matched. Keys are user ids, values timestamps indicating when the blacklisting happened. 
+        if not self.id in self.match_blacklist: # Prevent this user being matched with themself
+            self.match_blacklist[self.id] = time.time()
 
         # TODO How much data do we need to confidently assign a "hard" preference like vegan, kosher, halal?
 
@@ -194,6 +196,8 @@ class User(UserBase):
             (Candidate): Candidate object for the next candidate.
 
         """
+        if self.candidates[0].id == self.id: # TODO sloppy hack to prevent matching with self
+            self.candidates.popleft()
         return self.candidates[0]
     
     def _pop_interacted_candidate(self, candidate):  # The interacted-with candidate (decided yes/no/defer on) should generally be at the head of the queue, but may not always be
