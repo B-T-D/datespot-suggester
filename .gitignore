@@ -130,11 +130,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# ad hoc
-example*.json
-/data_utils
-/nlp_sandbox
-
 ### Node template ###
 
 
@@ -257,3 +252,9 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# ad hoc
+example*.json
+/data_utils
+/nlp_sandbox
+fifo_node_to_python
+fifo_python_to_node
