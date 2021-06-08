@@ -31,3 +31,26 @@ describe('API root URL', () => {
     })
 })
 
+describe('Next-candidate URL', () => {
+    describe('GET request', () => {
+        it('returns status code 200 in response to a properly formed request', async () => {
+
+            const response = await request(server)
+            .get('/api/v1/candidates/next?userId=1');
+
+            assert.equal(response.status, 200);
+        })
+    })
+})
+
+// describe('Decision URL', () => {
+//     describe('POST request status code', () => {
+//         it('Returns status code 200 in response to a properly formed request', async () => {
+//             const response = await request(server)
+//             .get('/api/v1/candidates/decision?userId=1&&candidateId=5&outcome=true')
+
+//             assert.equal(response.status, 200);
+//         })
+//     })
+// })
+

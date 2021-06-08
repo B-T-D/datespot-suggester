@@ -76,7 +76,7 @@ function queryDb(queryData) {
             console.log(`attempting to remove all listeners from DB response`);
             dbResponse.resume();
             dbResponse.removeAllListeners();
-            resolve(responseData)
+            resolve(responseData['body_json'])
         }).on('error', (error) => {
             console.log(`emitted error event`);
             reject(error);
@@ -89,22 +89,6 @@ function queryDb(queryData) {
         // })
         dbRequest.write(JSON.stringify(queryData));
         let responseData = '';
-        // dbResponse.on('readable', () => {
-        //     console.log(`emitted on readable event`);
-        //     let data;
-        //     while (data = dbResponse.read()) {
-        //         responseData += data;
-        //     }
-        //     responseData = JSON.parse(responseData);
-        //     console.log(`dbResponse stream .isPaused() = ${dbResponse.isPaused()}`)
-        //     console.log(`dbResponse stream .readableFlowing = ${dbResponse.readableFlowing}`)
-        //     console.log(`dbResponse stream .readableEnded = ${dbResponse.readableEnded}`)
-        //     console.log(`calling stream.resume()`)
-        //     dbResponse.pause();
-        //     console.log(`dbResponse stream .isPaused() = ${dbResponse.isPaused()}`)
-        //     console.log(`dbResponse stream .readableFlowing = ${dbResponse.readableFlowing}`)
-        //     console.log(`dbResponse stream .readableEnded = ${dbResponse.readableEnded}`)
-        // })
 
     })
 }

@@ -32,9 +32,7 @@ Response format:
     response (str) = {
         "packet_size": <int>,
         "status_code": <int>,
-        "body_json": {
-            <return value of the underlying DatabaseAPI method, or error message>
-        }
+        "body_json": <return value of the underlying DatabaseAPI method, or error message>
     }
 
 """
@@ -156,11 +154,21 @@ class DatabaseServer:
             assert isinstance(json_arg, str)
             print(f"json_arg = \n{json_arg}")
             db = DatabaseAPI() # Let it use default JSON map
-            database_response = eval(f"db.{method}(json_arg=json_arg)")
-            print(f"database_response = {database_response}")
-            response_dict["body_json"] = json.loads(database_response)  # TODO wasteful, forcing it back to a dict here to avoid the nested escape characters problem
+            try:
+                database_response = eval(f"db.{method}(json_arg=json_arg)")
+                database_response = json.loads(database_response) # TODO wasteful, forcing it back to a dict here to avoid the nested escape characters problem
+            except Exception as e:
+                print(f"exception raised by database call")
+                response_dict["status_code"] = 1
+                print(repr(e))
+                database_response = f"Database error: {repr(e)}"  # TODO Pass the Exception from DB API back through the pipe same as any other error message
+            if isinstance(database_response, dict):
+                response_dict["body_json"] = database_response
+            else:
+                response_dict["body_json"] = database_response
         # TODO figure out the right way to get the packet size correctly and efficiently. NB especially that Python string or int object
         #   with its various Python methods has more bytes than the underlying raw data in memory.
+        print(f"in dispatch request: response_dict = {response_dict}\nwith type {type(response_dict)}")
         response_packet_size = sys.getsizeof(json.dumps(response_dict)) # TODO duplicative call to json.dumps, surely a better way
         response_packet_size += sys.getsizeof(response_packet_size)
         response_dict["packet_size"] = response_packet_size
