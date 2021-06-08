@@ -256,5 +256,5 @@ dist
 example*.json
 /data_utils
 /nlp_sandbox
-*/fifo_node_to_python
+fifo_node_to_python
 fifo_python_to_node
