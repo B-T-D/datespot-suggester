@@ -6,6 +6,9 @@
 
 # TODO conform code to the standardized request/response "protocol" in the docstring
 
+# TODO the req and res should be arr/list, not obj/dict, so that the packet size can always be the very first
+#   thing into the pipe, right?
+
 """
 Protocol:
     - Requests and Responses are JSON-legal strings.
@@ -18,8 +21,8 @@ Request format:
 
     request (str) = {
         "packet_size": <int>,
-        "request_json": {
-            "database_method": <str>,
+        "body_json": {
+            "method": <str>,
             "json_arg": {<args to the relevant DatabaseAPI method>}
         }
     }
@@ -29,7 +32,7 @@ Response format:
     response (str) = {
         "packet_size": <int>,
         "status_code": <int>,
-        "response_json": {
+        "body_json": {
             <return value of the underlying DatabaseAPI method, or error message>
         }
     }
@@ -69,6 +72,12 @@ class DatabaseServer:
             "post_object",
             "post_decision"
         }
+
+        self._error_messages = {
+            "invalid dict size": lambda dict_len : f"Invalid dict length: {dict_len}",
+            "invalid method": lambda method : f"Invalid method: {method}",
+            "no method": lambda : f"Request didn't specify method for DatabaseAPI call"  # If some of them are weirdly lambdas, at least slightly less confusing if all of them are
+        }
     
     def _read_request_bytes(self, packet_size=DEFAULT_PACKET_SIZE):
         """
@@ -96,6 +105,7 @@ class DatabaseServer:
 
         # TODO it may be, in practice, that if only sending JSON, none of the transmissions will be anywhere near the max buffer size,
         #   and that setting a comfortably large buffer won't cause problems. These are strings not image files.
+        # TODO OTOH, might need to know the size to tell where one transmission ends and the next begins.
 
         return os.read(self._pipe_in, packet_size)
     
@@ -106,54 +116,55 @@ class DatabaseServer:
         """
         request_bytes = self._read_request_bytes()
         request_json = self._decode_request_bytes(request_bytes)
-        print(f"request_json = {request_json} \n\t type {type(request_json)}\n\tlen = {len(request_json)}")
-        response_json = None
-        if self._is_valid_request(request_json):
-            print(f"request was valid")
-            response_json = self._dispatch_request(request_json)
-        else:
-            response_json = json.dumps({"error": f"Bad request to database server at {time.time()}"})
-        print(f"response_json = {response_json}")
+        response_json = self._dispatch_request(request_json)
         return response_json.encode("utf-8")
         
     def _decode_request_bytes(self, request_bytes: ByteString):
         assert isinstance(request_bytes, ByteString)
         request_json = request_bytes.decode("utf-8")  # TODO "ENCODING" global constant?
         return request_json
-    
-    def _is_valid_request(self, request_json: str) -> bool:
-        """Returns True if the request is appropriate JSON to pass to the DatabaseAPI, else False."""
 
-        # TODO Instead of the bool, have it raise various errors with custom messages, so that a try-except caller
-        #   can then pass those messages back to Node to (a) let this server keep running without having to be restarted
-        #   and (b) give info to Node that's more helpful than just unspecified "bad request"
+    def _validate_request(self, request_dict: dict) -> dict:
+        """Returns error-message dict if request is not appropriate to pass to DatabaseAPI, else returns dict with status code 0 and no other content,
+        for further methods to complete response body."""
 
-        # TODO Can't rely on the dict being properly formatted; could be arbitrary additional keys
-        #   beyond just method and json-arg
-        # TODO Have a precursor helper method that strips everything from the dict except the expected keys.
-        if not request_json or not isinstance(request_json, str):
-            return False
-        request_dict = json.loads(request_json) # TODO hypothetically are there malicious strings that would be problematic to read into a dict blindly?
-        print(f"in validator: request_dict = {request_dict}\nwith type {type(request_dict)}")
-        if len(request_dict) != 2: # Should have exactly two keys: Method and arguments dict/object
-            print(f"Request dict should have exactly two keys, len was {len(request_dict)}")
-            return False
+        print(f"request dict = {request_dict}\nwith type {type(request_dict)}")
+
+        response_dict = {}
+        error_message = None
         if not "method" in request_dict:
-            print(f"method wasn't in request dict")
-            return False
+            error_message = self._error_messages["no method"]()
         elif request_dict["method"] not in self._valid_database_methods:
-            print(f"invalid method: {request_dict['method']}")
-            return False
-        # TODO validate the args? Or is DB API best positioned to validate the args to its methods?
-        return True
+            error_message = self._error_messages["invalid method"](request_dict["method"])
+        elif len(request_dict) != 2:  # Should have exactly two keys: Method and arguments dict
+            error_message = self._error_messages["invalid dict size"](len(request_dict))
 
-    def _dispatch_request(self, request_json: str):
+        if error_message:
+            response_dict["status_code"] = 1
+            response_dict["body_json"] = error_message
+        else:
+            response_dict["status_code"] = 0
+        
+        return response_dict
+
+    def _dispatch_request(self, request_json: str) -> str:
         request_dict = json.loads(request_json)
-        method, json_arg = request_dict["method"], json.dumps(request_dict["json_arg"])
-        assert isinstance(json_arg, str)
-        print(f"json_arg = \n{json_arg}")
-        db = DatabaseAPI() # Let it use default JSON map
-        response_json = eval(f"db.{method}(json_arg=json_arg)")
+        request_dict = request_dict["body_json"] # Continue with only the body JSON, packet size not relevant going forward 
+        response_dict = self._validate_request(request_dict)
+        if response_dict["status_code"] == 0:
+            method, json_arg = request_dict["method"], json.dumps(request_dict["json_arg"])
+            assert isinstance(json_arg, str)
+            print(f"json_arg = \n{json_arg}")
+            db = DatabaseAPI() # Let it use default JSON map
+            database_response = eval(f"db.{method}(json_arg=json_arg)")
+            print(f"database_response = {database_response}")
+            response_dict["body_json"] = json.loads(database_response)  # TODO wasteful, forcing it back to a dict here to avoid the nested escape characters problem
+        # TODO figure out the right way to get the packet size correctly and efficiently. NB especially that Python string or int object
+        #   with its various Python methods has more bytes than the underlying raw data in memory.
+        response_packet_size = sys.getsizeof(json.dumps(response_dict)) # TODO duplicative call to json.dumps, surely a better way
+        response_packet_size += sys.getsizeof(response_packet_size)
+        response_dict["packet_size"] = response_packet_size
+        response_json = json.dumps(response_dict)
         print(f"in dispatch request: response_json = {response_json}")
         return response_json
 
@@ -186,8 +197,6 @@ class DatabaseServer:
                         if (self._pipe_in, select.POLLIN) in poll.poll(1000):  # Poll every 1 second
                             print(f"--------  received request at {time.time()} --------")
                             response = self._handle_request()
-                            
-                            
                             os.write(self._pipe_out, response)
                 
                 finally:
