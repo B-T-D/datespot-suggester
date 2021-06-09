@@ -790,7 +790,7 @@ class MessageModelInterface(ModelInterfaceABC):
     
     ### Public methods ###
 
-    def create(self, json_data: str) -> str:
+    def create(self, new_data: dict) -> str:
         """
         Returns the new object's id key string.
 
@@ -804,26 +804,24 @@ class MessageModelInterface(ModelInterfaceABC):
         """
         # Todo SRP. This method is doing too much. 
         self._read_json()
-        json_dict = json.loads(json_data)
-        self._validate_json_fields(json_dict)
-        
+        self._validate_json_fields(new_data)
         
         time_sent = None
-        if "time_sent" in json_dict: # If caller sent JSON containing a time stamp, use it...
-            time_sent = json_dict["time_sent"]
+        if "time_sent" in new_data: # If caller sent JSON containing a time stamp, use it...
+            time_sent = new_data["time_sent"]
         else:
             time_sent = time.time() # ...otherwise, create timestamp now.
 
         # Constructor needs a User object literal in order to update its tastes.
         user_db = UserModelInterface(self._master_datafile) # The MIs can't go out to the main database API because it causes circular imports
-        sender_user_obj = user_db.lookup_obj(json_dict["sender_id"])
+        sender_user_obj = user_db.lookup_obj(new_data["sender_id"])
         prior_user_tastes = str(sender_user_obj.serialize()["tastes"]) # for comparison later, to see if any updates happened
 
         new_obj = models.Message(
             time_sent = time_sent,
             sender = sender_user_obj,
-            chat_id = json_dict["chat_id"],
-            text = json_dict["text"]
+            chat_id = new_data["chat_id"],
+            text = new_data["text"]
         )
 
         # Write any changes to the User object back to the user DB--if we discovered anything about the user's tastes,
@@ -879,20 +877,19 @@ class ChatModelInterface(ModelInterfaceABC):
     
     ### Public methods ###
 
-    def create(self, new_obj_json: str):
+    def create(self, new_data: dict):
         self._read_json()
-        json_dict = json.loads(new_obj_json)
-        self._validate_json_fields(json_dict)
+        self._validate_json_fields(new_data)
 
         start_time = None # Same as Message. If it didn't come in with a timestamp, use the current time
-        if "start_time" in json_dict:
-            start_time = json_dict["start_time"]
+        if "start_time" in new_data:
+            start_time = new_data["start_time"]
         else:
             start_time = time.time()
 
         new_obj = models.Chat(
             start_time = start_time,
-            participant_ids = json_dict["participant_ids"]
+            participant_ids = new_data["participant_ids"]
         ) # no messages yet
 
         new_obj_id = new_obj.id
