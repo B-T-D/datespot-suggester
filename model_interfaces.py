@@ -1,5 +1,6 @@
 """Objects for interfacing between stored data and model-object instances."""
-import abc, json, uuid, time
+import abc, json, uuid, time  # TODO Can't assume this will run on a system with sub-second timestamp precision. time.time() only guarantees non-decreasing values; it can't
+                                #   return more precise timestamps than the underlying system clock supports. https://docs.python.org/3/library/time.html#time.time
 from typing import List
 
 import models
@@ -123,7 +124,7 @@ class UserModelInterface(ModelInterfaceABC):
         else:
             super().__init__()
         self._valid_model_fields = {
-            "id",
+            "user_id",
             "name",
             "current_location",
             "predominant_location",
@@ -135,8 +136,17 @@ class UserModelInterface(ModelInterfaceABC):
             "match_blacklist",
             "force_key" # todo force_key isn't really a model field, conceptually
         }
+
+        self._required_instantiation_fields = {
+            "user_id",
+            "name",
+            "current_location",
+        }
+        self._optional_instantiation_fields = {field for field in self._valid_model_fields if not field in self._required_instantiation_fields}
+
+
         self.user_safe_model_fields = { # model fields appropriate for viewing by the user whose data it is
-            "id",
+            "user_id",
             "name",
             "predominant_location",
             "matches",
@@ -144,7 +154,7 @@ class UserModelInterface(ModelInterfaceABC):
         }
 
         self.candidate_safe_model_fields = { # model fields appropriate for sharing with other users
-            "id",
+            "user_id",
             "name"
         }
     
@@ -169,29 +179,47 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_model_fields(new_data)
         if "force_key" in new_data:
-            force_key = new_data["force_key"]
-            if force_key in self._data: # Don't allow force-creating a key that's already taken
+            if new_data["force_key"] in self._data: # Don't allow force-creating a key that's already taken
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
-            user_id = force_key
+            new_data["user_id"] = new_data["force_key"]
+            del new_data["force_key"]
         else:
-            user_id  = uuid.uuid1().hex  
-        new_user = models.User(
-            user_id = user_id,
-            name=new_data["name"],
-            current_location = tuple(new_data["current_location"])
-        )
+            new_data["user_id"]  = uuid.uuid1().hex  
+        new_user = self._instantiate_obj_from_dict(new_data)
         # todo adding tastes not supported here--does that make sense?
         #   Rationale is that any tastes data comes in later, not at the moment the user is created in the DB for the first time.
 
-        self._data[user_id] = new_user.serialize()
+        self._data[new_user.id] = new_user.serialize()
         self._write_json()
-        return user_id
+        return new_user.id
+
+    def _instantiate_obj_from_dict(self, obj_data: dict) -> models.User:
+        """
+        Returns a User model object corresponding to the data in object_data.
+        """
+        self._validate_model_fields(obj_data)
+        if isinstance(obj_data["current_location"], list):
+            obj_data["current_location"] = tuple(obj_data["current_location"])
+        
+        model_obj = models.User(
+            user_id = obj_data["user_id"],
+            name = obj_data["name"],
+            current_location = obj_data["current_location"]
+        )
+
+        for optional_field in self._optional_instantiation_fields:
+            if optional_field in obj_data:
+                exec(f"model_obj.{optional_field} = obj_data[optional_field")
+        
+        return model_obj
+        
 
     def lookup_obj(self, user_id: str) -> models.User:
         """
         Instantiates a User object to represent an existing user, based on data retrieved from the database. Returns the User object,
         or raises error if not found.
         """
+        # TODO refactor to use _instantiate_obj_from_dict
         self._read_json()
         self._validate_object_id(user_id)
         user_data = self._data[user_id]
@@ -647,6 +675,10 @@ class MatchModelInterface(ModelInterfaceABC):
         new_object_id = match_obj.id
         self._data[new_object_id] = match_obj.serialize()
         self._write_json()
+
+        # Make sure each User object has this Match in its data:
+        user1_obj.add_match(match_id=new_object_id, match_timestamp=match_obj.timestamp, match_partner_id=user2_obj.id)
+        user2_obj.add_match(match_id=new_object_id, match_timestamp=match_obj.timestamp, match_partner_id=user1_obj.id)
 
         # Update each of the two User objects' stored data:
         self.user_api_instance.sync(user1_obj)

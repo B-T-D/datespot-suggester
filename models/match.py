@@ -21,6 +21,8 @@ class Match(metaclass=DatespotAppType):
             suggestions_queue (list): Previously stored list of suggestions. Provide if instantiating a stored object, leave blank for new object.
         """
         
+        print(f"Match init was called at time.time() = {time.time()}")
+
         self.user1 = user1
         self.user2 = user2
         self.timestamp = timestamp
@@ -54,13 +56,6 @@ class Match(metaclass=DatespotAppType):
         self._max_suggestions_queue_length = 50
 
         self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date.
-
-        # Make sure each User's matches data includes this one:
-
-        if not self.user1.has_match(self.id):
-            self.user1.add_match(match_id=self.id, match_timestamp = self.timestamp, match_partner_id=self.user2.id)
-        if not self.user2.has_match(self.id):
-            self.user2.add_match(match_id=self.id, match_timestamp = self.timestamp, match_partner_id=self.user1.id)
 
     ### Public methods ###
 

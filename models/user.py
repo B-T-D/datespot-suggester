@@ -164,8 +164,9 @@ class User(UserBase):
         """
         Appends new Match data to this User's Matches data.
         """
-        new_match = (match_id, match_timestamp, match_partner_id)
-        self._matches.append(new_match)
+        if not self.has_match(match_id):
+            new_match = (match_id, match_timestamp, match_partner_id)
+            self._matches.append(new_match)
         self._sort_matches()
 
     def _sort_matches(self, key="timestamp"):

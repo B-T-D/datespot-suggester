@@ -1,5 +1,7 @@
 import unittest
 
+import time
+
 import models
 
 class TestHelloWorldThings(unittest.TestCase):
@@ -58,7 +60,9 @@ class TestHelloWorldThings(unittest.TestCase):
             user2 = self.azura_user_obj
         )
         # Manually add to azura object's matches
-        self.azura_user_obj.add_match(self.match_obj_hircine_azura.id, self.match_obj_hircine_azura.timestamp, self.hircine_user_obj.id)
+        self.azura_user_obj.add_match(self.match_obj_hircine_azura.id, self.match_obj_hircine_azura.timestamp + 1, self.hircine_user_obj.id)
+            #  Adding one second to timestamp because Unittest apparently freezes the timestamp througout the execution of setUp (?). These two kept having identical timestamps, and experiments
+            #   proved the implementation code wasn't to blame.
 
         
 
@@ -118,3 +122,29 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_taste_strength(self):
         """Does the public method for returning the current strength of a taste behave as expected?"""
         self.assertAlmostEqual(self.existing_taste_strength, self.azura_user_obj.taste_strength(self.existing_taste_name))
+    
+    def test_matches_yield_type(self):
+        """
+        Does the iterating over the User.matches attribute yield the expected match_ids?
+        """
+        for match in self.azura_user_obj.matches:
+            self.assertIsInstance(match, str)
+    
+    def test_matches_yield_order(self):
+        """Does iterating over User.matches yield the match ids in the expected_order?"""
+        expected_order = [self.match_obj_hircine_azura.id, self.match_obj_azura_boethiah.id]  # Expect most recently matched first. Created the Hircine-Azura Match second in setUp
+        i = 0
+        for match in self.azura_user_obj.matches:
+            self.assertEqual(match, expected_order[i])
+            i += 1
+    
+    def test_match_partners_yield_order(self):
+        """Does iterating over User.matches yield the match ids in the expected_order?"""
+        expected_order = [self.hircine_id, self.boethiah_id]
+        i = 0
+        print(f"test_match_partners_yield_order was called at time.time() = {time.time()}")
+        print(f"_matches = {self.azura_user_obj._matches}")
+        print(f"match_partners list = {[p for p in self.azura_user_obj.match_partners]}")
+        for match in self.azura_user_obj.match_partners:
+            self.assertEqual(match, expected_order[i])
+            i += 1
