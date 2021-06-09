@@ -1,7 +1,7 @@
 from models.app_object_type import DatespotAppType
 import geo_utils
 
-from typing import Tuple
+from typing import List, Tuple
 import time, heapq
 
 class Match(metaclass=DatespotAppType):
@@ -51,17 +51,11 @@ class Match(metaclass=DatespotAppType):
         self.suggestions_queue = suggestions_queue # List or queue of suggested restaurants
                                     # Todo: What's the max num it makes sense to store?
                                     # Todo: How often to update with fresh data? Whenever data on either user's preferences changed?
+                                    # TODO does anyone need to access it from the outside? Seems like could be a private attribute
         self._max_suggestions_queue_length = 50
 
         self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date.
 
-        # Make sure each User's dict of Matches includes this one:
-        if not self.id in self.user1.matches:
-            self.user1.matches[self.id] = self.timestamp
-        if not self.id in self.user2.matches:
-            self.user2.matches[self.id] = self.timestamp
-            
-    
     ### Public methods ###
 
     def __eq__(self, other):
@@ -80,6 +74,7 @@ class Match(metaclass=DatespotAppType):
     def midpoint(self) -> Tuple[float]:
         return self._midpoint
 
+
     def suggestions(self, candidate_datespots) -> list:
         """
         Args:
@@ -95,7 +90,7 @@ class Match(metaclass=DatespotAppType):
         self.suggestions_queue = suggestions_heap # Todo: Correct that we want to store the scores (to easily maintain sorted order when updates)?
         results = [suggestion[1] for suggestion in suggestions_heap] # List of only the datespots, no scores. 
         # Todo compress to one-liner once it works
-        return results
+        return results  # TODO TBD if anyone outside needs this return value. May only need to use this method (with better name) to replenish suggestion-fodder
 
     def get_joint_datespot_score(self, datespot) -> float:
         # Todo: Intuition/hypothesis is that it won't make sense to try do better than a simple mean of the two users scores on that restaurant
@@ -122,8 +117,21 @@ class Match(metaclass=DatespotAppType):
         return {
             "users": [self.user1.id, self.user2.id],
             "timestamp": self.timestamp,
-            "suggestions_queue": self.suggestions_queue
+            "suggestions": self._serialize_suggestions()
         }
+    
+    def _serialize_suggestions(self) -> List[Tuple[float, str]]:
+        result = []
+        for suggestion in self.suggestions_queue:
+            result.append((suggestion[0], suggestion[1].id))  # Substitute the Datespot's id for the Datespot object
+        return result
+
+    
+    def has_suggestions(self) -> bool:  # For external code to check whether data is needed.  Match object can't be responsible for going out to Yelp, Google, etc. if it's out of suggestion-fodder.
+        """
+        Returns True if this Match has suggestions, else False.
+        """
+        return len(self.suggestions_queue) > 0
 
     ### Private methods ###
 

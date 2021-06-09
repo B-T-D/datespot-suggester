@@ -62,16 +62,16 @@ def main():
     ]
 
     for i in range(len(names)):
-        json_data = {
+        user_data = {
             "name": names[i],
             "current_location": random_lat_lon(),
             "force_key": str(i)
         }
-        json_arg = json.dumps({
+        args_data = {
             "object_model_name": "user",
-            "json_data": json_data
-        })
-        db.post_object(json_arg)
+            "object_data": user_data
+        }
+        db.post_object(args_data)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import unittest
 
 import json
 
-import models
+import models, model_interfaces
 
 from database_api import DatabaseAPI
 
@@ -21,25 +21,26 @@ class TestHelloWorldThings(unittest.TestCase):
         self.db = DatabaseAPI() # Testing on the real DB, to have restaurants
             # Todo script that populates the test DBs with realistic restaurants en masse. And/or separate JSON map for this test
             #   (pointing to same test DB filenames for some like users, different one for datespots)
+        self.user_data = model_interfaces.UserModelInterface()
 
         # Need user objects to instantiate a Match
         grortName = "Grort"
         grortCurrentLocation = (40.746667, -74.001111)
-        grort_json = json.dumps({
+        grort_data = {
             "name": grortName,
             "current_location": grortCurrentLocation
-        })
-        self.grort_user_id = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": grort_json}))
-        userGrort = self.db.get_object("user", self.grort_user_id)
+        }
+        self.grort_user_id = self.db.post_object({"object_model_name": "user", "object_data": grort_data})
+        userGrort = self.user_data.lookup_obj(self.grort_user_id)
 
         drobbName = "Drobb"
         drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
-        drobb_json = json.dumps({
+        drobb_data = {
             "name": drobbName,
             "current_location": drobbCurrentLocation
-        })
-        self.drobb_user_id = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": drobb_json}))
-        userDrobb = self.db.get_object("user", self.drobb_user_id)
+        }
+        self.drobb_user_id = self.db.post_object({"object_model_name": "user", "object_data": drobb_data})
+        userDrobb = self.user_data.lookup_obj(self.drobb_user_id)
 
         # distance should be approx 2610m
         # midpoint should be circa (40.75827478958617, -73.99310556132602)
@@ -49,10 +50,9 @@ class TestHelloWorldThings(unittest.TestCase):
 
         # Get the candidates list that the DatabaseAPI would be giving to Match:
         self.candidate_datespots_list = self.db.get_datespots_near(
-            json.dumps({
+            {
                 "location": self.matchGrortDrobb.midpoint
-                })
-            )
+            })
     
     def test_compute_midpoint(self):
         maxDelta = 0.01
