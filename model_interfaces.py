@@ -597,7 +597,7 @@ class MatchModelInterface(ModelInterfaceABC):
     
     ### Public methods ###
 
-    def create(self, json_str: str) -> str:
+    def create(self, new_data: dict) -> str:
         """
         Creates a Match object from the two users and return its id key.  Handles adding the Match reference to stored data
         for each constituent User.
@@ -610,8 +610,7 @@ class MatchModelInterface(ModelInterfaceABC):
 
         """
         self._read_json()
-        json_dict = json.loads(json_str)
-        user1_id, user2_id = json_dict["user1_id"], json_dict["user2_id"]
+        user1_id, user2_id = new_data["user1_id"], new_data["user2_id"]
         user1_obj, user2_obj = self.user_api_instance.lookup_obj(user1_id), self.user_api_instance.lookup_obj(user2_id)
         match_obj = models.Match(user1_obj, user2_obj)
         new_object_id = match_obj.id
