@@ -19,13 +19,6 @@ class ModelInterfaceABC: # Abstract base class
         self.data = self._data #  todo what about assigning this to return of _read_json, and having that method return self._data?
 
     ### Public methods ###
-
-    def lookup_json(self, object_id: str) -> str:
-        """Returns the JSON string for the stored object corresponding to object_id."""
-        self._read_json() # TODO is there any reason it'd be better to instantiate an object before returning its JSON?
-                            #   It's faster to just fetch the existing JSON than to fetch it, instantiate, call object.serialize(), etc.
-        self._validate_object_id(object_id)
-        return json.dumps(self._data[object_id])
     
     def is_valid_object_id(self, object_id: str) -> bool:
         """Returns True if the object_id corresponds to one in the database, else False."""
@@ -487,13 +480,6 @@ class DatespotModelInterface(ModelInterfaceABC):
         self._data[new_object_id] = datespot_obj.serialize()
         self._write_json()
         return new_object_id
-    
-    def lookup_json(self, id: int) -> str:
-        """
-        Return the JSON string for a Datespot in the DB.
-        """
-        datespot_obj = self.lookup_obj(id) # TODO is there a reason to override the ABC's method and do it via serialize instead of more quickly returning the stored data?
-        return json.dumps(self._serialize_datespot(datespot_obj))
 
     def lookup_obj(self, id: int) -> models.Datespot:
         """Return the datespot object corresponding to key "id"."""
@@ -526,16 +512,15 @@ class DatespotModelInterface(ModelInterfaceABC):
         return renderable_data
 
 
-    def update(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
+    def update(self, id: str, update_data: dict): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
         self._read_json()
         datespot_data = self._data[id] # Todo: kwargs isn't the "standard" way the other MIs have been doing it. Take JSON.
-        json_data = json.loads(update_json)
-        self._validate_json_fields(json_data)
+        self._validate_json_fields(update_data)
 
         for field in self._valid_model_fields: # Todo: SRP--make separate helper to do the hard-to-follow dict updates?
-            if field in json_data: # i.e. the keys in the dict
-                new_value = json_data[field]
+            if field in update_data: # i.e. the keys in the dict
+                new_value = update_data[field]
                 if field == "traits": # todo what if you want to clear the dict?
                     assert isinstance(new_value, dict)
                     for update_key in new_value: # the "value" is a nested dict
@@ -975,9 +960,9 @@ class MessageModelInterface(ModelInterfaceABC):
          # Add the message to its Chat's data:
         fobj = open(self._master_datafile, "r")
         chat_db = ChatModelInterface(json_map_filename=self._master_datafile) # Same JSON map as this instance is working from
-        chat_json = json.dumps({"messages": [new_obj_id]})
+        chat_update_data = {"messages": [new_obj_id]}
         chat_id = new_obj.chat_id
-        chat_db.update_chat(new_obj.chat_id, chat_json)
+        chat_db.update_chat(new_obj.chat_id, chat_update_data)
 
         self._data[new_obj_id] = new_obj.serialize()
         self._write_json()
@@ -1030,18 +1015,16 @@ class ChatModelInterface(ModelInterfaceABC):
         self._write_json()
         return new_obj_id
 
-    def update_chat(self, object_id: str, update_json: str): # Todo will need more sophisticated interface for adding/removing from lists. Same in other models that have running-list data.
+    def update_chat(self, object_id: str, update_data: dict): # Todo will need more sophisticated interface for adding/removing from lists. Same in other models that have running-list data.
         self._read_json()
-        self._validate_object_id
-        
-        update_json_dict = json.loads(update_json)
-        self._validate_json_fields(update_json_dict)
+        self._validate_object_id(object_id)
+        self._validate_json_fields(update_data)
         chat_data = self._data[object_id] # load the old data
-        if "start_time" in update_json_dict:
-            del update_json_dict["start_time"] # Start time treated as immutable
-        for key in update_json_dict:
+        if "start_time" in update_data:
+            del update_data["start_time"] # Start time treated as immutable
+        for key in update_data:
             if type(chat_data[key]) == list:
-                chat_data[key].extend(update_json_dict[key])
+                chat_data[key].extend(update_data[key])
         self._write_json()
     
     def lookup_obj(self, object_id: str):

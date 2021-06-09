@@ -5,9 +5,6 @@ methods and return JSON.
 Goal is for external calling code to be unaffected by SQL vs. NoSQL and similar issues.
 """
 
-import json  # TODO This module should no longer need to import json after the data structures rationalization refactor is complete.
-                #   It should take Python dicts (or lists) in from the database server, send Python objects as inputs to model interfaces,
-                #       and send json.dumps()-ready Python dicts and lists back to the database server.
 import sys, os, dotenv
 from typing import List
 
@@ -66,42 +63,6 @@ class DatabaseAPI:
         else:
             raise Exception("Failed to post object")
 
-
-    # def get_json(self, json_arg: str) -> str:
-    #     """
-    #     Return the JSON for the object corresponding to object_id.
-
-    #     json_arg examples:
-
-    #         Get a user by id:
-
-    #             {
-    #                 "object_model_name": "user",
-    #                 "object_id": "abc123"
-    #             }
-    #     """
-    #     json_arg = json.loads(json_arg)
-    #     object_model_name = json_arg["object_model_name"]
-    #     object_id = json_arg["object_id"]
-    #     self._validate_model_name(object_model_name)
-    #     model_db = self._model_interface(object_model_name)
-    #     return model_db.lookup_json(object_id)
-    
-    # def _get_json(self, object_type, object_id) -> str: # internal version that doesn't require tedious JSON arg
-    #     """
-    #     Return the JSON for the object corresponding to object_id.
-    #     """
-    #     self._validate_model_name(object_type)
-    #     model_db = self._model_interface(object_type)
-    #     return model_db.lookup_json(object_id)
-
-    # def get_all_json(self, object_type) -> str:
-    #     """
-    #     Return JSON of all objects of the specified type.
-    #     """
-    #     model_db = self._model_interface(object_type)
-    #     return json.dumps(model_db._get_all_data()) # todo meant to be an internal method. Goal is to implement s/t can use model_db.data public attribute.
-    
     def put_data(self, args_data: dict) -> None:
         supported_models = {"user", "datespot", "match", "chat"}  # Review and Message aren't updateable.
         object_model_name = args_data["object_model_name"]
@@ -170,26 +131,6 @@ class DatabaseAPI:
     def _is_valid_decision(self, user_id, candidate_id) -> bool:
         # TODO return False if candidate_id not in User.candidates
         raise NotImplementedError
-
-    # TODO deleteable
-    # def _prune_data_user(self, user_id: str) -> dict:
-    #     """
-    #     Returns JSON data about the user appropriate for display to that same user (what
-    #     a user should be able to see about themself while logged in). Prunes undesired fields
-    #     but does not alter data from server-side format (e.g. doesn't convert the user's matches
-    #     to a usefully renderable list, instead leaves it as a list of user id strings.)
-    #     """
-    #     user_data = json.loads(self._get_json("user", user_id))
-    #     user_safe_fields = self._model_interface("user").user_safe_model_fields
-    #     pruned_data = {}
-    #     for field in user_data:
-    #         if field in user_safe_fields:
-    #             pruned_data[field] = user_data[field]
-    #     return pruned_data
-
-    
-    # TODO have the methods that return HTTP-facing JSON be named with HTTP verbs, and ones that return server-side JSON
-    #   be named differently?
 
     def get_login_user_info(self, query_data: dict) -> dict:
         """

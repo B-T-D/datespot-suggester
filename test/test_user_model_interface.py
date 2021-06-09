@@ -105,16 +105,13 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertIsInstance(azura_blacklist, dict) # Is it a dict as expected?
 
     def test_update_user(self):
-        """Does the update method put new JSON to a valid model field as expected?"""
+        """Does the update method put new data to a valid model field as expected?"""
         new_data = {
             "current_location": (40.737291166191476, -74.00704685527774),
         }
         self.api.update(self.azura_id, new_data)
-        updated_user_json = self.api.lookup_json(self.azura_id)
-        updated_user_data = json.loads(updated_user_json) # todo this would not pass when checking the likes attribute of an "updates" User object literal--why? 
-                                                            #   Indicates something wrong with the method that looks up a user object. 
-
-        self.assertAlmostEqual(new_data["current_location"][0], updated_user_data["current_location"][0]) # todo these aren't very comprehensive tests
+        updated_user_obj = self.api.lookup_obj(self.azura_id)
+        self.assertAlmostEqual(new_data["current_location"][0], updated_user_obj.current_location[0]) # todo these aren't very comprehensive tests
     
     def test_update_user_adds_new_taste(self):
         """Does the update method behave as expected when adding a new taste?"""

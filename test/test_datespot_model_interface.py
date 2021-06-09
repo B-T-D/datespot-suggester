@@ -106,12 +106,13 @@ class TestHelloWorldThings(unittest.TestCase):
         """Are traits updates written to the stored JSON file as expected?"""
         new_terrezanos_trait = "not at a Terrezano's"
         # update with a single string:
-        update_json = json.dumps({
+        update_data = {
             "traits": {"not at a Terrezano's": [0.95, 1]}
-        })
+        }
 
-        self.api.update(self.terrezanos_id, update_json=update_json)
-        self.assertIn(new_terrezanos_trait, self.api._data[self.terrezanos_id]["traits"]) # self.api._data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
+        self.api.update(self.terrezanos_id, update_data=update_data)
+        updated_obj = self.api.lookup_obj(self.terrezanos_id)
+        self.assertIn(new_terrezanos_trait, updated_obj.traits) # self.api._data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
         # update with a list:
         # todo
     
