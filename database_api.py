@@ -204,7 +204,6 @@ class DatabaseAPI:
 
             - user_id is the only required field
         """
-        print(f"get_login_user_info was called with\n\tquery_data = {query_data}\n\twith type {type(query_data)}")
         response = {}
         user_id = query_data["user_id"]
         user_db = self._model_interface("user")

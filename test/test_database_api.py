@@ -422,7 +422,6 @@ class TestHelloWorldThings(unittest.TestCase):
             "user_id": self.azura_id
         }
         result = self.db.get_next_candidate(query_data)
-        print(f"result = {result}")
         candidate_name = result["name"]
         self.assertEqual(self.boethiah_name, candidate_name)
 
@@ -450,8 +449,6 @@ class TestHelloWorldThings(unittest.TestCase):
             }
         ]
         actual_result_data = self.db.get_matches_list(query_data={"user_id": self.azura_id})
-
-        print(f"\n actual_result_data = {actual_result_data}\n")
 
         #self.assertEqual(actual_result_data, expected_result_data)
         # TODO Had to give up for now on asserting about the timestamps due to weird behavior--keep getting them created with identical timestamps

@@ -386,7 +386,6 @@ class UserModelInterface(ModelInterfaceABC):
         """
         self._read_json()
         candidate_data = self._data[candidate_id]
-        print(f"candidate data = {candidate_data}")
         renderable_data = {}
         for key in self.candidate_safe_model_fields:
             renderable_data[key] = candidate_data[key]
@@ -720,7 +719,6 @@ class MatchModelInterface(ModelInterfaceABC):
         cached_suggestions = []
         datespot_db = DatespotModelInterface(json_map_filename=self._master_datafile)
         for suggestion in match_data["suggestions"]:  # Convert the datespot IDs to datespot objects
-            print(f"*** suggestion = {suggestion} with type {type(suggestion)}")
             suggestion_tuple = (
                 suggestion[0],
                 datespot_db.lookup_obj(suggestion[1])
@@ -764,7 +762,6 @@ class MatchModelInterface(ModelInterfaceABC):
         self._read_json()
         renderable_data = []
         match_obj = self.lookup_obj(match_id)
-        print(f"in match MI renderer: obj suggestion queue = {match_obj.suggestions_queue}")
         datespot_db = DatespotModelInterface(json_map_filename=self._master_datafile)
         for suggestion in match_obj.suggestions_queue:  # TODO it should be an @property that yields, like User.matches
             # TODO whatever Match model code is called here should be solely responsible for updating the suggestions queue if necessary
@@ -815,13 +812,8 @@ class MatchModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_object_id(object_id)
         match_obj = self.lookup_obj(object_id)
-        print(f"MI before suggestions() call: match_obj.suggestions_queue = {match_obj.suggestions_queue}")
         match_obj.suggestions(candidates)
-        print(f"MI after suggestions() call: match_obj.suggestions_queue = {match_obj.suggestions_queue}")
         self.sync(match_obj)  # Update the new suggestions in the DB
-        print(f"MI data after sync call: {self._data[object_id]}")
-        #self._write_json()  
-
 
     ### Private methods ###
 

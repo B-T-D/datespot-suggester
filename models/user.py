@@ -202,7 +202,6 @@ class User(UserBase):
         Args:
             taste (str): Name of one of the tastes in this user's tasts attribute.
         """
-        print(TASTE_STRENGTH_DECIMAL_PLACES)
         return round(self._tastes[taste][0], TASTE_STRENGTH_DECIMAL_PLACES)
     
     def taste_datapoints(self, taste) -> int: # toto YAGNI?
