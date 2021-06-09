@@ -314,6 +314,10 @@ class DatabaseAPI:
         return match_obj.suggestions(candidate_datespots) # todo TBD how much we care about returning just one vs. returning a prioritized queue
                                                     #   and letting the client handle swiping on restaurants without needing a new query every time
                                                     #   the users reject a suggestion. Would guess that latter approach is better practice.
+    
+    def get_matches_list(self, json_data: str) -> str:
+        return self._model_interfaces("user").query_matches_list(user_id)
+
 
     ### Private methods ###
 

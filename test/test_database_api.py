@@ -399,3 +399,9 @@ class TestHelloWorldThings(unittest.TestCase):
     #     review
     #     message
     #     chat
+
+    def test_get_matches(self):
+        self.fail()
+    
+    def test_get_suggestions(self):
+        self.fail()
