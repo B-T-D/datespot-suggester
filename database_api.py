@@ -170,20 +170,21 @@ class DatabaseAPI:
         # TODO return False if candidate_id not in User.candidates
         raise NotImplementedError
 
-    def _prune_data_user(self, user_id: str) -> dict:
-        """
-        Returns JSON data about the user appropriate for display to that same user (what
-        a user should be able to see about themself while logged in). Prunes undesired fields
-        but does not alter data from server-side format (e.g. doesn't convert the user's matches
-        to a usefully renderable list, instead leaves it as a list of user id strings.)
-        """
-        user_data = json.loads(self._get_json("user", user_id))
-        user_safe_fields = self._model_interface("user").user_safe_model_fields
-        pruned_data = {}
-        for field in user_data:
-            if field in user_safe_fields:
-                pruned_data[field] = user_data[field]
-        return pruned_data
+    # TODO deleteable
+    # def _prune_data_user(self, user_id: str) -> dict:
+    #     """
+    #     Returns JSON data about the user appropriate for display to that same user (what
+    #     a user should be able to see about themself while logged in). Prunes undesired fields
+    #     but does not alter data from server-side format (e.g. doesn't convert the user's matches
+    #     to a usefully renderable list, instead leaves it as a list of user id strings.)
+    #     """
+    #     user_data = json.loads(self._get_json("user", user_id))
+    #     user_safe_fields = self._model_interface("user").user_safe_model_fields
+    #     pruned_data = {}
+    #     for field in user_data:
+    #         if field in user_safe_fields:
+    #             pruned_data[field] = user_data[field]
+    #     return pruned_data
 
     
     # TODO have the methods that return HTTP-facing JSON be named with HTTP verbs, and ones that return server-side JSON

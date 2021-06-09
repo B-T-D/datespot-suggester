@@ -202,7 +202,7 @@ class User(UserBase):
     def serialize(self) -> dict:
         """Return the data about this object that should be stored."""
         return {
-            "id": self.id,
+            "user_id": self.id,
             "name": self.name,
             "current_location": self.current_location,
             "predominant_location": self.predominant_location,

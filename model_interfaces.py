@@ -386,6 +386,7 @@ class UserModelInterface(ModelInterfaceABC):
         """
         self._read_json()
         candidate_data = self._data[candidate_id]
+        print(f"candidate data = {candidate_data}")
         renderable_data = {}
         for key in self.candidate_safe_model_fields:
             renderable_data[key] = candidate_data[key]
