@@ -51,6 +51,8 @@ class ModelInterfaceABC: # Abstract base class
         for key in json_data:
             self._data[key] = json_data[key]
 
+    # TODO _read_json() and _write_json() should be the only code in this entire module that calls json.load() and json.dump()
+
     def _write_json(self):
         """Overwrite stored JSON for this model to exactly match current state of the API instance's native Python dictionary."""
         # Todo: Any safeguards that make sense to reduce risk of accidentally overwriting good data?
@@ -347,7 +349,6 @@ class UserModelInterface(ModelInterfaceABC):
         user_obj = self.lookup_obj(user_id)
         raise NotImplementedError
 
-
     def add_to_pending_likes(self, user_id_1: int, user_id_2: int): # todo think about most intuitive and maintainable architecture for this
         """Add a second user that this user swiped "yes" on to this user's hash map of pending likes."""
         self._read_json()
@@ -407,12 +408,12 @@ class DatespotModelInterface(ModelInterfaceABC):
 
     ### Public methods ###
 
-    def create(self, json_str: str) -> str:
+    def create(self, new_data: dict) -> str:
         """
         Creates a new Datespot object, serializes it to the persistent JSON, and returns its id key.
         """
         self._read_json()
-        datespot_obj = self._instantiate_datespot_from_json(json_str)
+        datespot_obj = self._instantiate_obj_from_dict(new_data)
 
         new_object_id = datespot_obj.id
 
@@ -433,16 +434,17 @@ class DatespotModelInterface(ModelInterfaceABC):
         self._read_json()
         self._validate_object_id(id)
         datespot_data = self._data[id]
-        return models.Datespot(
-            location = tuple(datespot_data["location"]),
-            name = datespot_data["name"],
-            traits = datespot_data["traits"],
-            price_range = datespot_data["price_range"],
-            hours = datespot_data["hours"],
-            yelp_rating = datespot_data["yelp_rating"],
-            yelp_review_count = datespot_data["yelp_review_count"],
-            yelp_url = datespot_data["yelp_url"]
-        )
+        return self._instantiate_obj_from_dict(datespot_data)
+        # return models.Datespot(
+        #     location = tuple(datespot_data["location"]),
+        #     name = datespot_data["name"],
+        #     traits = datespot_data["traits"],
+        #     price_range = datespot_data["price_range"],
+        #     hours = datespot_data["hours"],
+        #     yelp_rating = datespot_data["yelp_rating"],
+        #     yelp_review_count = datespot_data["yelp_review_count"],
+        #     yelp_url = datespot_data["yelp_url"]
+        # )
     
     def update(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
@@ -539,8 +541,8 @@ class DatespotModelInterface(ModelInterfaceABC):
         # This relies on the hashing logic in Datespot--datespot with given name at given location should hash uniquely.
         # Instantiate a datespot object with this JSON, then see if its ID string is in the DB.
         self._read_json()
-        datespot_obj = self._instantiate_datespot_from_json(json_str)
-        return datespot_obj.id in self._data
+        model_obj = self._instantiate_obj_from_dict(json_str)
+        return model_obj.id in self._data
     
     ### Private methods ###
 
@@ -549,34 +551,33 @@ class DatespotModelInterface(ModelInterfaceABC):
     #   already exist at approximately that location in the db?
         pass
 
-    def _instantiate_datespot_from_json(self, json_str: str) -> models.Datespot: # Helper for DRY-ness
+    def _instantiate_obj_from_dict(self, obj_data: dict) -> models.Datespot: # Helper for DRY-ness
         """
         Instantiate a Datespot object corresponding to this JSON, and return it without interacting with the database.
         """
-        json_dict = json.loads(json_str)
-        self._validate_json_fields(json_dict)
-        location_tuple = tuple(json_dict["location"])
+        self._validate_json_fields(obj_data)
+        location_tuple = tuple(obj_data["location"])  # TODO customize JSON encode/decode
                 
         # Instantiate an object with the data
-        datespot_obj = models.Datespot(
+        model_obj = models.Datespot(
             location = location_tuple,
-            name = json_dict["name"]
+            name = obj_data["name"]
         )
 
         optional_fields =  {
-            "traits": datespot_obj.traits,
-            "price_range": datespot_obj.price_range,
-            "hours": datespot_obj.hours,
-            "yelp_rating": datespot_obj.yelp_rating,
-            "yelp_review_count": datespot_obj.yelp_review_count,
-            "yelp_url": datespot_obj.yelp_url
+            "traits": model_obj.traits,
+            "price_range": model_obj.price_range,
+            "hours": model_obj.hours,
+            "yelp_rating": model_obj.yelp_rating,
+            "yelp_review_count": model_obj.yelp_review_count,
+            "yelp_url": model_obj.yelp_url
             }
         
         for optional_field in optional_fields:
-            if optional_field in json_dict:
-                exec(f"datespot_obj.{optional_field} = json_dict[optional_field]") # Todo what's a better way than exec()? Or is this an ok use case for exec()?
+            if optional_field in obj_data:
+                exec(f"model_obj.{optional_field} = obj_data[optional_field]") # Todo what's a better way than exec()? Or is this an ok use case for exec()?
         
-        return datespot_obj
+        return model_obj
 
 class MatchModelInterface(ModelInterfaceABC):
 

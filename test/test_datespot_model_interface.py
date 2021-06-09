@@ -54,15 +54,15 @@ class TestHelloWorldThings(unittest.TestCase):
         self.terrezanos_price_range = 2
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
 
-        self.terrezanos_json = json.dumps({
+        self.terrezanos_data = {
                 "location" : self.terrezanos_location,
                 "name" : self.terrezanos_name,
                 "traits" : self.terrezanos_traits,
                 "price_range" : self.terrezanos_price_range,
                 "hours" : self.terrezanos_hours,
-            })
+            }
 
-        self.terrezanos_id = self.api.create(self.terrezanos_json)
+        self.terrezanos_id = self.api.create(self.terrezanos_data)
         assert self.terrezanos_id in self.api._data
         
     def test_instantiation(self):
@@ -83,15 +83,15 @@ class TestHelloWorldThings(unittest.TestCase):
         domenicos_price_range = 1
         domenicos_hours = [[8, 19], [8, 19], [8, 19], [8, 19], [8, 19], [8, 19], [10, 17]]
 
-        domenicos_json = json.dumps({
+        domenicos_data = {
             "location" : domenicos_location,
             "name" : domenicos_name,
             "traits" : domenicos_traits,
             "price_range" : domenicos_price_range,
             "hours" : domenicos_hours
-        })
+        }
 
-        domenicos_key = self.api.create(domenicos_json)
+        domenicos_key = self.api.create(domenicos_data)
         self.assertIsInstance(domenicos_key, DATESPOT_ID_TYPE)
         domenicos = self.api.lookup_obj(domenicos_key)
         self.assertEqual(str(type(domenicos)), "DatespotObj")
@@ -117,7 +117,7 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_is_in_db(self):
         """Does the method that checks if an ID is already in the database behave as expected?"""
-        self.assertTrue(self.api.is_in_db(self.terrezanos_json)) # JSON for the same restaurant should hash to same thing
+        self.assertTrue(self.api.is_in_db(self.terrezanos_data)) # JSON for the same restaurant should hash to same thing
         # Todo add an assertFalse
 
 class TestQueriesOnPersistentDB(unittest.TestCase):

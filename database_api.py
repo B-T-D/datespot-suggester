@@ -5,7 +5,9 @@ methods and return JSON.
 Goal is for external calling code to be unaffected by SQL vs. NoSQL and similar issues.
 """
 
-import json
+import json  # TODO This module should no longer need to import json after the data structures rationalization refactor is complete.
+                #   It should take Python dicts (or lists) in from the database server, send Python objects as inputs to model interfaces,
+                #       and send json.dumps()-ready Python dicts and lists back to the database server.
 import sys, os, dotenv
 
 import model_interfaces
@@ -13,15 +15,7 @@ import model_interfaces
 import api_clients.yelp_api_client
 from project_constants import *
 
-# Todo: In a live app, the messages wouldn't go through this JSON backend for analysis before continuing on to the recipient(s). Something would copy them
-#   in the middle, send them immediately on to recipient, and then dispatch the data to the backend for analysis on a less urgent timeframe.
-
-# dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
-# dotenv.load_dotenv(dotenv_path)
-
-JSON_MAP_FILENAME = "jsonMap.json"
-# DEFAULT_RADIUS = os.environ.get("DEFAULT_RADIUS")
-# LAT_LON_DECIMAL_PLACES = os.environ.get("LAT_LON_DECIMAL_PLACES")  
+JSON_MAP_FILENAME = "jsonMap.json"  
 
 class DatabaseAPI:
 
