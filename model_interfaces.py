@@ -84,6 +84,9 @@ class ModelInterfaceABC: # Abstract base class
             if not key in self._valid_model_fields:
                 raise ValueError(f"Invalid field in call to model interface create method: {key}")
     
+    def _validate_model_fields(self, data: dict) -> None: # TODO get rid of the "json_fields" one once nobody needs that name
+        return self._validate_json_fields(data)
+    
     def _get_all_data(self) -> dict: # todo access this with the public attribute "self.data", not this method
         """Return the API instance's data as a native Python dictionary. I.e. all objects in a single dict, keys are the object ID strings."""
         self._read_json()
@@ -146,12 +149,12 @@ class UserModelInterface(ModelInterfaceABC):
     
     ### Public methods ###
 
-    def create(self, json_data: str) -> int:
+    def create(self, new_data: dict) -> str:
         """
         Takes json data in the app's internal format and returns the id key of the newly created user.
         Force key arg is for testing purposes to not always have huge unreadable uuids.
 
-        json_data examples:
+        new_data examples:
 
             {
                 "name": "foo",
@@ -163,12 +166,9 @@ class UserModelInterface(ModelInterfaceABC):
         """
         
         self._read_json()
-        json_dict = json_data
-        if isinstance(json_dict, str): # Just in case it somehow made it here as a string
-            json_dict = json.loads(json_dict)
-        self._validate_json_fields(json_dict)
-        if "force_key" in json_dict:
-            force_key = json_dict["force_key"]
+        self._validate_model_fields(new_data)
+        if "force_key" in new_data:
+            force_key = new_data["force_key"]
             if force_key in self._data: # Don't allow force-creating a key that's already taken
                 raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
             user_id = force_key
@@ -176,8 +176,8 @@ class UserModelInterface(ModelInterfaceABC):
             user_id  = uuid.uuid1().hex  
         new_user = models.User(
             user_id = user_id,
-            name=json_dict["name"],
-            current_location = tuple(json_dict["current_location"])
+            name=new_data["name"],
+            current_location = tuple(new_data["current_location"])
         )
         # todo adding tastes not supported here--does that make sense?
         #   Rationale is that any tastes data comes in later, not at the moment the user is created in the DB for the first time.
@@ -236,10 +236,10 @@ class UserModelInterface(ModelInterfaceABC):
             travel_propensity = candidate_data["travel_propensity"]
         )
 
-    def update(self, user_id: int, new_json: str): # todo -- updating location might be single most important thing this does.
+    def update(self, user_id: int, new_data: dict): # todo -- updating location might be single most important thing this does.
         # Todo support a "force datapoints count" option for updating tastes?
         """
-        Takes JSON string, updates the native Python dict, and writes it to the stored master JSON.
+        Takes Python dict, updates the native Python dict, and writes it to the stored master JSON.
 
         Specify the field to update as the key in the new_json string. E.g.  specifies to update location.
 
@@ -264,7 +264,6 @@ class UserModelInterface(ModelInterfaceABC):
             
         """
         self._read_json()
-        new_data = json.loads(new_json)
         user_data = self._data[user_id]
         self._validate_json_fields(new_data)
         for key in new_data: # todo best practice on type() vs isinstance?

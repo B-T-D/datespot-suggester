@@ -50,14 +50,14 @@ class TestHelloWorldThings(unittest.TestCase):
                 [self.azura_existing_taste_strength,
                 self.azura_existing_taste_datapoints]
         }
-        azura_json = json.dumps({
+        azura_data = {
             "name": self.azura_name,
             "current_location": self.azura_location,
             "force_key": self.azura_id
-        })
+        }
 
         # Todo this is very convoluted--it was a quick hacky way of forcing the preexisting tastes data into the test DB
-        assert self.api.create(azura_json) == self.azura_id # It should return the id
+        assert self.api.create(azura_data) == self.azura_id # It should return the id
         assert self.azura_id in self.api._data
         azura_obj = self.api.lookup_obj(self.azura_id)
         azura_obj._tastes = self.azura_existing_tastes # Directly set the private attribute
@@ -68,20 +68,20 @@ class TestHelloWorldThings(unittest.TestCase):
         self.boethiah_name = "Boethiah"
         self.boethiah_location = (40.76346250260515, -73.98013893542904)
         self.boethiah_id = "2"
-        boethiah_json = json.dumps({
+        boethiah_data = {
             "name": self.boethiah_name,
             "current_location": self.boethiah_location,
             "force_key": self.boethiah_id
-        })
-        assert self.api.create(boethiah_json) == self.boethiah_id
+        }
+        assert self.api.create(boethiah_data) == self.boethiah_id
         
     def test_create(self):
-        json_data = json.dumps({
+        data = {
             "name": "Grort",
             "current_location": (40.76346250260515, -73.98013893542904)
-        })
-        new_user = self.api.create(json_data)
-        self.assertIn(new_user, self.api._data)
+        }
+        new_user_id = self.api.create(data)
+        self.assertIn(new_user_id, self.api._data)
     
     def test_lookup_user(self):
         existing_user = self.api.lookup_obj(self.azura_id) # todo it should work with an int literal
@@ -109,8 +109,7 @@ class TestHelloWorldThings(unittest.TestCase):
         new_data = {
             "current_location": (40.737291166191476, -74.00704685527774),
         }
-        new_json = json.dumps(new_data)
-        self.api.update(self.azura_id, new_json)
+        self.api.update(self.azura_id, new_data)
         updated_user_json = self.api.lookup_json(self.azura_id)
         updated_user_data = json.loads(updated_user_json) # todo this would not pass when checking the likes attribute of an "updates" User object literal--why? 
                                                             #   Indicates something wrong with the method that looks up a user object. 
@@ -121,8 +120,8 @@ class TestHelloWorldThings(unittest.TestCase):
         """Does the update method behave as expected when adding a new taste?"""
         new_taste = "dusk"
         new_taste_strength = 0.9
-        new_taste_json = json.dumps({"tastes": {new_taste: new_taste_strength}})
-        self.api.update(self.azura_id, new_taste_json)
+        new_taste_data = {"tastes": {new_taste: new_taste_strength}}
+        self.api.update(self.azura_id, new_taste_data)
         azura_user_obj = self.api.lookup_obj(self.azura_id)
         self.assertIn(new_taste, azura_user_obj._tastes)
     
@@ -133,10 +132,10 @@ class TestHelloWorldThings(unittest.TestCase):
             (self.azura_existing_taste_strength * self.azura_existing_taste_datapoints + new_datapoint_strength) / \
             (1 + self.azura_existing_taste_datapoints)
         
-        update_json = json.dumps({
+        update_data = {
             "tastes": {self.azura_existing_taste_name: new_datapoint_strength}
-        })
-        self.api.update(self.azura_id, update_json)
+        }
+        self.api.update(self.azura_id, update_data)
         actual_value = self.api._data[self.azura_id]["tastes"][self.azura_existing_taste_name][0]
         self.assertAlmostEqual(expected_value, actual_value)
         
