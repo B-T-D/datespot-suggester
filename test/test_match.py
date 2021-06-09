@@ -1,6 +1,7 @@
 import unittest
 
 import json
+import time
 
 import models, model_interfaces
 
@@ -23,6 +24,11 @@ class TestHelloWorldThings(unittest.TestCase):
             #   (pointing to same test DB filenames for some like users, different one for datespots)
         self.user_data = model_interfaces.UserModelInterface()
 
+        # TODO: This test adds more and more to the mock users DB, such that the test takes longer and longer to run each time (or as it gets more complex,
+        #   e.g. more Matches nested in each User).
+        #   TODO have the setup copy all the DB file first, save them under temp names; then have a tear down that rewrites the content of those temp files into the 
+        #       persistent mock DB.
+
         # Need user objects to instantiate a Match
         grortName = "Grort"
         grortCurrentLocation = (40.746667, -74.001111)
@@ -30,6 +36,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "name": grortName,
             "current_location": grortCurrentLocation
         }
+        user_db_ops_start = time.time()
         self.grort_user_id = self.db.post_object({"object_model_name": "user", "object_data": grort_data})
         userGrort = self.user_data.lookup_obj(self.grort_user_id)
 
@@ -41,18 +48,28 @@ class TestHelloWorldThings(unittest.TestCase):
         }
         self.drobb_user_id = self.db.post_object({"object_model_name": "user", "object_data": drobb_data})
         userDrobb = self.user_data.lookup_obj(self.drobb_user_id)
+        user_db_ops_end = time.time()
+        print(f"In test_match.py setUp: Create and lookup objects operations on full mock DB ran in {user_db_ops_end - user_db_ops_start} seconds")
 
         # distance should be approx 2610m
         # midpoint should be circa (40.75827478958617, -73.99310556132602)
 
+        start = time.time()
         self.matchGrortDrobb = models.Match(userGrort, userDrobb)
+        end = time.time()
+        print(f"In test_match.py setUp: Match.__init__() bypassing DB layer ran in {end - start} seconds")
         assert self.matchGrortDrobb.midpoint is not None
+        
+        
 
+        start = time.time()
         # Get the candidates list that the DatabaseAPI would be giving to Match:
         self.candidate_datespots_list = self.db.get_datespots_near(
             {
                 "location": self.matchGrortDrobb.midpoint
             })
+        end = time.time()
+        print(f"In test_match.py setUp: get_datespots_near() ran in {end - start} seconds")
     
     def test_compute_midpoint(self):
         maxDelta = 0.01
