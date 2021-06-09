@@ -31,10 +31,14 @@ class TestHelloWorldThings(unittest.TestCase):
                 json.dump({}, fobj)
                 fobj.seek(0)
         
-        # Instantiate DatabaseAPI object
+        # Instantiate DatabaseAPI object and model interfaces
         self.db = DatabaseAPI(json_map_filename = TEST_JSON_DB_NAME)
-        self.user_data = model_interfaces.UserModelInterface(json_map_filename = TEST_JSON_DB_NAME)
-        self.match_data = model_interfaces.MatchModelInterface(json_map_filename = TEST_JSON_DB_NAME)
+        self.user_data = model_interfaces.UserModelInterface(json_map_filename = TEST_JSON_DB_NAME)  # These are cumbersome, but no implementation code actually needs to ask the DB API for 
+        self.datespot_data = model_interfaces.DatespotModelInterface(json_map_filename  = TEST_JSON_DB_NAME)  #   ...a model object. DB API having a "get_object()" method would be convenient
+        self.match_data = model_interfaces.MatchModelInterface(json_map_filename = TEST_JSON_DB_NAME)          #  ...for the tests code but have no other use.
+        self.review_data = model_interfaces.ReviewModelInterface(json_map_filename = TEST_JSON_DB_NAME)
+        self.chat_data = model_interfaces.ChatModelInterface(json_map_filename = TEST_JSON_DB_NAME)
+        self.message_data = model_interfaces.MessageModelInterface(json_map_filename = TEST_JSON_DB_NAME)
 
         # Data for mock users
         self.azura_name = "Azura"
@@ -86,7 +90,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 "hours" : self.terrezanos_hours,
             }
         
-        self.terrezanos_id = self.db.post_object({"object_model_name": "datespot", "json_data": self.terrezanos_data})
+        self.terrezanos_id = self.db.post_object({"object_model_name": "datespot", "object_data": self.terrezanos_data})
 
         # Data for mock Review of Terrezano's
 
@@ -100,8 +104,8 @@ class TestHelloWorldThings(unittest.TestCase):
 
 
         # Add two users for use in testing compound objects
-        self.db.post_object({"object_model_name": "user", "json_data": self.azura_data})
-        self.db.post_object({"object_model_name": "user", "json_data": self.boethiah_data})
+        self.db.post_object({"object_model_name": "user", "object_data": self.azura_data})
+        self.db.post_object({"object_model_name": "user", "object_data": self.boethiah_data})
 
         # Data for mock Message and Chat
         self.mock_bilateral_timestamp = time.time()
@@ -109,7 +113,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "start_time": time.time(),
             "participant_ids": [self.azura_id, self.boethiah_id]
         }
-        self.mock_chat_id_1 = self.db.post_object({"object_model_name": "chat", "json_data": self.quick_mock_chat_data})  # Need a Chat to create a Message
+        self.mock_chat_id_1 = self.db.post_object({"object_model_name": "chat", "object_data": self.quick_mock_chat_data})  # Need a Chat to create a Message
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
 
@@ -145,7 +149,7 @@ class TestHelloWorldThings(unittest.TestCase):
     
     ### Tests for post_object() and get_object() ###
 
-    def test_post_and_get_obj_user(self):
+    def test_post_obj_user(self):
         talos_name = "Talos"
         talos_location = (40.76346250260515, -73.98013893542904)
         expected_talos_id = "3"
@@ -154,13 +158,13 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": talos_location,
             "force_key": expected_talos_id
         }
-        actual_talos_id = self.db.post_object({"object_model_name": "user", "json_data": talos_data})
+        actual_talos_id = self.db.post_object({"object_model_name": "user", "object_data": talos_data})
         self.assertIsInstance(actual_talos_id, str)
-        talos_obj = self.db.get_object("user", actual_talos_id)
+        talos_obj = self.user_data.lookup_obj(actual_talos_id)
         self.assertIsInstance(talos_obj, models.User)
         self.assertEqual(expected_talos_id, actual_talos_id)
     
-    def test_post_and_get_obj_datespot(self):
+    def test_post_obj_datespot(self):
         domenicos_location = (40.723889184134926, -73.97613846772394)
         domenicos_name = "Domenico's"
         domenicos_traits = {
@@ -183,33 +187,33 @@ class TestHelloWorldThings(unittest.TestCase):
             "hours" : domenicos_hours
         }
         
-        domenicos_id = self.db.post_object({"object_model_name": "datespot", "json_data": domenicos_data})
-        domenicos_obj = self.db.get_object("datespot", domenicos_id)
+        domenicos_id = self.db.post_object({"object_model_name": "datespot", "object_data": domenicos_data})
+        domenicos_obj = self.datespot_data.lookup_obj(domenicos_id)
 
         self.assertIsInstance(domenicos_obj, models.Datespot)
     
-    def test_post_and_get_obj_match(self):
+    def test_post_obj_match(self):
         match_data = {
             "user1_id": self.azura_id,
             "user2_id": self.boethiah_id
         }
-        match_id = self.db.post_object({"object_model_name": "match", "json_data": match_json})
-        match_obj = self.db.get_object("match", match_id)
+        match_id = self.db.post_object({"object_model_name": "match", "object_data": match_data})
+        match_obj = self.match_data.lookup_obj(match_id)
         self.assertIsInstance(match_obj, models.Match)
     
-    def test_post_and_get_obj_review(self):
-        review_id = self.db.post_object({"object_model_name": "review", "json_data": self.terrezanos_review_data})
-        review_obj = self.db.get_object("review", review_id)
+    def test_post_obj_review(self):
+        review_id = self.db.post_object({"object_model_name": "review", "object_data": self.terrezanos_review_data})
+        review_obj = self.review_data.lookup_obj(review_id)
         self.assertIsInstance(review_obj, models.Review)
     
-    def test_post_and_get_obj_message(self):
-        message_id = self.db.post_object({"object_model_name": "message", "json_data": self.mock_bilateral_message_data})
-        message_obj = self.db.get_object("message", message_id)
+    def test_post_obj_message(self):
+        message_id = self.db.post_object({"object_model_name": "message", "object_data": self.mock_bilateral_message_data})
+        message_obj = self.message_data.lookup_obj(message_id)
         self.assertIsInstance(message_obj, models.Message)
     
-    def test_post_and_get_obj_chat(self):
-        chat_id = self.db.post_object({"object_model_name": "chat", "json_data": self.quick_mock_chat_data})
-        chat_obj = self.db.get_object("chat", chat_id)
+    def test_post_obj_chat(self):
+        chat_id = self.db.post_object({"object_model_name": "chat", "object_data": self.quick_mock_chat_data})
+        chat_obj = self.chat_data.lookup_obj(chat_id)
         self.assertIsInstance(chat_obj, models.Chat)
     
     ### Tests for put_json() ###
@@ -313,10 +317,10 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_get_datespots_near_cache_only_default_radius(self):
         """Does the method return a string matching the expected shape of a JSON-ified list of Datespots
         in response to a query that provides valid location but no radius?"""
-        location_query_json = json.dumps({
+        location_query_data = {
             "location": (40.737291166191476, -74.00704685527774)
-        })
-        results = self.db.get_datespots_near(location_query_json)
+        }
+        results = self.db.get_datespots_near(location_query_data)
         self.assertIsInstance(results, list)
         self.assertGreater(len(results), 0)
         first_result = results[0]
@@ -327,11 +331,11 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_get_datespots_near_cache_only_nondefault_radius(self):
         """Does the method return the expected JSON in response to a query that provides valid location
         and specifies a non-default_radius?"""
-        location_query_json = json.dumps({
+        location_query_data = {
             "location": (40.737291166191476, -74.00704685527774),
             "radius": 4000
-        })
-        results = self.db.get_datespots_near(location_query_json)
+        }
+        results = self.db.get_datespots_near(location_query_data)
         self.assertIsInstance(results, list)
         self.assertGreater(len(results), 0)
         first_result = results[0]
@@ -349,7 +353,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "user1_id": self.azura_id,
             "user2_id": self.boethiah_id
         }
-        match_id = self.db.post_object({"object_model_name": "match", "json_data": match_data})
+        match_id = self.db.post_object({"object_model_name": "match", "object_data": match_data})
         match_obj = self.match_data.lookup_obj(match_id)
 
         query_data = {"match_id": match_id}
@@ -359,12 +363,12 @@ class TestHelloWorldThings(unittest.TestCase):
     
     ### Tests for other public methods ###
     def test_get_next_candidate(self):  # We have two Users in the DB, so one will be the other's candidate
-        query_json = json.dumps({
+        query_data = {
             "user_id": self.azura_id
-        })
-        result = self.db.get_next_candidate(query_json)
+        }
+        result = self.db.get_next_candidate(query_data)
         print(f"result = {result}")
-        candidate_name = json.loads(result)["name"]
+        candidate_name = result["name"]
         self.assertEqual(self.boethiah_name, candidate_name)
 
     # TODO Post / get obj / get json for all of:

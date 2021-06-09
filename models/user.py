@@ -77,7 +77,7 @@ class User(UserBase):
         travel_propensity: float=0.0,
         candidates: list=[],
         pending_likes: dict={},
-        matches: dict={},
+        matches: List[tuple]=[],
         match_blacklist: dict={},
         ):
         """
@@ -86,9 +86,16 @@ class User(UserBase):
             home_location (tuple[int]): Tuple of two ints representing 2D coordinates.
             taste (dict): Dictionary of user's date-location relevant preferences. Format is 
                     { 
-                        str preference: [float avg_sentiment, int num_datapoints],
+                        preference (str): [avg_sentiment (float), num_datapoints (int)],
                         "thai": [0.192, 3]  # User mentioned "thai" in 3 sentences, and average sentiment of those sentences was 0.192
                     }
+            
+            matches (list[tuple]): List of tuples containing data about Matches of which this user is a member. Format of matches[i]:
+                    (match_id (str), timestamp (float), partner_id(str))
+                
+                - match_id is equal to that Match object's .id attribute
+                - timestamp is the Unix timestamp equal to Match.timestamp
+                - partner_id is the user ID string of the other member of the Match besides this User.
         """
         super().__init__(
             user_id=user_id,
@@ -108,7 +115,8 @@ class User(UserBase):
         self._fixed_predominant_location = False  # True if e.g. the User provided their home address
 
         self.candidates = collections.deque(candidates)  # Deque of User objects
-        self.matches = matches # References to Matches of which this User is a constituent.
+        self._matches = matches # References to Matches of which this User is a constituent.
+        self._sort_matches()  # Maintain list in sorted order on the default sort criteria
 
         self.match_blacklist = match_blacklist # References to Users with whom this user should never be matched. Keys are user ids, values timestamps indicating when the blacklisting happened. 
         if not self.id in self.match_blacklist: # Prevent this user being matched with themself
@@ -123,6 +131,49 @@ class User(UserBase):
     
     ### Public methods ###
     
+    @property
+    def matches(self):
+        """
+        Yields the match_ids of this User's Matches, sorted in descending timestamp order (most recently matched first).
+        """
+        for match in self._matches:
+            yield match[0]  # External code shouldn't need to worry about the indexing of the tuples
+    
+    @property
+    def match_partners(self):
+        """
+        Yields the user IDs of other Users this User has matched with.
+        """
+        for match in self._matches:
+            yield match[2]
+        
+    def has_match(self, match_id: str)-> bool:
+        """
+        Returns True if match_id is already in this User's matches data, else False.
+        """
+        #  TODO: Hypothesize that it's faster to just use linear search here than to instantiate a 
+        #       hash table of the matches every time a User is instantiated. User objects are instantiated
+        #       much more often and in many more contexts than has_match() will need to be checked. Presumably
+        #       a User won't have thousands of active Matches simultaneously.
+        for match in self._matches:
+            if match[0] == match_id:
+                return  True
+        return False
+
+    def add_match(self, match_id: str, match_timestamp: float, match_partner_id: str) -> None:
+        """
+        Appends new Match data to this User's Matches data.
+        """
+        new_match = (match_id, match_timestamp, match_partner_id)
+        self._matches.append(new_match)
+        self._sort_matches()
+
+    def _sort_matches(self, key="timestamp"):
+        if key == "timestamp":
+            self._matches.sort(key = lambda match : match[1], reverse=True)
+        else:
+            raise NotImplementedError
+
     def taste_names(self):  # TODO would this be a good use case for a yield generator?
                             # i.e. lazily yield them one at a time for the caller to iterate over. The datespot scorer method iterates over them.
                             #   OTOH maybe useful to spend O(n) time then return them as a hash set?
@@ -158,7 +209,7 @@ class User(UserBase):
             "travel_propensity": self.travel_propensity,
             "candidates": self._serialize_candidates(),  # List of only the ID hex-strings
             "pending_likes": self.pending_likes,
-            "matches": self.matches,
+            "matches": self._matches,
             "match_blacklist": self.match_blacklist
         }
     

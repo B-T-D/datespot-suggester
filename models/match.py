@@ -55,13 +55,13 @@ class Match(metaclass=DatespotAppType):
 
         self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date.
 
-        # Make sure each User's dict of Matches includes this one:
-        if not self.id in self.user1.matches:
-            self.user1.matches[self.id] = self.timestamp
-        if not self.id in self.user2.matches:
-            self.user2.matches[self.id] = self.timestamp
-            
-    
+        # Make sure each User's matches data includes this one:
+
+        if not self.user1.has_match(self.id):
+            self.user1.add_match(match_id=self.id, match_timestamp = self.timestamp, match_partner_id=self.user2.id)
+        if not self.user2.has_match(self.id):
+            self.user2.add_match(match_id=self.id, match_timestamp = self.timestamp, match_partner_id=self.user1.id)
+
     ### Public methods ###
 
     def __eq__(self, other):

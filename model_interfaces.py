@@ -333,6 +333,35 @@ class UserModelInterface(ModelInterfaceABC):
         self._data[user_id] = user_obj.serialize()
         self._write_json()
         return user_obj.next_candidate().id  # Model layer handles the queue, blacklisting, etc.
+    
+    def render_user(self, user_id: str) -> dict:
+        """
+        Returns data about a user relevant for display to that user.
+
+        Returns:
+            (dict): Dictionary of User object fields pruned to those relevant for display.
+        """
+        self._read_json()
+        user_data = self._data[user_id]
+        renderable_data = {}
+        for key in self.user_safe_model_fields:
+            renderable_data[key] = user_data[key]
+        return renderable_data
+    
+    def render_candidate(self, candidate_id: str) -> dict:
+        """
+        Returns data about a candidate-user for appropriate for display to an unknown other user (i.e., User A deciding whether they want to match with User B
+        shouldn't see all data about User B, only some subset relevant to User A's decisionmaking process).
+
+        Returns:
+            (dict): Dictionary of User object fields pruned to those appropriate and relevant for display.
+        """
+        self._read_json()
+        candidate_data = self._data[candidate_id]
+        renderable_data = {}
+        for key in self.candidate_safe_model_fields:
+            renderable_data[key] = candidate_data[key]
+        return renderable_data
 
     def query_matches_list(self, user_id: str) -> List[dict]:
         """
@@ -345,7 +374,9 @@ class UserModelInterface(ModelInterfaceABC):
             (list[dict]): List of dictionaries, each of which contains the rendering-relevant info for one match.
         """
         self._read_json()
+        renderable_data = []
         user_obj = self.lookup_obj(user_id)
+            
         raise NotImplementedError
 
     def add_to_pending_likes(self, user_id_1: int, user_id_2: int): # todo think about most intuitive and maintainable architecture for this

@@ -35,6 +35,33 @@ class TestHelloWorldThings(unittest.TestCase):
             current_location = self.boethiah_location
         )
 
+        # Instantiate third user
+        self.hircine_name = "Hircine"
+        self.hircine_location = (40.76525023033338, -73.96722141608099)
+        self.hircine_id = "3"
+        self.hircine_user_obj = models.User(
+            user_id = self.hircine_id,
+            name = self.hircine_name,
+            current_location = self.hircine_location
+        )
+
+        # Create a match between Azura and each of the other two users
+        self.match_obj_azura_boethiah = models.Match(
+            user1 = self.azura_user_obj,
+            user2 = self.boethiah_user_obj
+        )
+        self.azura_user_obj.add_match(self.match_obj_azura_boethiah.id, self.match_obj_azura_boethiah.timestamp, self.boethiah_user_obj.id)
+        # Manually add to azura object's matches
+
+        self.match_obj_hircine_azura = models.Match(  # Have Azura be user2 for this one
+            user1 = self.hircine_user_obj,
+            user2 = self.azura_user_obj
+        )
+        # Manually add to azura object's matches
+        self.azura_user_obj.add_match(self.match_obj_hircine_azura.id, self.match_obj_hircine_azura.timestamp, self.hircine_user_obj.id)
+
+        
+
     def test_init(self):
         """Was a User object instantiated?"""
         self.assertIsInstance(self.azura_user_obj, models.User)
