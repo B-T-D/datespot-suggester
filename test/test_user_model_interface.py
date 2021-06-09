@@ -156,7 +156,6 @@ class TestMatchCandidates(unittest.TestCase):
         user_location = self.api.lookup_obj(self.my_user_id).current_location
         assert isinstance(user_location, tuple)
         query_results = self.api.query_users_currently_near_location(user_location)
-        print(f"--------------- query results ----------------------------\n{query_results}")
         self.assertIsInstance(query_results, list)
         self.assertGreater(len(query_results), 0)
         for element in query_results:

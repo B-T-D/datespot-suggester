@@ -16,7 +16,7 @@ class TestDatabaseServer(unittest.TestCase):
 
         self.valid_request_body_dict = {
             "method": "get_login_user_info",
-            "json_arg": {"user_id": "1"}
+            "query_data": {"user_id": "1"}
         }
 
         self.invalid_request_method_body_dict = copy.copy(self.valid_request_body_dict)  # Same dict except change the valid method to an invalid one
@@ -25,11 +25,11 @@ class TestDatabaseServer(unittest.TestCase):
         self.invalid_request_no_method_body_dict = copy.copy(self.valid_request_body_dict)
         del self.invalid_request_no_method_body_dict["method"]
 
-        self.valid_request_body_json = json.dumps(self.valid_request_body_dict)
+        #self.valid_request_body_json = json.dumps(self.valid_request_body_dict)
 
         self.valid_request_dict = {
             "packet_size": 200,
-            "body_json": self.valid_request_body_json
+            "body_json": self.valid_request_body_dict
         }
 
         self.valid_request_json = json.dumps(self.valid_request_dict)
@@ -74,11 +74,11 @@ class TestDatabaseServer(unittest.TestCase):
             "status_code": 0
         }
 
-        expected_body_json = self.db.get_login_user_info(json.dumps(self.valid_request_body_dict["json_arg"])) # Make the same request to the DB without going through DB server
-        expected_response_dict["body_json"] = json.loads(expected_body_json)
+        expected_body_data = self.db.get_login_user_info(self.valid_request_body_dict["query_data"]) # Make the same request to the DB without going through DB server
+        expected_response_dict["body_json"] = expected_body_data
         #expected_packet_size = sys.getsizeof(json.dumps(expected_response_dict))
         #expected_packet_size += expected_packet_size
-        expected_packet_size = 240  # TODO hardcoded
+        expected_packet_size = 245  # TODO hardcoded
         expected_response_dict["packet_size"] = expected_packet_size
 
         expected_response_json = json.dumps(expected_response_dict)

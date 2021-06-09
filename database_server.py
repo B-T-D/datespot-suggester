@@ -126,7 +126,7 @@ class DatabaseServer:
         """Returns error-message dict if request is not appropriate to pass to DatabaseAPI, else returns dict with status code 0 and no other content,
         for further methods to complete response body."""
 
-        print(f"request dict = {request_dict}\nwith type {type(request_dict)}")
+        print(f"\n\n\nin dbserver validate request: request dict = {request_dict}\nwith type {type(request_dict)}\n\n\n")
 
         response_dict = {}
         error_message = None
@@ -147,16 +147,19 @@ class DatabaseServer:
 
     def _dispatch_request(self, request_json: str) -> str:
         request_dict = json.loads(request_json)
+        print(f"in dispatch: full request dict = {request_dict}")
         request_dict = request_dict["body_json"] # Continue with only the body JSON, packet size not relevant going forward 
+        print(f"in dispatch: request_dict = {request_dict} with type {type(request_dict)}")
         response_dict = self._validate_request(request_dict)
         if response_dict["status_code"] == 0:
-            method, json_arg = request_dict["method"], json.dumps(request_dict["json_arg"])
-            assert isinstance(json_arg, str)
-            print(f"json_arg = \n{json_arg}")
+            method, query_data = request_dict["method"], request_dict["query_data"]
+            print(f"query_data = \n{query_data}")
             db = DatabaseAPI() # Let it use default JSON map
             try:
-                database_response = eval(f"db.{method}(json_arg=json_arg)")
-                database_response = json.loads(database_response) # TODO wasteful, forcing it back to a dict here to avoid the nested escape characters problem
+                eval_string =  f"db.{method}(query_data=query_data)"
+                print(f"eval string will be\n\t{eval_string}")
+                database_response = eval(eval_string)
+                #database_response = eval(f"db.{method}(query_data=query_data)")
             except Exception as e:
                 print(f"exception raised by database call")
                 response_dict["status_code"] = 1
@@ -173,7 +176,7 @@ class DatabaseServer:
         response_packet_size += sys.getsizeof(response_packet_size)
         response_dict["packet_size"] = response_packet_size
         response_json = json.dumps(response_dict)
-        print(f"in dispatch request: response_json = {response_json}")
+        print(f"in dispatch request: response_json = {response_json} with type {type(response_json)}")
         return response_json
 
     def run_listener(self):

@@ -204,6 +204,7 @@ class DatabaseAPI:
 
             - user_id is the only required field
         """
+        print(f"get_login_user_info was called with\n\tquery_data = {query_data}\n\twith type {type(query_data)}")
         response = {}
         user_id = query_data["user_id"]
         user_db = self._model_interface("user")
@@ -317,7 +318,6 @@ class DatabaseAPI:
         match_db = self._model_interface("match")
         if match_db.suggestion_candidates_needed(match_id):
             candidates = self.get_candidate_datespots(query_data)
-            print(f"in DBAPI get suggestions list: candidates list to pass to MI.refresh = \n{candidates}")
             match_db.refresh_suggestion_candidates(match_id, candidates)
 
         return self._model_interface("match").render_suggestions_list(match_id)

@@ -142,9 +142,6 @@ class TestHelloWorldThings(unittest.TestCase):
         """Does iterating over User.matches yield the match ids in the expected_order?"""
         expected_order = [self.hircine_id, self.boethiah_id]
         i = 0
-        print(f"test_match_partners_yield_order was called at time.time() = {time.time()}")
-        print(f"_matches = {self.azura_user_obj._matches}")
-        print(f"match_partners list = {[p for p in self.azura_user_obj.match_partners]}")
         for match in self.azura_user_obj.match_partners:
             self.assertEqual(match, expected_order[i])
             i += 1

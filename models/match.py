@@ -168,14 +168,10 @@ class Match(metaclass=DatespotAppType):
 
             (max heap list): Heapq-list of datespots sorted on score. In form [negated_score, datespot_id]
         """
-        print(f"from match.py: candidate_datespots = \n{candidate_datespots}")
         heapq.heapify(candidate_datespots) # min heap sorted on distance
         suggestions_heap = []
 
-        print(f"after heapify: candidate_datespots = {candidate_datespots}")
-
         while candidate_datespots:
-            print(f"start of while loop: candidate_datespots = {candidate_datespots}")
             candidate = heapq.heappop(candidate_datespots)[1] # todo it'd be simpler if this list had the id along with the other data.
             # elements in the heap are tuples, element[0] is the distance "key", element[1] is the actual object
             score = self.get_joint_datespot_score(candidate)

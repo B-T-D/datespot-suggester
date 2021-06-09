@@ -772,7 +772,6 @@ class MatchModelInterface(ModelInterfaceABC):
             renderable_data.append(datespot_db.render_obj(datespot_obj.id))
         return renderable_data
         
-
     def update(self, object_id, json_data=None): # Todo
         # e.g. if the current location changed, meaning the Match.midpoint changed
         """
