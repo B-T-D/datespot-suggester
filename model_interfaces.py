@@ -29,7 +29,6 @@ class ModelInterfaceABC: # Abstract base class
     def is_valid_object_id(self, object_id: str) -> bool:
         """Returns True if the object_id corresponds to one in the database, else False."""
         self._read_json()
-        print(f"object_id = {object_id}\ntype(object_id) = {type(object_id)}")
         return self._is_valid_object_id(object_id)
 
     ### Private methods ###
@@ -535,6 +534,7 @@ class DatespotModelInterface(ModelInterfaceABC):
         return query_results
 
     def is_in_db(self, json_str) -> bool:
+        # TODO this may be needed uniquely for Datespot model, because there's unique risk of entering the same venue's data twice.
         """
         Return True if the Datespot corresponding to this JSON info is already known to the database, else false.
         """
@@ -555,6 +555,10 @@ class DatespotModelInterface(ModelInterfaceABC):
         """
         Instantiate a Datespot object corresponding to this JSON, and return it without interacting with the database.
         """
+
+        # TODO this can be implemented in the base class. Every MI subclass can have self.required_fields and self.optional_fields
+        #   attributes. 
+
         self._validate_json_fields(obj_data)
         location_tuple = tuple(obj_data["location"])  # TODO customize JSON encode/decode
                 
