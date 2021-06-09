@@ -9,6 +9,7 @@ import json  # TODO This module should no longer need to import json after the d
                 #   It should take Python dicts (or lists) in from the database server, send Python objects as inputs to model interfaces,
                 #       and send json.dumps()-ready Python dicts and lists back to the database server.
 import sys, os, dotenv
+from typing import List
 
 import model_interfaces
 
@@ -259,7 +260,7 @@ class DatabaseAPI:
             #   to still be in the LRU cache, then return cached results?
             return self._get_yelp_datespots_near(location, radius)
     
-    def get_datespot_suggestions(self, query_data: dict) -> list:
+    def get_candidate_datespots(self, query_data: dict) -> list:  # TODO probably obviated
         """
         Return list of Datespot objects and their distances from the Match's midpoint, ordered by distance.
 
@@ -277,16 +278,49 @@ class DatabaseAPI:
         # Ask it the midpoint to use
         midpoint = match_obj.midpoint
 
+        return self.get_datespots_near({"location": midpoint})
+
         # Perform a geographic query using that midpoint
-        candidate_datespots = self.get_datespots_near({"location": midpoint}) # todo can one-liner this into passing match_obj.midpoint as the arg
+        #candidate_datespots = self.get_datespots_near({"location": midpoint}) # todo can one-liner this into passing match_obj.midpoint as the arg
 
         # Pass that list[Datespot] to Match's next_suggestion public method.
         return match_obj.suggestions(candidate_datespots) # todo TBD how much we care about returning just one vs. returning a prioritized queue
                                                     #   and letting the client handle swiping on restaurants without needing a new query every time
                                                     #   the users reject a suggestion. Would guess that latter approach is better practice.
     
-    def get_matches_list(self, json_data: str) -> str:
-        return self._model_interfaces("user").query_matches_list(user_id)
+    def get_matches_list(self, query_data: dict) -> List[dict]:
+        """
+        Args:
+            query_data (dict): Dictionary containing the user_id. E.g.
+                    {"user_id": "abc123"}
+        
+        Returns:
+            (list[dict]): List containing one dictionary of rendering appropriate/relevant data for each specified
+                Match of which the specified User is a member.
+        """
+        user_id = query_data["user_id"]
+        return self._model_interface("user").render_matches_list(user_id)
+    
+    def get_suggestions_list(self, query_data: dict) -> List[dict]:
+        """
+        Returns a list of dicts containing display relevant/appropriate info about each of a Match's suggested Datespots.
+
+        Args:
+            query_data (dict): Dictionary containing the match_id. E.g.
+                    {"match_id": "abc123"}
+        
+        Returns:
+            (list[dict]): List of dictionaries of data about each Datespot.
+        """
+        match_id = query_data["match_id"]
+
+        match_db = self._model_interface("match")
+        if match_db.suggestion_candidates_needed(match_id):
+            candidates = self.get_candidate_datespots(query_data)
+            print(f"in DBAPI get suggestions list: candidates list to pass to MI.refresh = \n{candidates}")
+            match_db.refresh_suggestion_candidates(match_id, candidates)
+
+        return self._model_interface("match").render_suggestions_list(match_id)
 
 
     ### Private methods ###

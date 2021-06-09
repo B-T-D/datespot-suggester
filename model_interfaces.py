@@ -1,7 +1,7 @@
 """Objects for interfacing between stored data and model-object instances."""
 import abc, json, uuid, time  # TODO Can't assume this will run on a system with sub-second timestamp precision. time.time() only guarantees non-decreasing values; it can't
                                 #   return more precise timestamps than the underlying system clock supports. https://docs.python.org/3/library/time.html#time.time
-from typing import List
+from typing import List, Tuple
 
 import models
 import geo_utils
@@ -180,7 +180,7 @@ class UserModelInterface(ModelInterfaceABC):
         self._validate_model_fields(new_data)
         if "force_key" in new_data:
             if new_data["force_key"] in self._data: # Don't allow force-creating a key that's already taken
-                raise ValueError(f"Can't force-create with key {force_key}, already in DB.")
+                raise ValueError(f"Can't force-create with key {new_data['force_key']}, already in DB.")
             new_data["user_id"] = new_data["force_key"]
             del new_data["force_key"]
         else:
@@ -392,9 +392,9 @@ class UserModelInterface(ModelInterfaceABC):
             renderable_data[key] = candidate_data[key]
         return renderable_data
 
-    def query_matches_list(self, user_id: str) -> List[dict]:
+    def render_matches_list(self, user_id: str) -> List[dict]:
         """
-        Returns a list of relevant information about this User's matches.
+        Returns a list of relevant information about this User's matches relevant and appropriate for display to that user.
 
         Args:
             user_id (str): User ID string
@@ -405,8 +405,15 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         renderable_data = []
         user_obj = self.lookup_obj(user_id)
-            
-        raise NotImplementedError
+        for match_data in user_obj.match_data:  # Need to convert each user id to a name
+            renderable_match_data = {
+                "match_id": match_data["match_id"],
+                "match_timestamp": match_data["match_timestamp"],
+                "match_partner_info": self.render_candidate(match_data["match_partner_id"])
+            }
+            renderable_data.append(renderable_match_data)
+
+        return renderable_data
 
     def add_to_pending_likes(self, user_id_1: int, user_id_2: int): # todo think about most intuitive and maintainable architecture for this
         """Add a second user that this user swiped "yes" on to this user's hash map of pending likes."""
@@ -464,6 +471,7 @@ class DatespotModelInterface(ModelInterfaceABC):
         else:
             super().__init__()
         self._valid_model_fields = ["name", "location", "traits", "price_range", "hours", "yelp_rating", "yelp_review_count", "yelp_url"]
+        self._renderable_fields = {"name", "location", "yelp_url"}
 
     ### Public methods ###
 
@@ -505,6 +513,20 @@ class DatespotModelInterface(ModelInterfaceABC):
         #     yelp_url = datespot_data["yelp_url"]
         # )
     
+    def render_obj(self, object_id: str) -> dict:
+        """
+        Return a dictionary of info about the specified Datespot appropriate and relevant for display
+        to users in a suggestion.
+        """
+        self._read_json()
+        renderable_data = {}
+        object_data = self._data[object_id]
+        for key in object_data:
+            if key in self._renderable_fields:
+                renderable_data[key] = object_data[key]
+        return renderable_data
+
+
     def update(self, id: str, update_json: str): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
                                                     # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
         self._read_json()
@@ -694,11 +716,24 @@ class MatchModelInterface(ModelInterfaceABC):
         user_id_1, user_id_2 = match_data["users"][0], match_data["users"][1]
         user1 = self.user_api_instance.lookup_obj(user_id_1)
         user2 = self.user_api_instance.lookup_obj(user_id_2)
+
+        cached_suggestions = []
+        datespot_db = DatespotModelInterface(json_map_filename=self._master_datafile)
+        for suggestion in match_data["suggestions"]:  # Convert the datespot IDs to datespot objects
+            print(f"*** suggestion = {suggestion} with type {type(suggestion)}")
+            suggestion_tuple = (
+                suggestion[0],
+                datespot_db.lookup_obj(suggestion[1])
+                )
+            cached_suggestions.append(suggestion_tuple)  # TODO confirm this preserves sorted order (descending on score, highest score first)
+
+
         match_obj = models.Match(
             user1 = user1,
             user2 = user2,
             timestamp = match_data["timestamp"],
-            suggestions_queue = match_data["suggestions_queue"])
+            suggestions_queue = cached_suggestions)
+
         return match_obj
     
     def get_all_suggestions(self, match_id: int) -> list:
@@ -720,6 +755,23 @@ class MatchModelInterface(ModelInterfaceABC):
         datespot_id = self._data[match_id]["suggestions_queue"].pop()
         datespot_db = datespot_api.DatespotAPI()
         return datespot_db.lookup_json(datespot_id)
+    
+    def render_suggestions_list(self, match_id: str) -> List[dict]:
+        """
+        Return list of dictionaries containg information about suggested Datespots relevant and appropriate
+        for display to Users in suggestions.
+        """
+        self._read_json()
+        renderable_data = []
+        match_obj = self.lookup_obj(match_id)
+        print(f"in match MI renderer: obj suggestion queue = {match_obj.suggestions_queue}")
+        datespot_db = DatespotModelInterface(json_map_filename=self._master_datafile)
+        for suggestion in match_obj.suggestions_queue:  # TODO it should be an @property that yields, like User.matches
+            # TODO whatever Match model code is called here should be solely responsible for updating the suggestions queue if necessary
+            datespot_obj = suggestion[1]  # TODO External callers shouldn't have to deal with the indexing like this; Match generators should handle it
+            renderable_data.append(datespot_db.render_obj(datespot_obj.id))
+        return renderable_data
+        
 
     def update(self, object_id, json_data=None): # Todo
         # e.g. if the current location changed, meaning the Match.midpoint changed
@@ -746,6 +798,31 @@ class MatchModelInterface(ModelInterfaceABC):
         else: # TODO Do we care about enabling external code to update the suggestions queue? Intuition is that Match owns the suggestions queue, full stop--any
                 #   new information should be factored into suggestions by calling the methods in the Match model. 
             raise NotImplementedError("Updating that field of a Match not supported")
+
+    def suggestion_candidates_needed(self, object_id: str) -> bool:
+        """
+        Returns True if the match corresponding to object_id needs more Datespots to consider for suggestions, 
+        else False.
+        """
+        self._read_json()
+        self._validate_object_id(object_id)
+        match_data = self._data[object_id]
+        return not match_data["suggestions"]
+    
+    def refresh_suggestion_candidates(self, object_id: str, candidates: List[Tuple[float, models.Datespot]]) -> None:
+        """
+        Feeds new external data about Datespots to a Match object, for consideration in suggestions.
+        """
+        self._read_json()
+        self._validate_object_id(object_id)
+        match_obj = self.lookup_obj(object_id)
+        print(f"MI before suggestions() call: match_obj.suggestions_queue = {match_obj.suggestions_queue}")
+        match_obj.suggestions(candidates)
+        print(f"MI after suggestions() call: match_obj.suggestions_queue = {match_obj.suggestions_queue}")
+        self.sync(match_obj)  # Update the new suggestions in the DB
+        print(f"MI data after sync call: {self._data[object_id]}")
+        #self._write_json()  
+
 
     ### Private methods ###
 

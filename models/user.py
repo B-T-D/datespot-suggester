@@ -146,6 +146,19 @@ class User(UserBase):
         """
         for match in self._matches:
             yield match[2]
+
+    #TODO figure out which ones of these three properties we actually need to keep, and under what name.
+    @property
+    def match_data(self):  # Returns the same three things as in the tuples, but saves the external caller from dealing with the indexing
+        """
+        Yields a dict of the stored data for each of this User's Matches.
+        """
+        for match in self._matches:
+            yield {
+                "match_id": match[0],
+                "match_timestamp": match[1],
+                "match_partner_id": match[2]
+                }
         
     def has_match(self, match_id: str)-> bool:
         """

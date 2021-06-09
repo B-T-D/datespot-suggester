@@ -128,7 +128,7 @@ class TestHelloWorldThings(unittest.TestCase):
     
     def test_tastes_updated_in_user_obj(self):
         positive_expected_taste_strength = self.expected_sentiment_tastes_sentence
-        akatosh_obj = self.db.get_object("user", self.akatosh_id)
+        akatosh_obj = self.user_api.lookup_obj(self.akatosh_id)
         positive_actual_taste_strength = akatosh_obj.taste_strength(self.akatosh_taste_name)
         self.assertAlmostEqual(positive_expected_taste_strength, positive_actual_taste_strength)
 
@@ -160,4 +160,4 @@ class TestHelloWorldThings(unittest.TestCase):
         # That User should now have two datapoints total on that taste
         self.assertEqual(akatosh_obj.taste_datapoints(self.akatosh_taste_name), 2)
 
-    # Todo: Test messages ending in punctuation, e.g. "I love indian!"
+    # TODO Test messages ending in punctuation, e.g. "I love indian!"
