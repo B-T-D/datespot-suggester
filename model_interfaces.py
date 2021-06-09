@@ -44,8 +44,6 @@ class ModelInterfaceABC: # Abstract base class
         for key in json_data:
             self._data[key] = json_data[key]
 
-    # TODO _read_json() and _write_json() should be the only code in this entire module that calls json.load() and json.dump()
-
     def _write_json(self):
         """Overwrite stored JSON for this model to exactly match current state of the API instance's native Python dictionary."""
         # Todo: Any safeguards that make sense to reduce risk of accidentally overwriting good data?
@@ -71,10 +69,8 @@ class ModelInterfaceABC: # Abstract base class
     def _is_valid_object_id(self, object_id: int) -> bool:
         return object_id in self._data
     
-    def _validate_json_fields(self, json_dict: dict) -> None: # todo seems like too much code (needing to list the valid model fields for each child class). 
-                                                                #   But under current architecture, can't just check against the keys from an arbitrary JSON object in the dict, 
-                                                                #   because sometimes the DB is empty (esp in testing)
-        """Raise ValueError if any key in json_dict isn't a valid field for this model.""" # todo do we need to check if data is none here, or would that be superfluous?
+    def _validate_json_fields(self, json_dict: dict) -> None:
+        """Raise ValueError if any key in json_dict isn't a valid field for this model."""
         for key in json_dict:
             if not key in self._valid_model_fields:
                 raise ValueError(f"Invalid field in call to model interface create method: {key}")
@@ -82,7 +78,7 @@ class ModelInterfaceABC: # Abstract base class
     def _validate_model_fields(self, data: dict) -> None: # TODO get rid of the "json_fields" one once nobody needs that name
         return self._validate_json_fields(data)
     
-    def _get_all_data(self) -> dict: # todo access this with the public attribute "self.data", not this method
+    def _get_all_data(self) -> dict: # TODO access this with the public attribute "self.data", not this method
         """Return the API instance's data as a native Python dictionary. I.e. all objects in a single dict, keys are the object ID strings."""
         self._read_json()
         return self._data
@@ -111,8 +107,8 @@ class ModelInterfaceABC: # Abstract base class
 class UserModelInterface(ModelInterfaceABC):
 
     def __init__(self, json_map_filename=None):
-        self._model = "user" # Initialization order matters e.g. if defining self.data to init to the read-in json.
-        if json_map_filename: # Todo is there a one-liner for this? Ternary expression?
+        self._model = "user"  # Initialization order matters e.g. if defining self.data to init to the read-in json.
+        if json_map_filename:
             super().__init__(json_map_filename)
         else:
             super().__init__()
@@ -127,7 +123,7 @@ class UserModelInterface(ModelInterfaceABC):
             "matches", 
             "pending_likes", 
             "match_blacklist",
-            "force_key" # todo force_key isn't really a model field, conceptually
+            "force_key"
         }
 
         self._required_instantiation_fields = {
@@ -138,7 +134,7 @@ class UserModelInterface(ModelInterfaceABC):
         self._optional_instantiation_fields = {field for field in self._valid_model_fields if not field in self._required_instantiation_fields}
 
 
-        self.user_safe_model_fields = { # model fields appropriate for viewing by the user whose data it is
+        self.user_safe_model_fields = {  # model fields appropriate for viewing by the user whose data it is
             "user_id",
             "name",
             "predominant_location",
@@ -146,7 +142,7 @@ class UserModelInterface(ModelInterfaceABC):
             "pending_likes"
         }
 
-        self.candidate_safe_model_fields = { # model fields appropriate for sharing with other users
+        self.candidate_safe_model_fields = {  # model fields appropriate for sharing with other users
             "user_id",
             "name"
         }
@@ -407,7 +403,7 @@ class UserModelInterface(ModelInterfaceABC):
 
         return renderable_data
 
-    def add_to_pending_likes(self, user_id_1: int, user_id_2: int): # todo think about most intuitive and maintainable architecture for this
+    def add_to_pending_likes(self, user_id_1: int, user_id_2: int):
         """Add a second user that this user swiped "yes" on to this user's hash map of pending likes."""
         self._read_json()
         user_data = self._data[user_id_1]
@@ -423,13 +419,13 @@ class UserModelInterface(ModelInterfaceABC):
         self._read_json()
         return str(other_user_id) in self._data[current_user_id]["pending_likes"] # todo the keys in the pending likes dict are strings at this point in execution, very confusing
 
-    def blacklist(self, current_user_id: int, other_user_id: int):  # todo can prob create a custom decorator that says "whenever this method is called, call read json right before and update json right after"
+    def blacklist(self, current_user_id: int, other_user_id: int):  # TODO can prob create a custom decorator that says "whenever this method is called, call read json right before and update json right after"
         """
         Add other_user_id to current_user_id user's no-match blacklist.
         """
         self._read_json()
         user_data = self._data[current_user_id]
-        if not "match_blacklist" in user_data: # todo legacy, should be able to just initialize them with a blank dict
+        if not "match_blacklist" in user_data:  # TODO legacy, should be able to just initialize them with a blank dict
             user_data["match_blacklist"] = {other_user_id: time.time()}
         else:
             user_data["match_blacklist"][other_user_id] = time.time()
@@ -458,7 +454,7 @@ class DatespotModelInterface(ModelInterfaceABC):
 
     def __init__(self, json_map_filename=None): # The abstract base class handles setting the filename to default if none provided
         self._model = "datespot"
-        if json_map_filename: # Todo is there a one-liner for this? Ternary expression?
+        if json_map_filename:
             super().__init__(json_map_filename)
         else:
             super().__init__()
@@ -487,16 +483,6 @@ class DatespotModelInterface(ModelInterfaceABC):
         self._validate_object_id(id)
         datespot_data = self._data[id]
         return self._instantiate_obj_from_dict(datespot_data)
-        # return models.Datespot(
-        #     location = tuple(datespot_data["location"]),
-        #     name = datespot_data["name"],
-        #     traits = datespot_data["traits"],
-        #     price_range = datespot_data["price_range"],
-        #     hours = datespot_data["hours"],
-        #     yelp_rating = datespot_data["yelp_rating"],
-        #     yelp_review_count = datespot_data["yelp_review_count"],
-        #     yelp_url = datespot_data["yelp_url"]
-        # )
     
     def render_obj(self, object_id: str) -> dict:
         """
@@ -512,8 +498,7 @@ class DatespotModelInterface(ModelInterfaceABC):
         return renderable_data
 
 
-    def update(self, id: str, update_data: dict): # Stored JSON is the single source of truth. Want a bunch of little, fast read-writes. 
-                                                    # This is where concurrency/sharding would become hypothetically relevant with lots of simultaneous users.
+    def update(self, id: str, update_data: dict):
         self._read_json()
         datespot_data = self._data[id] # Todo: kwargs isn't the "standard" way the other MIs have been doing it. Take JSON.
         self._validate_json_fields(update_data)
@@ -543,7 +528,7 @@ class DatespotModelInterface(ModelInterfaceABC):
                         # if discrete and already in data, do nothing. E.g. we already knew it's an Italian restaurant, nothing to update.
 
 
-                        # todo the caller only sends the label and the intensity (if applicable), not a datapoints count
+                        # TODO The caller only sends the label and the intensity (if applicable), not a datapoints count
 
                 else: # Any field other than the traits dict can just be overwritten entirely
                     datespot_data[field] = new_value
@@ -1033,7 +1018,7 @@ class ChatModelInterface(ModelInterfaceABC):
         chat_data = self._data[object_id]
 
         # Instantiate a Message object literal from each stored Message ID
-            # Todo how could this possibly perform well IRL? Chats would run to hundreds of messages...
+            # TODO how could this possibly perform well IRL? Chats would run to hundreds of messages...
             #   ...Think about when a Chat object actually gets instantiated. If it happens very often, 
             #           should probably do this some other way.
         
