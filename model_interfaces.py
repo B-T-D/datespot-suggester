@@ -732,7 +732,7 @@ class ReviewModelInterface(ModelInterfaceABC):
     
     ### Public methods ###
 
-    def create(self, json_str: str) -> str:
+    def create(self, new_data: dict) -> str:
 
         # Todo: Could store only the review's hash in the DB. We likely don't care
         #   about anything other than checking whether a given review is already in the DB.
@@ -747,17 +747,16 @@ class ReviewModelInterface(ModelInterfaceABC):
         # TODO Only store relevant Reviews, not all Reviews. 
 
         self._read_json()
-        json_dict = json.loads(json_str)
 
-        self._validate_json_fields(json_dict) # Validate fields
+        self._validate_json_fields(new_data) # Validate fields
 
         # TODO Model this on message MI create(): If the Review contains stuff that should be updated in the stored
         #   info about the Datespot, then this create() method makes the necessary updates to the Datespot object's 
         #   traits. 
 
         new_obj = models.Review( # Instantiate a model object
-            datespot_id = json_dict["datespot_id"],
-            text = json_dict["text"]
+            datespot_id = new_data["datespot_id"],
+            text = new_data["text"]
         )
         new_obj_id = new_obj.id # Get object's id hash string
         self._data[new_obj_id] = new_obj.serialize() # Save with that id as the key
