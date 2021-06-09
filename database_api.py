@@ -31,7 +31,7 @@ class DatabaseAPI:
 
     # TODO: Decorator that calls string.lower() on object_model_name for any method that takes that as a string arg.
     
-    def post_object(self, json_arg: str) -> str:
+    def post_object(self, args_data: dict) -> str:
         """
         Add data for a new object to the database and return its id string.
 
@@ -56,67 +56,62 @@ class DatabaseAPI:
             - Location and name are required to create a new user
 
         """ # If force_key for creating a user, put that as JSON key/field.
-        json_arg = json.loads(json_arg)
-        object_model_name = json_arg["object_model_name"]
-        json_data = json_arg["json_data"]
+        object_model_name = args_data["object_model_name"]
+        new_data = args_data["json_data"]
         self._validate_model_name(object_model_name)
-        new_object_id = self._model_interface(object_model_name).create(json_data)
+        new_object_id = self._model_interface(object_model_name).create(new_data)
         if new_object_id:
             return new_object_id
         else:
             raise Exception("Failed to post object")
 
-    def get_object(self, object_type, object_id): # TODO take a single json string arg, same as other external methods?
-    
-        """
-        Return an internal-model object literal for the data corresponding to the key "id".
 
-        Args:
-            object_type (str): "user", "datespot", or "match"
-            id (int): primary key of an object in the database.
+    # def get_json(self, json_arg: str) -> str:
+    #     """
+    #     Return the JSON for the object corresponding to object_id.
+
+    #     json_arg examples:
+
+    #         Get a user by id:
+
+    #             {
+    #                 "object_model_name": "user",
+    #                 "object_id": "abc123"
+    #             }
+    #     """
+    #     json_arg = json.loads(json_arg)
+    #     object_model_name = json_arg["object_model_name"]
+    #     object_id = json_arg["object_id"]
+    #     self._validate_model_name(object_model_name)
+    #     model_db = self._model_interface(object_model_name)
+    #     return model_db.lookup_json(object_id)
+    
+    # def _get_json(self, object_type, object_id) -> str: # internal version that doesn't require tedious JSON arg
+    #     """
+    #     Return the JSON for the object corresponding to object_id.
+    #     """
+    #     self._validate_model_name(object_type)
+    #     model_db = self._model_interface(object_type)
+    #     return model_db.lookup_json(object_id)
+
+    # def get_all_json(self, object_type) -> str:
+    #     """
+    #     Return JSON of all objects of the specified type.
+    #     """
+    #     model_db = self._model_interface(object_type)
+    #     return json.dumps(model_db._get_all_data()) # todo meant to be an internal method. Goal is to implement s/t can use model_db.data public attribute.
+    
+    def put_data(self, args_data: dict) -> None:
+        supported_models = {"user", "datespot", "match", "chat"}  # Review and Message aren't updateable.
+        object_model_name = args_data["object_model_name"]
+        if not object_model_name in supported_models:
+            raise ValueError(f"Updating {object_model_name} model data not supported.")
+        object_id = args_data["object_id"]
+        update_data = args_data["update_data"]
         
-        Returns:
-            (model object): Instance of one of the app's custom model classes.
-        """
-        self._validate_model_name(object_type) # todo rename "object_type" arg to "model_name"
-        model_db = self._model_interface(object_type)
-        return model_db.lookup_obj(object_id)
+        model_interface = self._model_interface(object_model_name)
+        model_interface.update(object_id, update_data)
 
-    def get_json(self, json_arg: str) -> str:
-        """
-        Return the JSON for the object corresponding to object_id.
-
-        json_arg examples:
-
-            Get a user by id:
-
-                {
-                    "object_model_name": "user",
-                    "object_id": "abc123"
-                }
-        """
-        json_arg = json.loads(json_arg)
-        object_model_name = json_arg["object_model_name"]
-        object_id = json_arg["object_id"]
-        self._validate_model_name(object_model_name)
-        model_db = self._model_interface(object_model_name)
-        return model_db.lookup_json(object_id)
-    
-    def _get_json(self, object_type, object_id) -> str: # internal version that doesn't require tedious JSON arg
-        """
-        Return the JSON for the object corresponding to object_id.
-        """
-        self._validate_model_name(object_type)
-        model_db = self._model_interface(object_type)
-        return model_db.lookup_json(object_id)
-
-    def get_all_json(self, object_type) -> str:
-        """
-        Return JSON of all objects of the specified type.
-        """
-        model_db = self._model_interface(object_type)
-        return json.dumps(model_db._get_all_data()) # todo meant to be an internal method. Goal is to implement s/t can use model_db.data public attribute.
-    
     def put_json(self, object_model_name:str, object_id:int, new_json: str) -> None: # TODO return success/error message as JSON
         """
         Update the stored JSON for the corresponding field of the corresponding object.
@@ -132,7 +127,7 @@ class DatabaseAPI:
         model_interface = self._model_interface(object_model_name)
         model_interface.update(object_id, new_json)
     
-    def post_decision(self, json_arg: str) -> str:
+    def post_decision(self, decision_data: dict) -> str:
         """
         Sends swipe data to the DB and returns True if the swipe completed a pending match (i.e. 
         other user had already swiped yes).
@@ -148,30 +143,28 @@ class DatabaseAPI:
 
             - false indicates user doesn't want to match with candidate
         """
-        print(f"json_arg input with type {type(json_arg)} = \n{json_arg}")
-        swipe_data = json.loads(json_arg)
-        user_id, candidate_id, outcome = swipe_data["user_id"], swipe_data["candidate_id"], swipe_data["outcome"]
+        user_id, candidate_id, outcome = decision_data["user_id"], decision_data["candidate_id"], decision_data["outcome"]
         # if not self._is_valid_decision:  # TODO implement--requires updating User model to have a candidates data structure
         #     raise ValueError("Invalid decision, e.g. that user wasn't supposed to have been deciding on that candidate")
         if not isinstance(outcome, bool): # TODO need comprehensive approach to validation
             raise TypeError(f"Expected outcome to be of type bool, actual type was {type(outcome)}")
-        response = {"match_created": False}
+        response_data = {"match_created": False}
         user_db = self._model_interface("user")
         if not outcome:
             user_db.blacklist(user_id, candidate_id)
         else:
             # first check if the other user already liked the active user:
             if user_db.lookup_is_user_in_pending_likes(candidate_id, user_id):
-                response["match_created"] = True
+                response_data["match_created"] = True
                 match_db = self._model_interface("match")  # Handle Match creation here
-                match_id = match_db.create(json.dumps({
+                match_id = match_db.create({
                     "user1_id": user_id,
                     "user2_id": candidate_id
-                }))
+                })
                 
             else:
                 user_db.add_to_pending_likes(user_id, candidate_id)
-        return json.dumps(response)
+        return response_data
     
     def _is_valid_decision(self, user_id, candidate_id) -> bool:
         # TODO return False if candidate_id not in User.candidates
@@ -252,7 +245,7 @@ class DatabaseAPI:
         candidate_id = user_db.query_next_candidate(user_id)
         return json.dumps(self._prune_data_candidate(candidate_id))
 
-    def get_datespots_near(self, json_data) -> list: # TODO if this returns Datespot objects it should prob be internal
+    def get_datespots_near(self, query_data) -> list: # TODO if this returns Datespot objects it should prob be internal
         """
 
         Example json_data:
@@ -270,11 +263,10 @@ class DatabaseAPI:
         """
         # Todo: Ultimately, we want to check the cache first, there might've just been a query at that location
         #   such that another API call is wasteful recomputation on the same reviews data.
-        geo_data = json.loads(json_data)
-        location = tuple(geo_data["location"]) # TODO validate json
+        location = tuple(query_data["location"]) # TODO validate json
         radius = DEFAULT_RADIUS
-        if "radius" in geo_data:
-            radius = geo_data["radius"]
+        if "radius" in query_data:
+            radius = query_data["radius"]
         if not self._live_yelp: # todo add "and if not live google"?
             return self._get_cached_datespots_near(location, radius)
         elif self._live_yelp: # TODO create a middleman script to permit 100% tests-coverage of this module?
@@ -283,7 +275,7 @@ class DatabaseAPI:
             #   to still be in the LRU cache, then return cached results?
             return self._get_yelp_datespots_near(location, radius)
     
-    def get_datespot_suggestions(self, json_data: str) -> list:
+    def get_datespot_suggestions(self, query_data: dict) -> list:
         """
         Return list of Datespot objects and their distances from the Match's midpoint, ordered by distance.
 
@@ -295,14 +287,14 @@ class DatabaseAPI:
         """
 
         # Instantiate the Match object
-        match_id = json.loads(json_data)["match_id"]
-        match_obj = self.get_object("match", match_id)
+        match_id = query_data["match_id"]
+        match_obj = self._model_interface("match").lookup_obj(match_id)
 
         # Ask it the midpoint to use
         midpoint = match_obj.midpoint
 
         # Perform a geographic query using that midpoint
-        candidate_datespots = self.get_datespots_near(json.dumps({"location": midpoint})) # todo can one-liner this into passing match_obj.midpoint as the arg
+        candidate_datespots = self.get_datespots_near({"location": midpoint}) # todo can one-liner this into passing match_obj.midpoint as the arg
 
         # Pass that list[Datespot] to Match's next_suggestion public method.
         return match_obj.suggestions(candidate_datespots) # todo TBD how much we care about returning just one vs. returning a prioritized queue

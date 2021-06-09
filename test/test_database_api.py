@@ -33,6 +33,8 @@ class TestHelloWorldThings(unittest.TestCase):
         
         # Instantiate DatabaseAPI object
         self.db = DatabaseAPI(json_map_filename = TEST_JSON_DB_NAME)
+        self.user_data = model_interfaces.UserModelInterface(json_map_filename = TEST_JSON_DB_NAME)
+        self.match_data = model_interfaces.MatchModelInterface(json_map_filename = TEST_JSON_DB_NAME)
 
         # Data for mock users
         self.azura_name = "Azura"
@@ -47,20 +49,20 @@ class TestHelloWorldThings(unittest.TestCase):
                 self.azura_existing_taste_datapoints]
         }
 
-        self.azura_json = json.dumps({
+        self.azura_data = {
             "name": self.azura_name,
             "current_location": self.azura_location,
             "force_key": self.azura_id
-        })
+        }
 
         self.boethiah_name = "Boethiah"
         self.boethiah_location = (40.76346250260515, -73.98013893542904)
         self.boethiah_id = "2"
-        self.boethiah_json = json.dumps({
+        self.boethiah_data = {
             "name": self.boethiah_name,
             "current_location": self.boethiah_location,
             "force_key": self.boethiah_id
-        })
+        }
 
         # Data for mock Datespot
         self.terrezanos_location = (40.737291166191476, -74.00704685527774)
@@ -76,47 +78,47 @@ class TestHelloWorldThings(unittest.TestCase):
         self.terrezanos_price_range = 2
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
 
-        self.terrezanos_json = json.dumps({
+        self.terrezanos_data = {
                 "location" : self.terrezanos_location,
                 "name" : self.terrezanos_name,
                 "traits" : self.terrezanos_traits,
                 "price_range" : self.terrezanos_price_range,
                 "hours" : self.terrezanos_hours,
-            })
+            }
         
-        self.terrezanos_id = self.db.post_object(json.dumps({"object_model_name": "datespot", "json_data": self.terrezanos_json}))
+        self.terrezanos_id = self.db.post_object({"object_model_name": "datespot", "json_data": self.terrezanos_data})
 
         # Data for mock Review of Terrezano's
 
         self.mock_text_positive_relevant = "This was a wonderful place to go on a date. I had the pasta. It was authentic and not from Pizza Hut."
         self.expected_sentiment = 0.1906 # todo hardcoded
         self.expected_relevance = round(1 / len(self.mock_text_positive_relevant), 4) # i.e. "date" appears once.
-        self.terrezanos_review_json = json.dumps({
+        self.terrezanos_review_data = {
             "datespot_id": self.terrezanos_id,
             "text": self.mock_text_positive_relevant
-        })
+        }
 
 
         # Add two users for use in testing compound objects
-        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": self.azura_json}))
-        self.db.post_object(json.dumps({"object_model_name": "user", "json_data": self.boethiah_json}))
+        self.db.post_object({"object_model_name": "user", "json_data": self.azura_data})
+        self.db.post_object({"object_model_name": "user", "json_data": self.boethiah_data})
 
         # Data for mock Message and Chat
         self.mock_bilateral_timestamp = time.time()
-        self.quick_mock_chat_json = json.dumps({
+        self.quick_mock_chat_data = {
             "start_time": time.time(),
             "participant_ids": [self.azura_id, self.boethiah_id]
-        })
-        self.mock_chat_id_1 = self.db.post_object(json.dumps({"object_model_name": "chat", "json_data": self.quick_mock_chat_json}))  # Need a Chat to create a Message
+        }
+        self.mock_chat_id_1 = self.db.post_object({"object_model_name": "chat", "json_data": self.quick_mock_chat_data})  # Need a Chat to create a Message
         self.single_sentence_text = "Worship the Nine, do your duty, and heed the commands of the saints and priests."
         self.expected_sentiment_single_sentence = 0.296 # todo hardcoded
 
-        self.mock_bilateral_message_json = json.dumps({
+        self.mock_bilateral_message_data = {
             "time_sent": self.mock_bilateral_timestamp,
             "sender_id": self.azura_id,
             "chat_id": self.mock_chat_id_1,
             "text": self.single_sentence_text
-        })
+        }
 
     def test_init(self):
         """Was an object of the expected type instantiated?"""
@@ -147,12 +149,12 @@ class TestHelloWorldThings(unittest.TestCase):
         talos_name = "Talos"
         talos_location = (40.76346250260515, -73.98013893542904)
         expected_talos_id = "3"
-        talos_json = json.dumps({
+        talos_data = {
             "name": talos_name,
             "current_location": talos_location,
             "force_key": expected_talos_id
-        })
-        actual_talos_id = self.db.post_object(json.dumps({"object_model_name": "user", "json_data": talos_json}))
+        }
+        actual_talos_id = self.db.post_object({"object_model_name": "user", "json_data": talos_data})
         self.assertIsInstance(actual_talos_id, str)
         talos_obj = self.db.get_object("user", actual_talos_id)
         self.assertIsInstance(talos_obj, models.User)
@@ -173,77 +175,43 @@ class TestHelloWorldThings(unittest.TestCase):
         domenicos_price_range = 1
         domenicos_hours = [[8, 19], [8, 19], [8, 19], [8, 19], [8, 19], [8, 19], [10, 17]]
 
-        domenicos_json = json.dumps({
+        domenicos_data = {
             "location" : domenicos_location,
             "name" : domenicos_name,
             "traits" : domenicos_traits,
             "price_range" : domenicos_price_range,
             "hours" : domenicos_hours
-        })
+        }
         
-        domenicos_id = self.db.post_object(json.dumps({"object_model_name": "datespot", "json_data": domenicos_json}))
+        domenicos_id = self.db.post_object({"object_model_name": "datespot", "json_data": domenicos_data})
         domenicos_obj = self.db.get_object("datespot", domenicos_id)
 
         self.assertIsInstance(domenicos_obj, models.Datespot)
     
     def test_post_and_get_obj_match(self):
-        match_json = json.dumps({
+        match_data = {
             "user1_id": self.azura_id,
             "user2_id": self.boethiah_id
-        })
-        match_id = self.db.post_object(json.dumps({"object_model_name": "match", "json_data": match_json}))
+        }
+        match_id = self.db.post_object({"object_model_name": "match", "json_data": match_json})
         match_obj = self.db.get_object("match", match_id)
         self.assertIsInstance(match_obj, models.Match)
     
     def test_post_and_get_obj_review(self):
-        review_id = self.db.post_object(json.dumps({"object_model_name": "review", "json_data": self.terrezanos_review_json}))
+        review_id = self.db.post_object({"object_model_name": "review", "json_data": self.terrezanos_review_data})
         review_obj = self.db.get_object("review", review_id)
         self.assertIsInstance(review_obj, models.Review)
     
     def test_post_and_get_obj_message(self):
-        message_id = self.db.post_object(json.dumps({"object_model_name": "message", "json_data": self.mock_bilateral_message_json}))
+        message_id = self.db.post_object({"object_model_name": "message", "json_data": self.mock_bilateral_message_data})
         message_obj = self.db.get_object("message", message_id)
         self.assertIsInstance(message_obj, models.Message)
     
     def test_post_and_get_obj_chat(self):
-        chat_id = self.db.post_object(json.dumps({"object_model_name": "chat", "json_data": self.quick_mock_chat_json}))
+        chat_id = self.db.post_object({"object_model_name": "chat", "json_data": self.quick_mock_chat_data})
         chat_obj = self.db.get_object("chat", chat_id)
         self.assertIsInstance(chat_obj, models.Chat)
     
-    ### Tests for get_json() ###
-
-    def test_get_json_user(self):
-        # Get the expected JSON from the model interface one layer down from the DB API being tested here:
-        user_db = model_interfaces.UserModelInterface(TEST_JSON_DB_NAME)
-        expected_json = user_db.lookup_json(self.azura_id)
-        actual_json = self.db.get_json(json.dumps({"object_model_name": "user", "object_id": self.azura_id}))
-        self.assertEqual(expected_json, actual_json)
-    
-    def test_get_json_datespot(self): # TODO Complete these for thoroughness. More presisng stuff 5/26; these aren't needed for simple coverage.
-        pass
-
-    def test_get_json_match(self):
-        pass
-
-    def test_get_json_review(self):
-        pass
-
-    def test_get_json_message(self):
-        pass
-
-    def test_get_json_chat(self):
-        pass
-
-    ### Tests for get_all_json() ###
-
-    def test_get_all_json_user(self): # TODO this doesn't test the correctness of the JSON, it's a very bare non-brokenness / coverage-chasing test only
-        expected_len = 2 # setUp created two mock users
-        users_json = self.db.get_all_json("user")
-        users_dict = json.loads(users_json)  # Load it back to a Python dict before testing len(), otherwise it's len of the string
-        self.assertEqual(expected_len, len(users_dict))
-
-    # TODO complete for other models
-
     ### Tests for put_json() ###
 
     def test_put_json_update_user(self):
@@ -252,8 +220,13 @@ class TestHelloWorldThings(unittest.TestCase):
         new_data = {
             "current_location": (40.737291166191476, -74.00704685527774),
         }
-        self.db.put_json("user", self.azura_id, json.dumps(new_data))
-        azura_obj = self.db.get_object("user", self.azura_id)
+        args_data = {
+            "object_model_name": "user",
+            "object_id": self.azura_id,
+            "update_data": new_data
+        }
+        self.db.put_data(args_data)
+        azura_obj = self.user_data.lookup_obj(self.azura_id)
         self.assertAlmostEqual(new_data["current_location"], azura_obj.current_location)
     
     def test_updating_unsupported_model_raises_error(self):
@@ -261,73 +234,77 @@ class TestHelloWorldThings(unittest.TestCase):
         expected error?"""
         unsupported_models = ["review", "message"]
         arbitrary_object_id = "a"
-        arbitrary_json = json.dumps({"foo": "bar"})
+        arbitrary_data = {"foo": "bar"}
         for model in unsupported_models:
             with self.assertRaises(ValueError):
-                self.db.put_json(model, arbitrary_object_id, arbitrary_json)
+                self.db.put_data({
+                    "object_model_name": model,
+                    "object_id": arbitrary_object_id,
+                    "update_data": arbitrary_data
+                    })
     
     # TODO complete for other models and their main anticipated update cases
 
     ### Tests for post_decision() ###
     def test_post_yes_decision_no_match(self):
         """Does posting a "yes" decision that doesn't create a match return the expected JSON?"""
-        decision_yes_json = json.dumps({
+        decision_yes_data = {
             "user_id": self.azura_id,
             "candidate_id": self.boethiah_id,
             "outcome": True
-        })
-        expected_response_json = json.dumps({
+        }
+        expected_response_data = {
             "match_created": False
-        })
-        actual_response_json = self.db.post_decision(decision_yes_json)
-        self.assertEqual(expected_response_json, actual_response_json)
+        }
+        actual_response_data = self.db.post_decision(decision_yes_data)
+        self.assertEqual(expected_response_data, actual_response_data)
     
     def test_post_yes_decision_yes_match(self):
         """Does posting a "yes" decision that creates a match return the expected JSON?"""
         # Post a decision of Azura liking Boethiah:
-        azura_decision_yes_json = json.dumps({
+        azura_decision_yes_data = {
             "user_id": self.azura_id,
             "candidate_id": self.boethiah_id,
             "outcome": True
-        })
-        self.db.post_decision(azura_decision_yes_json)
+        }
+        self.db.post_decision(azura_decision_yes_data)
 
         # Post a second decision of Boethiah liking Azura
-        boethiah_decision_yes_json = json.dumps({
+        boethiah_decision_yes_data = {
             "user_id": self.boethiah_id,
             "candidate_id": self.azura_id,
             "outcome": True
-        })
+        }
 
-        expected_response_json = json.dumps({
+        expected_response_data = {
             "match_created": True
-        })
+        }
 
-        actual_response_json = self.db.post_decision(boethiah_decision_yes_json)
-        self.assertEqual(expected_response_json, actual_response_json)
+        actual_response_data = self.db.post_decision(boethiah_decision_yes_data)
+        self.assertEqual(expected_response_data, actual_response_data)
     
     def test_post_no_decision(self):
         """Does posting a "no" decision return the expected JSON?"""
-        decision_no_json = json.dumps({
+        decision_no_data = {
             "user_id": self.azura_id,
             "candidate_id": self.boethiah_id,
             "outcome": False
-        })
-        expected_response_json = json.dumps({
+        }
+        expected_response_data = {
             "match_created": False
-        })
-        actual_response_json = self.db.post_decision(decision_no_json)
-        self.assertEqual(expected_response_json, actual_response_json)
+        }
+        actual_response_data = self.db.post_decision(decision_no_data)
+        self.assertEqual(expected_response_data, actual_response_data)
     
     def test_non_boolean_outcome_raises_error(self):
         """Does posting JSON without a boolean outcome raise the expected error?"""
-        bad_json = json.dumps({
+        bad_data = {
             "user_id": self.azura_id,
             "candidate_id": self.boethiah_id,
             "outcome": 2
-        })
+        }
         with self.assertRaises(TypeError):
-            self.db.post_decision(bad_json)
+            self.db.post_decision(bad_data)
 
     ### Tests for get_datespots_near() ###
 
@@ -368,18 +345,16 @@ class TestHelloWorldThings(unittest.TestCase):
         """Does the method return the expected JSON in response to JSON matching with a valid Match?"""
 
         # Put a Match in the mock DB
-        match_json = json.dumps({
+        match_data = {
             "user1_id": self.azura_id,
             "user2_id": self.boethiah_id
-        })
-        match_id = self.db.post_object(json.dumps({"object_model_name": "match", "json_data": match_json}))
-        match_obj = self.db.get_object("match", match_id)
+        }
+        match_id = self.db.post_object({"object_model_name": "match", "json_data": match_data})
+        match_obj = self.match_data.lookup_obj(match_id)
 
-        query_json = json.dumps({
-            "match_id": match_id
-        })
+        query_data = {"match_id": match_id}
 
-        results = self.db.get_datespot_suggestions(query_json)
+        results = self.db.get_datespot_suggestions(query_data)
         self.assertIsInstance(results, list)
     
     ### Tests for other public methods ###
