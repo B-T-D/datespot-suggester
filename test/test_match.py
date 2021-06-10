@@ -69,6 +69,12 @@ class TestHelloWorldThings(unittest.TestCase):
         end = time.time()
         print(f"In test_match.py setUp: get_datespots_near() ran in {end - start} seconds")
     
+    def test_hash(self):
+        """Does the __hash__() method's return value match the value obtained by mimicking its logic in the test code?"""
+        expected_hash = hash((self.grort_user_id, self.drobb_user_id))
+        actual_hash = hash(self.matchGrortDrobb)
+        self.assertEqual(actual_hash, expected_hash)
+
     def test_compute_midpoint(self):
         maxDelta = 0.01
         approxExpectedMidpoint = (40.75827478958617, -73.99310556132602)
