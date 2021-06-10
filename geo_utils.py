@@ -2,7 +2,8 @@
 
 from math import sqrt, radians, cos, sin, asin
 
-EARTH_RADIUS_KM = 6368  # Radius of the Earth in kilometers.
+from project_constants import *
+
 
 def is_valid_lat_lon(location: tuple) -> bool:
     """Checks whether a latitude, longitude coordinate pair is within the range of valid possible values.
