@@ -127,7 +127,8 @@ class Match(metaclass=DatespotAppType):
     def _serialize_suggestions(self) -> List[Tuple[float, str]]:
         result = []
         for suggestion in self.suggestions_queue:
-            result.append((suggestion[0], suggestion[1].id))  # Substitute the Datespot's id for the Datespot object
+            result.append((suggestion[0], suggestion[1].id ,suggestion[1].name))  # Substitute the Datespot's id for the Datespot object
+            # TODO name is just for debug
         return result
 
     

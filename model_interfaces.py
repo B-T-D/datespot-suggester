@@ -694,13 +694,13 @@ class MatchModelInterface(ModelInterfaceABC):
 
         cached_suggestions = []
         datespot_db = DatespotModelInterface(json_map_filename=self._master_datafile)
+        print(f"in matchMI lookup_obj(): match_data[suggestions] = {match_data['suggestions']}")
         for suggestion in match_data["suggestions"]:  # Convert the datespot IDs to datespot objects
             suggestion_tuple = (
                 suggestion[0],
                 datespot_db.lookup_obj(suggestion[1])
                 )
             cached_suggestions.append(suggestion_tuple)  # TODO confirm this preserves sorted order (descending on score, highest score first)
-
 
         match_obj = models.Match(
             user1 = user1,
@@ -739,6 +739,7 @@ class MatchModelInterface(ModelInterfaceABC):
         self._read_json()
         renderable_data = []
         match_obj = self.lookup_obj(match_id)
+        print(f"fetched match_obj {match_obj.id} with suggestions \n\n{match_obj.suggestions_queue}")
         datespot_db = DatespotModelInterface(json_map_filename=self._master_datafile)
         for suggestion in match_obj.suggestions_queue:  # TODO it should be an @property that yields, like User.matches
             print(f"suggestion is {suggestion}")
