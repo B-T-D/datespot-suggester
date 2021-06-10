@@ -38,7 +38,7 @@ class TestHelloWorldThings(unittest.TestCase):
         }
         user_db_ops_start = time.time()
         self.grort_user_id = self.db.post_object({"object_model_name": "user", "object_data": grort_data})
-        userGrort = self.user_data.lookup_obj(self.grort_user_id)
+        self.userGrort = self.user_data.lookup_obj(self.grort_user_id)
 
         drobbName = "Drobb"
         self.drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
@@ -47,7 +47,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "current_location": self.drobbCurrentLocation
         }
         self.drobb_user_id = self.db.post_object({"object_model_name": "user", "object_data": drobb_data})
-        userDrobb = self.user_data.lookup_obj(self.drobb_user_id)
+        self.userDrobb = self.user_data.lookup_obj(self.drobb_user_id)
         user_db_ops_end = time.time()
         print(f"In test_match.py setUp: Create and lookup objects operations on full mock DB ran in {user_db_ops_end - user_db_ops_start} seconds")
 
@@ -55,7 +55,7 @@ class TestHelloWorldThings(unittest.TestCase):
         # midpoint should be circa (40.75827478958617, -73.99310556132602)
 
         start = time.time()
-        self.matchGrortDrobb = models.Match(userGrort, userDrobb)
+        self.matchGrortDrobb = models.Match(self.userGrort, self.userDrobb)
         end = time.time()
         print(f"In test_match.py setUp: Match.__init__() bypassing DB layer ran in {end - start} seconds")
         assert self.matchGrortDrobb.midpoint is not None
@@ -74,6 +74,20 @@ class TestHelloWorldThings(unittest.TestCase):
         expected_hash = hash((self.grort_user_id, self.drobb_user_id))
         actual_hash = hash(self.matchGrortDrobb)
         self.assertEqual(actual_hash, expected_hash)
+    
+    def test_hash_output_consistent_regardless_of_user_order(self):
+        """Does Match(Alice, Bob) hash to same value as Match(Bob, Alice)?"""
+        expected_hash = hash(self.matchGrortDrobb)
+        match_obj_flipped_members = models.Match(self.userDrobb, self.userGrort)  # Reverse the user1 and user2 roles from those in setUp
+        assert match_obj_flipped_members.user1 == self.matchGrortDrobb.user2 and match_obj_flipped_members.user2 == self.matchGrortDrobb.user1
+        actual_hash = hash(match_obj_flipped_members)
+        self.assertEqual(actual_hash, expected_hash)
+    
+    def test_public_id_attribute_matches_hash(self):
+        """Does the public Match.id attribute-property bear the expected relationship to the return value Match.__hash__()?"""
+        expected_id = str(hex(hash(self.matchGrortDrobb)))[2:]  # Mimic logic in Match._id() private method
+        actual_id = self.matchGrortDrobb.id
+        self.assertEqual(actual_id, expected_id)
 
     def test_compute_midpoint(self):
         maxDelta = 0.01

@@ -23,6 +23,7 @@ class Match(metaclass=DatespotAppType):
         
         self.user1 = user1
         self.user2 = user2
+        self._users = tuple(sorted([self.user1.id, self.user2.id]))  # Sort the users lexicographically on their ids, so that Match of "Bob-Alice" will hash to same thing as "Alice-Bob"
         self.timestamp = timestamp
 
         self._midpoint = self._compute_midpoint() # lat lon location equidistant between the two users. 
@@ -63,7 +64,7 @@ class Match(metaclass=DatespotAppType):
         return hash(self) == hash(other)
     
     def __hash__(self): # Hash is the hash of the two users' ids
-        return hash((self.user1.id, self.user2.id))
+        return hash(self._users)
     
     @property
     def id(self) -> str:
@@ -118,7 +119,7 @@ class Match(metaclass=DatespotAppType):
 
         """
         return {
-            "users": [self.user1.id, self.user2.id],
+            "users": list(self._users),
             "timestamp": self.timestamp,
             "suggestions": self._serialize_suggestions()
         }
