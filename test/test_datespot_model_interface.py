@@ -115,11 +115,6 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertIn(new_terrezanos_trait, updated_obj.traits) # self.api._data[myKey] isn't correct way to query it from the outside. External caller can't expect the object instance to persist.
         # update with a list:
         # todo
-    
-    def test_is_in_db(self):
-        """Does the method that checks if an ID is already in the database behave as expected?"""
-        self.assertTrue(self.api.is_in_db(self.terrezanos_data)) # JSON for the same restaurant should hash to same thing
-        # Todo add an assertFalse
 
 class TestQueriesOnPersistentDB(unittest.TestCase):
     """Tests using a persistent "real" DB rather than a separate DB initialized solely for testing purposes."""

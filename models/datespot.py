@@ -13,6 +13,7 @@ class Datespot(metaclass=DatespotAppType):
 
     def __init__(
         self,
+        datespot_id: str,
         location: tuple,
         name: str,
         traits: dict={},
@@ -20,7 +21,9 @@ class Datespot(metaclass=DatespotAppType):
         hours: list=[],
         yelp_url=None,
         yelp_rating: float=None,
-        yelp_review_count: int=0):
+        yelp_review_count: int=0,
+        yelp_id: str=None,
+        google_id: str=None):
         """
         Args:
             traits (dict): ... 
@@ -39,6 +42,7 @@ class Datespot(metaclass=DatespotAppType):
 
         """
         # TODO seems clunky / insufficiently intuitive way to handle the discrete vs. continuous traits. 
+        self.id = datespot_id
         assert isinstance(location, tuple)
         assert isinstance(traits, dict)
         self._location = ( # External code shouldn't mess with this, e.g. e.g. inadvertently casting to string or changing number of decimal places
@@ -57,6 +61,9 @@ class Datespot(metaclass=DatespotAppType):
                                     #   Yelp API for the url of a specific restaurant.
         self.yelp_rating = yelp_rating # todo: This is very relevant to baseline dateworthiness--incorporate into formulae
         self.yelp_review_count = yelp_review_count # number of yelp reviews
+
+        self.yelp_id = yelp_id
+        self.google_id = google_id
 
 
         with open(BASELINE_SCORING_DATA) as fobj: # TODO each json.load(fobj) call is another pass through the entire json file, right?
@@ -93,10 +100,6 @@ class Datespot(metaclass=DatespotAppType):
         string_to_hash = f"{self.name} {rounded_lat_lon}"
         return hash(string_to_hash)
 
-    @property
-    def id(self) -> str:
-        return self._id()
-
     def score(self, user: user.User) -> float:
         # Externally callable wrapper
         return self._score(user)
@@ -104,6 +107,7 @@ class Datespot(metaclass=DatespotAppType):
     def serialize(self) -> dict:
         """Return data about this object that should be stored."""
         return {
+            "datespot_id": self.id,
             "name": self.name,
             "location": self.location,
             "traits": self.traits,
@@ -111,7 +115,9 @@ class Datespot(metaclass=DatespotAppType):
             "hours": self.hours,
             "yelp_rating": self.yelp_rating,
             "yelp_review_count": self.yelp_review_count,
-            "yelp_url": self.yelp_url
+            "yelp_url": self.yelp_url,
+            "yelp_id": self.yelp_id,
+            "google_id": self.google_id
         }
 
     ### Private Methods ### 

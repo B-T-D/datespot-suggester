@@ -320,10 +320,9 @@ class DatabaseAPI:
     def _cache_datespots(self, datespot_dict_list: list):
         datespot_db = self._model_interface("datespot")
         for datespot_dict in datespot_dict_list:
-            datespot_json = json.dumps(datespot_dict)
-            if not datespot_db.is_in_db(datespot_json):
-                datespot_db.create_datespot(datespot_json)
-
+            if not datespot_db.is_known_name_location(datespot_name=datespot_dict["name"], datespot_location=datespot_dict["location"]):
+                datespot_db.create(datespot_dict)  # TODO unittest confirming this won't duplicatively enter the same restaurant
+                
     def _get_yelp_datespots_near(self, location, radius):
         datespot_json_list = self._yelp_client.search_businesses_near(location, radius)
         self._cache_datespots(datespot_json_list)
@@ -347,7 +346,7 @@ class DatabaseAPI:
 def test_live_yelp(location, radius=DEFAULT_RADIUS):
     """Test function for use ad hoc use outside main tests suite."""
     live_db = DatabaseAPI(live_yelp=True) # Defaults to the main mock DB json map
-    live_db.get_datespots_near(location)
+    live_db.get_datespots_near(query_data = {"location": location, "radius": radius})
 
 def main():
 

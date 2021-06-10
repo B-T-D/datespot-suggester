@@ -28,6 +28,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
 
         self.terrezanos = models.Datespot(
+            datespot_id = "1",
             location=self.terrezanos_location,
             name=self.terrezanos_name,
             traits=self.terrezanos_traits,

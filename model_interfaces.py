@@ -1,10 +1,13 @@
 """Objects for interfacing between stored data and model-object instances."""
-import abc, json, uuid, time  # TODO Can't assume this will run on a system with sub-second timestamp precision. time.time() only guarantees non-decreasing values; it can't
+import abc, json, uuid, time, math
+  # TODO Can't assume this will run on a system with sub-second timestamp precision. time.time() only guarantees non-decreasing values; it can't
                                 #   return more precise timestamps than the underlying system clock supports. https://docs.python.org/3/library/time.html#time.time
 from typing import List, Tuple
 
 import models
 import geo_utils
+
+from project_constants import *
 
 JSON_DB_NAME = "jsonMap.json"
 
@@ -460,7 +463,7 @@ class DatespotModelInterface(ModelInterfaceABC):
             super().__init__(json_map_filename)
         else:
             super().__init__()
-        self._valid_model_fields = ["name", "location", "traits", "price_range", "hours", "yelp_rating", "yelp_review_count", "yelp_url"]
+        self._valid_model_fields = ["datespot_id", "name", "location", "traits", "price_range", "hours", "yelp_rating", "yelp_review_count", "yelp_url", "yelp_id", "google_id"]
         self._renderable_fields = {"name", "location", "yelp_url"}
 
     ### Public methods ###
@@ -470,6 +473,10 @@ class DatespotModelInterface(ModelInterfaceABC):
         Creates a new Datespot object, serializes it to the persistent JSON, and returns its id key.
         """
         self._read_json()
+
+        if not "datespot_id" in new_data or new_data["datepot_id"] in self._data:  # If no test-mode forced-key provided, or if provided force key already in use
+            new_data["datespot_id"] = uuid.uuid1().hex
+
         datespot_obj = self._instantiate_obj_from_dict(new_data)
 
         new_object_id = datespot_obj.id
@@ -590,7 +597,21 @@ class DatespotModelInterface(ModelInterfaceABC):
             query_results.append((distance,datespot_obj))
         return query_results
 
-    def is_in_db(self, json_str) -> bool:
+    def is_known_name_location(self, datespot_name: str, datespot_location: tuple) -> bool:
+        """
+        Return True if a Datespot with this name at this location is already known to the database, else False.
+        """
+        datespot_name = datespot_name.lower()
+        datespot_location = (round(datespot_location[0], LAT_LON_DECIMAL_PLACES), round(datespot_location[1], LAT_LON_DECIMAL_PLACES))
+        self._read_json()
+        for datespot_id in self._data:  
+            datespot_data = self._data[datespot_id]
+            if datespot_data["name"].lower() == datespot_name:  # TODO make this a geo_util?
+                if geo_utils.haversine(datespot_location, datespot_data["location"]) < 50:  # If less than 50m apart and have same name, should be safe to assume it's same establishment
+                    return True
+        return False
+
+    def is_in_db(self, datespot_data) -> bool:  # TODO obviated?
         # TODO this may be needed uniquely for Datespot model, because there's unique risk of entering the same venue's data twice.
         """
         Return True if the Datespot corresponding to this JSON info is already known to the database, else false.
@@ -598,8 +619,13 @@ class DatespotModelInterface(ModelInterfaceABC):
         # This relies on the hashing logic in Datespot--datespot with given name at given location should hash uniquely.
         # Instantiate a datespot object with this JSON, then see if its ID string is in the DB.
         self._read_json()
-        model_obj = self._instantiate_obj_from_dict(json_str)
-        return model_obj.id in self._data
+        if not "datespot_id" in datespot_data:
+            model_obj = self._instantiate_obj_from_dict(datespot_data)
+        if "yelp_id" in datespot_data and datespot_data["yelp_id"] == model_obj.yelp_id:  # TODO unittests that can be run ad hoc on live APIs
+            return True
+        if "google_id" in datespot_data and datespot_data["google_id"] == model_obj.google_id:
+            return True
+        return False
     
     ### Private methods ###
 
@@ -618,9 +644,14 @@ class DatespotModelInterface(ModelInterfaceABC):
 
         self._validate_json_fields(obj_data)
         location_tuple = tuple(obj_data["location"])  # TODO customize JSON encode/decode
+
+
+        
+
                 
         # Instantiate an object with the data
         model_obj = models.Datespot(
+            datespot_id = obj_data["datespot_id"],
             location = location_tuple,
             name = obj_data["name"]
         )
@@ -631,7 +662,9 @@ class DatespotModelInterface(ModelInterfaceABC):
             "hours": model_obj.hours,
             "yelp_rating": model_obj.yelp_rating,
             "yelp_review_count": model_obj.yelp_review_count,
-            "yelp_url": model_obj.yelp_url
+            "yelp_url": model_obj.yelp_url,
+            "yelp_id": model_obj.yelp_id,
+            "google_id": model_obj.google_id
             }
         
         for optional_field in optional_fields:
