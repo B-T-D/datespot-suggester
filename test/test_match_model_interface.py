@@ -66,6 +66,8 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_lookup_match(self):
         matchObj = self.api.lookup_obj(self.knownMatchKey)
         self.assertIsInstance(matchObj, models.Match)
+        # matchObj.id should be identical to the known match key:
+        self.assertEqual(matchObj.id, self.knownMatchKey)
 
 # todo need very thorough testing of the get_suggestions stuff. Very buggy and slapped together as of 5/13.
 

@@ -94,7 +94,9 @@ class ModelInterfaceABC: # Abstract base class
         
         """
         self._read_json()
+        print(f"object id = {object.id}")
         self._data[object.id] = object.serialize()
+        print(f"sync is writing to json for object {object.id}:\n\n{self._data[object.id]}\n\n")
         self._write_json()
     
     def delete(self, object_id: int) -> None:
@@ -497,7 +499,6 @@ class DatespotModelInterface(ModelInterfaceABC):
                 renderable_data[key] = object_data[key]
         return renderable_data
 
-
     def update(self, id: str, update_data: dict):
         self._read_json()
         datespot_data = self._data[id] # Todo: kwargs isn't the "standard" way the other MIs have been doing it. Take JSON.
@@ -556,12 +557,12 @@ class DatespotModelInterface(ModelInterfaceABC):
             
             datespot_data = self._data[id_key]
             place_loc = datespot_data["location"]
-            print(f"considered datespot {datespot_data['name']}")
+            #print(f"considered datespot {datespot_data['name']}")
             distance = geo_utils.haversine(location, place_loc)
             if distance < radius: # todo do we need the full object in the results dict, or would only the lookup key suffice?
                 query_results.append((distance, id_key)) # append as tuple with distance as the tuple's first element
-            else:  # TODO solely for debug
-                print(f"Didn't append datespot because distance {distance} >= radius {radius}")
+            #else:  # TODO solely for debug
+                #print(f"Didn't append datespot because distance {distance} >= radius {radius}")
         query_results.sort() # Todo no reason to heap-sort yet, this method's caller won't necessarily want it as a heap. 
         return query_results
 
@@ -587,7 +588,6 @@ class DatespotModelInterface(ModelInterfaceABC):
             distance, id_string = composite_element[0], composite_element[1]
             datespot_obj = self.lookup_obj(id_string)
             query_results.append((distance,datespot_obj))
-        print(f"query results = {query_results}")
         return query_results
 
     def is_in_db(self, json_str) -> bool:
@@ -735,11 +735,13 @@ class MatchModelInterface(ModelInterfaceABC):
         Return list of dictionaries containg information about suggested Datespots relevant and appropriate
         for display to Users in suggestions.
         """
+        print(f"match MI render_suggestions_list() was called. match = {match_id}")
         self._read_json()
         renderable_data = []
         match_obj = self.lookup_obj(match_id)
         datespot_db = DatespotModelInterface(json_map_filename=self._master_datafile)
         for suggestion in match_obj.suggestions_queue:  # TODO it should be an @property that yields, like User.matches
+            print(f"suggestion is {suggestion}")
             # TODO whatever Match model code is called here should be solely responsible for updating the suggestions queue if necessary
             datespot_obj = suggestion[1]  # TODO External callers shouldn't have to deal with the indexing like this; Match generators should handle it
             renderable_data.append(datespot_db.render_obj(datespot_obj.id))
@@ -785,10 +787,12 @@ class MatchModelInterface(ModelInterfaceABC):
         """
         Feeds new external data about Datespots to a Match object, for consideration in suggestions.
         """
+        print(f"matchMI refresh_suggestion_candidates() was called\n\tmatch = {object_id}\n\tcandidates = {candidates}")
         self._read_json()
         self._validate_object_id(object_id)
         match_obj = self.lookup_obj(object_id)
         match_obj.suggestions(candidates)
+        print(f"\n\nmatch_obj (id = {match_obj.id}) now has suggestions {match_obj.suggestions_queue}\n\n")
         self.sync(match_obj)  # Update the new suggestions in the DB
 
     ### Private methods ###

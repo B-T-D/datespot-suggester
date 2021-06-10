@@ -8,7 +8,7 @@ Goal is for external calling code to be unaffected by SQL vs. NoSQL and similar 
 import sys, os, dotenv
 from typing import List
 
-import model_interfaces
+import model_interfaces, models
 
 import api_clients.yelp_api_client
 from project_constants import *
@@ -202,8 +202,9 @@ class DatabaseAPI:
             #   to still be in the LRU cache, then return cached results?
             return self._get_yelp_datespots_near(location, radius)
     
+    # TODO rename to "suggestion candidates". There are "suggestion candidates" and "match candidates".
     def get_candidate_datespots(self, query_data: dict) -> list:  # TODO probably obviated
-        """
+        """  
         Return list of Datespot objects and their distances from the Match's midpoint, ordered by distance.
 
         Example json:
@@ -219,10 +220,22 @@ class DatabaseAPI:
 
         # Ask it the midpoint to use
         midpoint = match_obj.midpoint
+        distance = match_obj.distance
 
         print(f"from DBAPI get_candidate_datespots(): users are {match_obj.distance}m apart with midpoint at {midpoint}")
 
-        return self.get_datespots_near({"location": midpoint})
+        radius = max(DEFAULT_RADIUS, distance)  # Query a radius of at least DEFAULT_RADIUS, but if users are farther apart than that, query 
+                                                #   from the center of a circle that has each user location on its perimeter.
+        results = self.get_datespots_near({"location": midpoint, "radius": radius})
+        max_possible_radius = (EARTH_CIRCUMFERENCE_KM // 2) * 1000  # Maximum logical query radius, in meters. Querying radius equal to 1/2 Earth's circumference
+                                                                    #   would query all points on Earth. 
+        
+        # TODO Set the min suggestion candidates higher, to at least 10, once the system is more robust
+        while len(results) < MIN_SUGGESTION_CANDIDATES and radius < max_possible_radius:  # If no results, double the query radius and try again until querying entire Earth
+            radius *= 2  # TODO In many cases might make more sense to intelligently move the location instead of expanding the radius
+            results = self.get_datespots_near({"location": midpoint, "radius": radius})  
+
+        return results
 
         # Perform a geographic query using that midpoint
         #candidate_datespots = self.get_datespots_near({"location": midpoint}) # todo can one-liner this into passing match_obj.midpoint as the arg
@@ -263,6 +276,7 @@ class DatabaseAPI:
         if match_db.suggestion_candidates_needed(match_id):
             print(f"more suggestion fodder candidates needed")
             candidates = self.get_candidate_datespots(query_data)
+            print(f"got {len(candidates)} suggestions candidates; passing them to matchMI refresh candidates")
             match_db.refresh_suggestion_candidates(match_id, candidates)
 
         return self._model_interface("match").render_suggestions_list(match_id)
@@ -316,7 +330,7 @@ class DatabaseAPI:
         return datespot_json_list # todo we want this and get_cached_datespots_near to return identically structured lists
                                     #  Rn, this returns list of strings, other one returns list of dicts. 
 
-    def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> list:
+    def _get_cached_datespots_near(self, location: tuple, radius: int=2000) -> List[models.Datespot]:
         """Wrapper for datespot api's query near. Return list of serialized datespots within radius meters
         of location."""
 
@@ -328,7 +342,6 @@ class DatabaseAPI:
         datespots_db = self._model_interface("datespot")
         # todo validate the location and radius here?
         results = datespots_db.query_datespot_objs_near(location, radius)
-        print(f"results were {results}")
         return results
 
 def test_live_yelp(location, radius=DEFAULT_RADIUS):

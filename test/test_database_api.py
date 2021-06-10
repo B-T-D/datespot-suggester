@@ -465,3 +465,9 @@ class TestHelloWorldThings(unittest.TestCase):
         ]
         actual_result_data = self.db.get_suggestions_list({"match_id": self.match_id_azura_boethiah})
         self.assertEqual(actual_result_data, expected_result_data)
+    
+    # TODO: Challenging/robust test cases for get suggestions, probably in separate setUp data.
+    #   - No initial queries inside radius
+    #   - Never any queries on earth somehow, to confirm the radius-doubling while loop breaks eventually.
+    #   - Users very close together, less than default radius
+    #   - Users very far apart, over 5000km
