@@ -189,7 +189,6 @@ class DatabaseAPI:
         """
         # Todo: Ultimately, we want to check the cache first, there might've just been a query at that location
         #   such that another API call is wasteful recomputation on the same reviews data.
-        print(f"get_datespots_near was called")
         location = tuple(query_data["location"]) # TODO validate json
         radius = DEFAULT_RADIUS
         if "radius" in query_data:
@@ -221,8 +220,6 @@ class DatabaseAPI:
         # Ask it the midpoint to use
         midpoint = match_obj.midpoint
         distance = match_obj.distance
-
-        print(f"from DBAPI get_candidate_datespots(): users are {match_obj.distance}m apart with midpoint at {midpoint}")
 
         radius = max(DEFAULT_RADIUS, distance)  # Query a radius of at least DEFAULT_RADIUS, but if users are farther apart than that, query 
                                                 #   from the center of a circle that has each user location on its perimeter.
@@ -269,14 +266,11 @@ class DatabaseAPI:
         Returns:
             (list[dict]): List of dictionaries of data about each Datespot.
         """
-        print(f"get suggestions list was called")
         match_id = query_data["match_id"]
 
         match_db = self._model_interface("match")
         if match_db.suggestion_candidates_needed(match_id):
-            print(f"more suggestion fodder candidates needed")
             candidates = self.get_candidate_datespots(query_data)
-            print(f"got {len(candidates)} suggestions candidates; passing them to matchMI refresh candidates")
             match_db.refresh_suggestion_candidates(match_id, candidates)
 
         return self._model_interface("match").render_suggestions_list(match_id)
@@ -335,9 +329,6 @@ class DatabaseAPI:
 
         # Todo: Dispatch differently for live vs. static google maps mode. One set of instructions for looking up from testmode cache,
         #   one for having the client make a real API call.
-
-        print(f"_get_cached_datespots_near() was called with location {type(location)} = {location}, radius{type(radius)} = {radius}")
-
         datespots_db = self._model_interface("datespot")
         # todo validate the location and radius here?
         results = datespots_db.query_datespot_objs_near(location, radius)

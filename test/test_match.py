@@ -29,6 +29,7 @@ class TestHelloWorldThings(unittest.TestCase):
         #   TODO have the setup copy all the DB file first, save them under temp names; then have a tear down that rewrites the content of those temp files into the 
         #       persistent mock DB.
 
+
         # Need user objects to instantiate a Match
         grortName = "Grort"
         self.grortCurrentLocation = (40.746667, -74.001111)
@@ -36,7 +37,7 @@ class TestHelloWorldThings(unittest.TestCase):
             "name": grortName,
             "current_location": self.grortCurrentLocation
         }
-        user_db_ops_start = time.time()
+        #user_db_ops_start = time.time()
         self.grort_user_id = self.db.post_object({"object_model_name": "user", "object_data": grort_data})
         self.userGrort = self.user_data.lookup_obj(self.grort_user_id)
 
@@ -48,26 +49,26 @@ class TestHelloWorldThings(unittest.TestCase):
         }
         self.drobb_user_id = self.db.post_object({"object_model_name": "user", "object_data": drobb_data})
         self.userDrobb = self.user_data.lookup_obj(self.drobb_user_id)
-        user_db_ops_end = time.time()
-        print(f"In test_match.py setUp: Create and lookup objects operations on full mock DB ran in {user_db_ops_end - user_db_ops_start} seconds")
+        #user_db_ops_end = time.time()
+        #print(f"In test_match.py setUp: Create and lookup objects operations on full mock DB ran in {user_db_ops_end - user_db_ops_start} seconds")
 
         # distance should be approx 2610m
         # midpoint should be circa (40.75827478958617, -73.99310556132602)
 
-        start = time.time()
+        #start = time.time()
         self.matchGrortDrobb = models.Match(self.userGrort, self.userDrobb)
-        end = time.time()
-        print(f"In test_match.py setUp: Match.__init__() bypassing DB layer ran in {end - start} seconds")
+        #end = time.time()
+        #print(f"In test_match.py setUp: Match.__init__() bypassing DB layer ran in {end - start} seconds")
         assert self.matchGrortDrobb.midpoint is not None
         
-        start = time.time()
+        #start = time.time()
         # Get the candidates list that the DatabaseAPI would be giving to Match:
         self.candidate_datespots_list = self.db.get_datespots_near(
             {
                 "location": self.matchGrortDrobb.midpoint
             })
-        end = time.time()
-        print(f"In test_match.py setUp: get_datespots_near() ran in {end - start} seconds")
+        #end = time.time()
+        #print(f"In test_match.py setUp: get_datespots_near() ran in {end - start} seconds")
     
     def test_hash(self):
         """Does the __hash__() method's return value match the value obtained by mimicking its logic in the test code?"""
@@ -82,6 +83,14 @@ class TestHelloWorldThings(unittest.TestCase):
         assert match_obj_flipped_members.user1 == self.matchGrortDrobb.user2 and match_obj_flipped_members.user2 == self.matchGrortDrobb.user1
         actual_hash = hash(match_obj_flipped_members)
         self.assertEqual(actual_hash, expected_hash)
+        
+        # Test same for the public id property attribute
+        expected_id = self.matchGrortDrobb.id
+        actual_id = match_obj_flipped_members.id
+        self.assertEqual(actual_id, expected_id)
+
+        # TODO The implementation code isn't correct as of 6/10. Observed same user ID strings producing differnent Match id hashes
+        #   during Postman endpoint testing. 
     
     def test_public_id_attribute_matches_hash(self):
         """Does the public Match.id attribute-property bear the expected relationship to the return value Match.__hash__()?"""

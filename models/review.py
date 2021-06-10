@@ -53,7 +53,6 @@ class Review(metaclass=DatespotAppType):
         }
         return object_dict
 
-
     ### Private methods ###
 
     def _id(self) -> str:

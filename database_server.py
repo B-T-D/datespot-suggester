@@ -142,7 +142,6 @@ class DatabaseServer:
 
     def _dispatch_request(self, request_json: str) -> str:
         request_dict = json.loads(request_json)
-        print(f"in _dispatch_request:\trequest_dict = {request_dict}")
         request_dict = request_dict["body_json"] # Continue with only the body JSON, packet size not relevant going forward 
         response_dict = self._validate_request(request_dict)
         if response_dict["status_code"] == 0:

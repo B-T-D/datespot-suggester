@@ -149,8 +149,6 @@ class Datespot(metaclass=DatespotAppType):
             if trait in self.traits:
                 self.baseline_dateworthiness = max(0, self.baseline_dateworthiness + self.baseline_trait_weights[trait])
 
-
-
     def _score(self, user:user.User) -> float:
         # Make sure all brand-related traits have been applied before updating the baseline dateworthiness.
         self._apply_brand_reputations() # These probably never get called more than once in the lifetime of a single Datespot instance.
