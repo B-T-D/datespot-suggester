@@ -28,7 +28,6 @@ class Match(metaclass=DatespotAppType):
         self._midpoint = self._compute_midpoint() # lat lon location equidistant between the two users. 
             # todo nuances wrt home vs. current location
         self._distance = self._compute_distance() # How far apart the two user are in meters.
-        self.distance = self._distance
 
         self.query_radius = None # Default value for datespot queries--how far out from the Match's 
                                             # geographical midpoint to look for datespots.
@@ -73,7 +72,11 @@ class Match(metaclass=DatespotAppType):
     @property
     def midpoint(self) -> Tuple[float]:
         return self._midpoint
-
+    
+    @property
+    def distance(self) -> float:
+        """Returns how far apart the Match's member Users are, in meters."""
+        return self._distance
 
     def suggestions(self, candidate_datespots) -> list:
         """
@@ -146,7 +149,7 @@ class Match(metaclass=DatespotAppType):
         """
         Compute the distance between the two users, in meters.
         """
-        self._distance = geo_utils.haversine(self.user1.current_location, self.user2.current_location)
+        return geo_utils.haversine(self.user1.current_location, self.user2.current_location)
 
     def _compute_midpoint(self) -> None:
         """

@@ -3,7 +3,7 @@ import unittest
 import json
 import time
 
-import models, model_interfaces
+import models, model_interfaces, geo_utils
 
 from database_api import DatabaseAPI
 
@@ -31,20 +31,20 @@ class TestHelloWorldThings(unittest.TestCase):
 
         # Need user objects to instantiate a Match
         grortName = "Grort"
-        grortCurrentLocation = (40.746667, -74.001111)
+        self.grortCurrentLocation = (40.746667, -74.001111)
         grort_data = {
             "name": grortName,
-            "current_location": grortCurrentLocation
+            "current_location": self.grortCurrentLocation
         }
         user_db_ops_start = time.time()
         self.grort_user_id = self.db.post_object({"object_model_name": "user", "object_data": grort_data})
         userGrort = self.user_data.lookup_obj(self.grort_user_id)
 
         drobbName = "Drobb"
-        drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
+        self.drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
         drobb_data = {
             "name": drobbName,
-            "current_location": drobbCurrentLocation
+            "current_location": self.drobbCurrentLocation
         }
         self.drobb_user_id = self.db.post_object({"object_model_name": "user", "object_data": drobb_data})
         userDrobb = self.user_data.lookup_obj(self.drobb_user_id)
@@ -60,8 +60,6 @@ class TestHelloWorldThings(unittest.TestCase):
         print(f"In test_match.py setUp: Match.__init__() bypassing DB layer ran in {end - start} seconds")
         assert self.matchGrortDrobb.midpoint is not None
         
-        
-
         start = time.time()
         # Get the candidates list that the DatabaseAPI would be giving to Match:
         self.candidate_datespots_list = self.db.get_datespots_near(
@@ -78,6 +76,12 @@ class TestHelloWorldThings(unittest.TestCase):
         actualLat, actualLon = self.matchGrortDrobb.midpoint
         self.assertAlmostEqual(actualLat, expectedLat, delta=expectedLat * maxDelta)
         self.assertAlmostEqual(actualLon, expectedLon, delta=expectedLat * maxDelta)
+    
+    def test_public_distance_attribute(self):
+        """Does the public distance attribute-property return the expected distance?"""
+        expected_distance = geo_utils.haversine(self.grortCurrentLocation, self.drobbCurrentLocation)
+        actual_distance = self.matchGrortDrobb.distance
+        self.assertAlmostEqual(actual_distance, expected_distance)
     
     def test_get_suggestions_return_type(self):
         """Does Match.get_suggestions() external method return the expected type?"""
