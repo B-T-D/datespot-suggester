@@ -9,7 +9,7 @@ candidatesRouter.get('/next', async (req, res, next) => {
         let userId = req.query.userId
         let dbRequestJSON = {
             "method": "get_next_candidate",
-            "json_arg": {
+            "query_data": {
                 "user_id": userId
             }
         }
@@ -26,7 +26,7 @@ candidatesRouter.post('/decision', async (req, res, next) => {
         let outcome = req.query.outcome === "true" ? true : false // TODO put it to lowercase before comparing
         let dbRequestJSON = {
             "method": "post_decision",
-            "json_arg": {
+            "query_data": {
                 "user_id": req.query.userId,
                 "candidate_id": req.query.candidateId,
                 "outcome": outcome

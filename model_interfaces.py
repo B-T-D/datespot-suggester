@@ -553,11 +553,15 @@ class DatespotModelInterface(ModelInterfaceABC):
         self._read_json()
         query_results = [] # list of two element tuples of (distance_from_query_location, serialized_datespot_dict). I.e. list[tuple[int, dict]]
         for id_key in self._data:
+            
             datespot_data = self._data[id_key]
             place_loc = datespot_data["location"]
+            print(f"considered datespot {datespot_data['name']}")
             distance = geo_utils.haversine(location, place_loc)
             if distance < radius: # todo do we need the full object in the results dict, or would only the lookup key suffice?
                 query_results.append((distance, id_key)) # append as tuple with distance as the tuple's first element
+            else:  # TODO solely for debug
+                print(f"Didn't append datespot because distance {distance} >= radius {radius}")
         query_results.sort() # Todo no reason to heap-sort yet, this method's caller won't necessarily want it as a heap. 
         return query_results
 
@@ -576,12 +580,14 @@ class DatespotModelInterface(ModelInterfaceABC):
         #   choose the closer restaurant).
 
         # Todo for now, just wrap the one that returns ids, and then convert each ID to a datespot object
+        print(f"datespotMI query_datespot_objs_near() was called with location {type(location)} = {location}, radius{type(radius)} = {radius}")
         datespot_ids = self.query_datespot_ids_near(location, radius)
         query_results = []
         for composite_element in datespot_ids:
             distance, id_string = composite_element[0], composite_element[1]
             datespot_obj = self.lookup_obj(id_string)
             query_results.append((distance,datespot_obj))
+        print(f"query results = {query_results}")
         return query_results
 
     def is_in_db(self, json_str) -> bool:

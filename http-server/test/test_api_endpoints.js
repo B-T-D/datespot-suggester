@@ -13,7 +13,9 @@ const server = require('../server');
  *      /users
  *          /login/:userId [GET]
  *          /signup [POST]
- *              
+ *      /matches
+ *          /:userId [GET]
+ *          /:matchId/suggestions [GET]
  */
 
 describe('API root URL', () => {

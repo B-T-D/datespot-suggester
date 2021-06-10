@@ -89,7 +89,7 @@ class DatabaseAPI:
         model_interface = self._model_interface(object_model_name)
         model_interface.update(object_id, new_json)
     
-    def post_decision(self, decision_data: dict) -> str:
+    def post_decision(self, query_data: dict) -> str:
         """
         Sends swipe data to the DB and returns True if the swipe completed a pending match (i.e. 
         other user had already swiped yes).
@@ -105,7 +105,7 @@ class DatabaseAPI:
 
             - false indicates user doesn't want to match with candidate
         """
-        user_id, candidate_id, outcome = decision_data["user_id"], decision_data["candidate_id"], decision_data["outcome"]
+        user_id, candidate_id, outcome = query_data["user_id"], query_data["candidate_id"], query_data["outcome"]
         # if not self._is_valid_decision:  # TODO implement--requires updating User model to have a candidates data structure
         #     raise ValueError("Invalid decision, e.g. that user wasn't supposed to have been deciding on that candidate")
         if not isinstance(outcome, bool): # TODO need comprehensive approach to validation
@@ -189,6 +189,7 @@ class DatabaseAPI:
         """
         # Todo: Ultimately, we want to check the cache first, there might've just been a query at that location
         #   such that another API call is wasteful recomputation on the same reviews data.
+        print(f"get_datespots_near was called")
         location = tuple(query_data["location"]) # TODO validate json
         radius = DEFAULT_RADIUS
         if "radius" in query_data:
@@ -218,6 +219,8 @@ class DatabaseAPI:
 
         # Ask it the midpoint to use
         midpoint = match_obj.midpoint
+
+        print(f"from DBAPI get_candidate_datespots(): users are {match_obj.distance}m apart with midpoint at {midpoint}")
 
         return self.get_datespots_near({"location": midpoint})
 
@@ -253,10 +256,12 @@ class DatabaseAPI:
         Returns:
             (list[dict]): List of dictionaries of data about each Datespot.
         """
+        print(f"get suggestions list was called")
         match_id = query_data["match_id"]
 
         match_db = self._model_interface("match")
         if match_db.suggestion_candidates_needed(match_id):
+            print(f"more suggestion fodder candidates needed")
             candidates = self.get_candidate_datespots(query_data)
             match_db.refresh_suggestion_candidates(match_id, candidates)
 
@@ -316,11 +321,14 @@ class DatabaseAPI:
         of location."""
 
         # Todo: Dispatch differently for live vs. static google maps mode. One set of instructions for looking up from testmode cache,
-        #   one for having the client make a real API call. 
+        #   one for having the client make a real API call.
+
+        print(f"_get_cached_datespots_near() was called with location {type(location)} = {location}, radius{type(radius)} = {radius}")
 
         datespots_db = self._model_interface("datespot")
         # todo validate the location and radius here?
         results = datespots_db.query_datespot_objs_near(location, radius)
+        print(f"results were {results}")
         return results
 
 def test_live_yelp(location, radius=DEFAULT_RADIUS):

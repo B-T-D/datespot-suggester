@@ -19,14 +19,14 @@ that's why create new user needs to be POST not GET */
 /* TODO isn't it better to wrap these somehow so not every single DB-accessing Express-middleware
 function has to be an async? */
 
-usersRouter.get('/login/:userId', async (req, res, next) => {
+usersRouter.get('/login/:userId', async (req, res, next) => {  // Naming of this endpoint isn't that important. Eventually it'd be completely replaced by realistic auth.
   try{
     // let responseJSON = null; // TODO this didn't solve the bug wrt returning the prior request's data
     const userId = req.params.userId;
     console.log(`received get request to users/login with user id ${userId}`);
     var dbRequestJSON = {
       "method": "get_login_user_info",
-      "json_arg": {
+      "query_data": {
         "user_id": userId
       }
     }

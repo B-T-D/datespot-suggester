@@ -1,18 +1,14 @@
-# Plan 5/27: This is one end of named pipes, the Node web server is the other.
-
 # TODO Rename to database_interface. This and the HTTP server run on the same (virtual) machine, that's 
 #   why they communicate with named pipes. It's not a separate "Web server" and "DB server" because
-#   the Node process and the Python process *must* run on the same machine, as set up here. 
-
-# TODO conform code to the standardized request/response "protocol" in the docstring
+#   the Node process and the Python process *must* run on the same machine, as set up here.
 
 # TODO the req and res should be arr/list, not obj/dict, so that the packet size can always be the very first
 #   thing into the pipe, right?
 
 """
-Protocol:
+Protocol for transmissions between Node and Python:
     - Requests and Responses are JSON-legal strings.
-    - Requests state the packet size in bytes and then have the main request as nested JSON
+    - Requests state the packet size in bytes, then provide the main request as nested JSON
     - Responses state the packet size in bytes, a binary status code, and the main response as nested JSON
     - Status codes are 0 for normal response, 1 for error
     - If error, the main response JSON provides an error message.
@@ -68,7 +64,9 @@ class DatabaseServer:
             "get_next_candidate",
             "get_login_user_info",
             "post_object",
-            "post_decision"
+            "post_decision",
+            "get_matches_list",
+            "get_suggestions_list"
         }
 
         self._error_messages = {
@@ -144,6 +142,7 @@ class DatabaseServer:
 
     def _dispatch_request(self, request_json: str) -> str:
         request_dict = json.loads(request_json)
+        print(f"in _dispatch_request:\trequest_dict = {request_dict}")
         request_dict = request_dict["body_json"] # Continue with only the body JSON, packet size not relevant going forward 
         response_dict = self._validate_request(request_dict)
         if response_dict["status_code"] == 0:

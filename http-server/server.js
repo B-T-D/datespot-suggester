@@ -12,6 +12,7 @@ var logger = require('morgan');
 
 var usersRouter = require('./routes/users');
 var candidatesRouter = require('./routes/candidates');
+var matchesRouter = require('./routes/matches');
 
 
 module.exports = app; // TODO do we still care about exporting it?
@@ -28,6 +29,7 @@ const apiRouter = express.Router();
 
 apiRouter.use('/candidates', candidatesRouter);
 apiRouter.use('/users', usersRouter);
+apiRouter.use('/matches', matchesRouter)
 
 
 app.use('/api/v1', apiRouter);
