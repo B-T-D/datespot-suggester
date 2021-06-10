@@ -13,7 +13,9 @@ from urllib.parse import urlencode
 
 import sys, os, dotenv
 
-dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+parent_path = os.path.abspath(os.path.join('.'))
+dotenv_path = os.path.join(parent_path, ".env")
+print(f"dotenv_path = {dotenv_path}")
 dotenv.load_dotenv(dotenv_path)
 
 ### API docs resources ###
@@ -42,6 +44,9 @@ class YelpClient:
         self._search_limit = 50 # Max allowed is 50. 50 only counts as a single API call as of 5/20.
         # See Yelp docs and https://github.com/Yelp/yelp-fusion/blob/master/fusion/python/sample.py 
         #   for further example path if need to search for business details.
+
+        if not YELP_API_KEY:
+            raise Exception("No API key")
     
     def search_businesses_near(self, location: tuple, radius: int=DEFAULT_RADIUS) -> list: 
         """
@@ -84,6 +89,8 @@ class YelpClient:
 
         # It starts as a dictionary with one key, "businesses", whose value is a list of nested dicts
 
+        print(f"\n\nin yelp client _format_json: yelp_json_dict = {yelp_json_dict}\n\n")
+
         dicts = []
 
         for business in yelp_json_dict["businesses"]:
@@ -104,7 +111,8 @@ class YelpClient:
                 "price_range": price_range,
                 "yelp_rating": business["rating"],
                 "yelp_review_count": business["review_count"],
-                "yelp_url": business["url"]
+                "yelp_url": business["url"],
+                "yelp_id": business["id"]
             }
 
             dicts.append(datespot_dict)

@@ -18,15 +18,21 @@ def random_lat_lon() -> tuple:
 
 def main():
     
+    
+    db = database_api.DatabaseAPI()
+
+
+    # Clear the old file
+    users_filename = None
+    with open(db._json_map_filename) as fobj:
+        users_filename = json.load(fobj)["user_data"]
+    
+    with open(users_filename, mode="w") as fobj:
+        json.dump({}, fobj)
+
+
     random.seed(1)
     names = [
-        "Grort",
-        "Drobb",
-        "An old boot",
-        "Foo",
-        "Bar",
-        "Baz",
-        "Quux",
         "Akatosh",
         "Arkay",
         "Dibella",
@@ -55,14 +61,17 @@ def main():
         "Vaermina",
     ]
 
-    db = database_api.DatabaseAPI()
     for i in range(len(names)):
-        json_data = json.dumps({
+        user_data = {
             "name": names[i],
             "current_location": random_lat_lon(),
             "force_key": str(i)
-        })
-        db.post_object("user", json_data, force_key = i)
+        }
+        args_data = {
+            "object_model_name": "user",
+            "object_data": user_data
+        }
+        db.post_object(args_data)
 
 
 if __name__ == "__main__":

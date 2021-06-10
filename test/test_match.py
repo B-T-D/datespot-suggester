@@ -1,8 +1,9 @@
 import unittest
 
 import json
+import time
 
-import models
+import models, model_interfaces, geo_utils
 
 from database_api import DatabaseAPI
 
@@ -21,39 +22,82 @@ class TestHelloWorldThings(unittest.TestCase):
         self.db = DatabaseAPI() # Testing on the real DB, to have restaurants
             # Todo script that populates the test DBs with realistic restaurants en masse. And/or separate JSON map for this test
             #   (pointing to same test DB filenames for some like users, different one for datespots)
+        self.user_data = model_interfaces.UserModelInterface()
+
+        # TODO: This test adds more and more to the mock users DB, such that the test takes longer and longer to run each time (or as it gets more complex,
+        #   e.g. more Matches nested in each User).
+        #   TODO have the setup copy all the DB file first, save them under temp names; then have a tear down that rewrites the content of those temp files into the 
+        #       persistent mock DB.
+
 
         # Need user objects to instantiate a Match
         grortName = "Grort"
-        grortCurrentLocation = (40.746667, -74.001111)
-        grort_json = json.dumps({
+        self.grortCurrentLocation = (40.746667, -74.001111)
+        grort_data = {
             "name": grortName,
-            "current_location": grortCurrentLocation
-        })
-        self.grort_user_id = self.db.post_object("user", grort_json)
-        userGrort = self.db.get_object("user", self.grort_user_id)
+            "current_location": self.grortCurrentLocation
+        }
+        #user_db_ops_start = time.time()
+        self.grort_user_id = self.db.post_object({"object_model_name": "user", "object_data": grort_data})
+        self.userGrort = self.user_data.lookup_obj(self.grort_user_id)
 
         drobbName = "Drobb"
-        drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
-        drobb_json = json.dumps({
+        self.drobbCurrentLocation = (40.767376158866554, -73.98615327558278)
+        drobb_data = {
             "name": drobbName,
-            "current_location": drobbCurrentLocation
-        })
-        self.drobb_user_id = self.db.post_object("user", drobb_json)
-        userDrobb = self.db.get_object("user", self.drobb_user_id)
+            "current_location": self.drobbCurrentLocation
+        }
+        self.drobb_user_id = self.db.post_object({"object_model_name": "user", "object_data": drobb_data})
+        self.userDrobb = self.user_data.lookup_obj(self.drobb_user_id)
+        #user_db_ops_end = time.time()
+        #print(f"In test_match.py setUp: Create and lookup objects operations on full mock DB ran in {user_db_ops_end - user_db_ops_start} seconds")
 
         # distance should be approx 2610m
         # midpoint should be circa (40.75827478958617, -73.99310556132602)
 
-        self.matchGrortDrobb = models.Match(userGrort, userDrobb)
+        #start = time.time()
+        self.matchGrortDrobb = models.Match(self.userGrort, self.userDrobb)
+        #end = time.time()
+        #print(f"In test_match.py setUp: Match.__init__() bypassing DB layer ran in {end - start} seconds")
         assert self.matchGrortDrobb.midpoint is not None
-
+        
+        #start = time.time()
         # Get the candidates list that the DatabaseAPI would be giving to Match:
         self.candidate_datespots_list = self.db.get_datespots_near(
-            json.dumps({
+            {
                 "location": self.matchGrortDrobb.midpoint
-                })
-            )
+            })
+        #end = time.time()
+        #print(f"In test_match.py setUp: get_datespots_near() ran in {end - start} seconds")
     
+    def test_hash(self):
+        """Does the __hash__() method's return value match the value obtained by mimicking its logic in the test code?"""
+        expected_hash = hash((self.grort_user_id, self.drobb_user_id))
+        actual_hash = hash(self.matchGrortDrobb)
+        self.assertEqual(actual_hash, expected_hash)
+    
+    def test_hash_output_consistent_regardless_of_user_order(self):
+        """Does Match(Alice, Bob) hash to same value as Match(Bob, Alice)?"""
+        expected_hash = hash(self.matchGrortDrobb)
+        match_obj_flipped_members = models.Match(self.userDrobb, self.userGrort)  # Reverse the user1 and user2 roles from those in setUp
+        assert match_obj_flipped_members.user1 == self.matchGrortDrobb.user2 and match_obj_flipped_members.user2 == self.matchGrortDrobb.user1
+        actual_hash = hash(match_obj_flipped_members)
+        self.assertEqual(actual_hash, expected_hash)
+        
+        # Test same for the public id property attribute
+        expected_id = self.matchGrortDrobb.id
+        actual_id = match_obj_flipped_members.id
+        self.assertEqual(actual_id, expected_id)
+
+        # TODO The implementation code isn't correct as of 6/10. Observed same user ID strings producing differnent Match id hashes
+        #   during Postman endpoint testing. 
+    
+    def test_public_id_attribute_matches_hash(self):
+        """Does the public Match.id attribute-property bear the expected relationship to the return value Match.__hash__()?"""
+        expected_id = str(hex(hash(self.matchGrortDrobb)))[2:]  # Mimic logic in Match._id() private method
+        actual_id = self.matchGrortDrobb.id
+        self.assertEqual(actual_id, expected_id)
+
     def test_compute_midpoint(self):
         maxDelta = 0.01
         approxExpectedMidpoint = (40.75827478958617, -73.99310556132602)
@@ -61,6 +105,12 @@ class TestHelloWorldThings(unittest.TestCase):
         actualLat, actualLon = self.matchGrortDrobb.midpoint
         self.assertAlmostEqual(actualLat, expectedLat, delta=expectedLat * maxDelta)
         self.assertAlmostEqual(actualLon, expectedLon, delta=expectedLat * maxDelta)
+    
+    def test_public_distance_attribute(self):
+        """Does the public distance attribute-property return the expected distance?"""
+        expected_distance = geo_utils.haversine(self.grortCurrentLocation, self.drobbCurrentLocation)
+        actual_distance = self.matchGrortDrobb.distance
+        self.assertAlmostEqual(actual_distance, expected_distance)
     
     def test_get_suggestions_return_type(self):
         """Does Match.get_suggestions() external method return the expected type?"""

@@ -1,7 +1,7 @@
 import unittest
 import json
 
-from model_interfaces import ReviewModelInterface
+from model_interfaces import ReviewModelInterface, DatespotModelInterface
 
 from database_api import DatabaseAPI
 
@@ -30,6 +30,7 @@ class TestHelloWorldThings(unittest.TestCase):
                 fobj.seek(0)
 
         self.api = ReviewModelInterface(json_map_filename = TEST_JSON_DB_NAME)
+        self.datespot_api = DatespotModelInterface(json_map_filename = TEST_JSON_DB_NAME)
 
         # Make mock restaurant
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
@@ -38,16 +39,16 @@ class TestHelloWorldThings(unittest.TestCase):
         self.terrezanos_price_range = 2
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
 
-        terrezanos_json = json.dumps({
+        terrezanos_data = {
             "location" : self.terrezanos_location,
             "name" : self.terrezanos_name,
             "traits" : self.terrezanos_traits,
             "price_range" : self.terrezanos_price_range,
             "hours" : self.terrezanos_hours,
-        })
+        }
         
         self.db = DatabaseAPI(json_map_filename=TEST_JSON_DB_NAME)
-        self.terrezanos_id = self.db.post_object("datespot", terrezanos_json)
+        self.terrezanos_id = self.datespot_api.create(terrezanos_data)
 
         # Make mock text
         self.mock_text_positive_relevant = "This was a wonderful place to go on a date. I had the pasta. It was authentic and not from Pizza Hut."
@@ -58,10 +59,10 @@ class TestHelloWorldThings(unittest.TestCase):
         self.assertIsInstance(self.api, ReviewModelInterface)
     
     def test_create(self):
-        review_json = json.dumps({
+        review_data = {
             "datespot_id": self.terrezanos_id,
             "text": self.mock_text_positive_relevant
-        })
-        review_id = self.api.create(review_json)
+        }
+        review_id = self.api.create(review_data)
         self.assertIn(review_id, self.api._data)
         

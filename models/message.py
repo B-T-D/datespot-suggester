@@ -10,7 +10,9 @@ import bisect
 
 import models.user as user
 
-TASTES_KEYWORDS = "data_static/tastes_keywords.txt"
+from project_constants import *
+
+
 # Todo: Needs more menu item keywords. Ideally, find a list of menu items at NYC restaurants sorted by how common they are.
     # Fast food so not super helpful: https://www.foodnetwork.com/restaurants/photos/most-popular-dish-at-americas-top-chain-restaurants 
     # Decent starting point for specific dishes and food words: https://ny.eater.com/maps/new-york-iconic-dishes
@@ -18,12 +20,6 @@ TASTES_KEYWORDS = "data_static/tastes_keywords.txt"
 # Todo: Specific restaurant names ("I hate Terrezano's")
     # Todo: Where to get a list of them? Dynamically based on user-chat mentions or known locations of actual completed dates?
     # Todo: How differently than a normal keyword should they be handled?
-
-SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC shared by Review, Message, and any other
-                                #   code that calls VSA methods that return floats.
-
-# Todo: Might want an external caller to be able to instantiate a Chat without creating messages.
-#   If e.g. this morphs into an API that is "send in people and their chat, get back suggestions"
 
 class Message(metaclass=DatespotAppType):
 

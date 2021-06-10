@@ -1,7 +1,7 @@
 from models.app_object_type import DatespotAppType
 import geo_utils
 
-from typing import Tuple
+from typing import List, Tuple
 import time, heapq
 
 class Match(metaclass=DatespotAppType):
@@ -23,12 +23,12 @@ class Match(metaclass=DatespotAppType):
         
         self.user1 = user1
         self.user2 = user2
+        self._users = tuple(sorted([self.user1.id, self.user2.id]))  # Sort the users lexicographically on their ids, so that Match of "Bob-Alice" will hash to same thing as "Alice-Bob"
         self.timestamp = timestamp
 
         self._midpoint = self._compute_midpoint() # lat lon location equidistant between the two users. 
             # todo nuances wrt home vs. current location
         self._distance = self._compute_distance() # How far apart the two user are in meters.
-        self.distance = self._distance
 
         self.query_radius = None # Default value for datespot queries--how far out from the Match's 
                                             # geographical midpoint to look for datespots.
@@ -51,10 +51,11 @@ class Match(metaclass=DatespotAppType):
         self.suggestions_queue = suggestions_queue # List or queue of suggested restaurants
                                     # Todo: What's the max num it makes sense to store?
                                     # Todo: How often to update with fresh data? Whenever data on either user's preferences changed?
+                                    # TODO does anyone need to access it from the outside? Seems like could be a private attribute
         self._max_suggestions_queue_length = 50
 
-        self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date. 
-    
+        self.chat_chemistry = 0 # todo. Score of how much the chat sentiment predicts a good vs. bad date.
+
     ### Public methods ###
 
     def __eq__(self, other):
@@ -63,7 +64,7 @@ class Match(metaclass=DatespotAppType):
         return hash(self) == hash(other)
     
     def __hash__(self): # Hash is the hash of the two users' ids
-        return hash((self.user1.id, self.user2.id))
+        return hash(self._users)
     
     @property
     def id(self) -> str:
@@ -72,6 +73,11 @@ class Match(metaclass=DatespotAppType):
     @property
     def midpoint(self) -> Tuple[float]:
         return self._midpoint
+    
+    @property
+    def distance(self) -> float:
+        """Returns how far apart the Match's member Users are, in meters."""
+        return self._distance
 
     def suggestions(self, candidate_datespots) -> list:
         """
@@ -88,7 +94,7 @@ class Match(metaclass=DatespotAppType):
         self.suggestions_queue = suggestions_heap # Todo: Correct that we want to store the scores (to easily maintain sorted order when updates)?
         results = [suggestion[1] for suggestion in suggestions_heap] # List of only the datespots, no scores. 
         # Todo compress to one-liner once it works
-        return results
+        return results  # TODO TBD if anyone outside needs this return value. May only need to use this method (with better name) to replenish suggestion-fodder
 
     def get_joint_datespot_score(self, datespot) -> float:
         # Todo: Intuition/hypothesis is that it won't make sense to try do better than a simple mean of the two users scores on that restaurant
@@ -113,10 +119,24 @@ class Match(metaclass=DatespotAppType):
 
         """
         return {
-            "users": [self.user1.id, self.user2.id],
+            "users": list(self._users),
             "timestamp": self.timestamp,
-            "suggestions_queue": self.suggestions_queue
+            "suggestions": self._serialize_suggestions()
         }
+    
+    def _serialize_suggestions(self) -> List[Tuple[float, str]]:
+        result = []
+        for suggestion in self.suggestions_queue:
+            result.append((suggestion[0], suggestion[1].id ,suggestion[1].name))  # Substitute the Datespot's id for the Datespot object
+            # TODO name is just for debug
+        return result
+
+    
+    def has_suggestions(self) -> bool:  # For external code to check whether data is needed.  Match object can't be responsible for going out to Yelp, Google, etc. if it's out of suggestion-fodder.
+        """
+        Returns True if this Match has suggestions, else False.
+        """
+        return len(self.suggestions_queue) > 0
 
     ### Private methods ###
 
@@ -131,7 +151,7 @@ class Match(metaclass=DatespotAppType):
         """
         Compute the distance between the two users, in meters.
         """
-        self._distance = geo_utils.haversine(self.user1.current_location, self.user2.current_location)
+        return geo_utils.haversine(self.user1.current_location, self.user2.current_location)
 
     def _compute_midpoint(self) -> None:
         """

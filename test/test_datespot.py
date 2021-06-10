@@ -1,6 +1,6 @@
 import unittest, json
 
-import models
+import models, model_interfaces
 
 from database_api import DatabaseAPI
 
@@ -28,6 +28,7 @@ class TestHelloWorldThings(unittest.TestCase):
         self.terrezanos_hours = [[14, 22], [14, 21], [14, 21], [14, 21], [14, 23], [14, 23], [14, 20]] # ints in [0..23] representing hours, for now
 
         self.terrezanos = models.Datespot(
+            datespot_id = "1",
             location=self.terrezanos_location,
             name=self.terrezanos_name,
             traits=self.terrezanos_traits,
@@ -37,19 +38,20 @@ class TestHelloWorldThings(unittest.TestCase):
 
         # Make mock user to test scoring:
         
-        self.db = DatabaseAPI(json_map_filename=TEST_JSON_DB_NAME)
+        self.db = DatabaseAPI(json_map_filename = TEST_JSON_DB_NAME)
+        self.user_data = model_interfaces.UserModelInterface(json_map_filename = TEST_JSON_DB_NAME)
 
         grortName = "Grort"
         grortCurrentLocation = (40.746667, -74.001111)
-        grort_json = json.dumps({ # todo can't create with tastes like this under current setup
+        grort_data = { # todo can't create with tastes like this under current setup
             "name": grortName,
             "current_location": grortCurrentLocation
-        })
+        }
         self.grort_tastes = {
             "italian": [0.1, 1]
         }
-        self.grort_user_id = self.db.post_object("user", grort_json)
-        self.user_grort = self.db.get_object("user", self.grort_user_id)
+        self.grort_user_id = self.db.post_object({"object_model_name": "user", "object_data": grort_data})
+        self.user_grort = self.user_data.lookup_obj(self.grort_user_id)
         self.user_grort._tastes = self.grort_tastes # todo quick hack to force it into the data
 
     

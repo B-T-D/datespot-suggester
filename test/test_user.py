@@ -1,5 +1,7 @@
 import unittest
 
+import time
+
 import models
 
 class TestHelloWorldThings(unittest.TestCase):
@@ -34,6 +36,35 @@ class TestHelloWorldThings(unittest.TestCase):
             name = self.boethiah_name,
             current_location = self.boethiah_location
         )
+
+        # Instantiate third user
+        self.hircine_name = "Hircine"
+        self.hircine_location = (40.76525023033338, -73.96722141608099)
+        self.hircine_id = "3"
+        self.hircine_user_obj = models.User(
+            user_id = self.hircine_id,
+            name = self.hircine_name,
+            current_location = self.hircine_location
+        )
+
+        # Create a match between Azura and each of the other two users
+        self.match_obj_azura_boethiah = models.Match(
+            user1 = self.azura_user_obj,
+            user2 = self.boethiah_user_obj
+        )
+        self.azura_user_obj.add_match(self.match_obj_azura_boethiah.id, self.match_obj_azura_boethiah.timestamp, self.boethiah_user_obj.id)
+        # Manually add to azura object's matches
+
+        self.match_obj_hircine_azura = models.Match(  # Have Azura be user2 for this one
+            user1 = self.hircine_user_obj,
+            user2 = self.azura_user_obj
+        )
+        # Manually add to azura object's matches
+        self.azura_user_obj.add_match(self.match_obj_hircine_azura.id, self.match_obj_hircine_azura.timestamp + 1, self.hircine_user_obj.id)
+            #  Adding one second to timestamp because Unittest apparently freezes the timestamp througout the execution of setUp (?). These two kept having identical timestamps, and experiments
+            #   proved the implementation code wasn't to blame.
+
+        
 
     def test_init(self):
         """Was a User object instantiated?"""
@@ -91,3 +122,26 @@ class TestHelloWorldThings(unittest.TestCase):
     def test_taste_strength(self):
         """Does the public method for returning the current strength of a taste behave as expected?"""
         self.assertAlmostEqual(self.existing_taste_strength, self.azura_user_obj.taste_strength(self.existing_taste_name))
+    
+    def test_matches_yield_type(self):
+        """
+        Does the iterating over the User.matches attribute yield the expected match_ids?
+        """
+        for match in self.azura_user_obj.matches:
+            self.assertIsInstance(match, str)
+    
+    def test_matches_yield_order(self):
+        """Does iterating over User.matches yield the match ids in the expected_order?"""
+        expected_order = [self.match_obj_hircine_azura.id, self.match_obj_azura_boethiah.id]  # Expect most recently matched first. Created the Hircine-Azura Match second in setUp
+        i = 0
+        for match in self.azura_user_obj.matches:
+            self.assertEqual(match, expected_order[i])
+            i += 1
+    
+    def test_match_partners_yield_order(self):
+        """Does iterating over User.matches yield the match ids in the expected_order?"""
+        expected_order = [self.hircine_id, self.boethiah_id]
+        i = 0
+        for match in self.azura_user_obj.match_partners:
+            self.assertEqual(match, expected_order[i])
+            i += 1

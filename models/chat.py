@@ -1,4 +1,5 @@
 from models.app_object_type import DatespotAppType
+from project_constants import * 
 
 from typing import List
 
@@ -10,8 +11,6 @@ from models.message import Message
 # Todo should probably store one of Chats and Messages, not both. Chats could be stored with just a 
 #   list of the message ids. 
 
-SENTIMENT_DECIMAL_PLACES = 4 # todo this should be an EV or a constant in an ABC shared by Review, Message, and any other
-                                #   code that calls VSA methods that return floats.
 
 class Chat(metaclass=DatespotAppType):
 
