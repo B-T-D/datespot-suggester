@@ -7,6 +7,6 @@ install:
     - pip3 install -r requirements.txt
 
 script:
-    - python3 -m nltk.downloader -d /usr/share/nltk_data all
+    - sudo python3 -m nltk.downloader -d /usr/share/nltk_data all
     - ./test.sh
     - python3 -m populate_mock_users
