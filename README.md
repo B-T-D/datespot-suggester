@@ -24,6 +24,8 @@ The dating app I imagined would perform three basic tasks:
 
 3. **Transmit suggestions.** To process requests from outside callers, I used NodeJS and Express to create an HTTP server, and a custom Python listener process to manage communication between the HTTP server layer and the underlying model-layer algorithms. I wanted to use a lightweight HTTP framework rather than e.g. Django, and felt that Node would be more fully featured and extensible than Flask. To implement the chat functionality, I would use a separate WebSocket chat server that forwarded data to the HTTP server for analysis without delaying message delivery while waiting for expensive NLP algorithms to finish running.
 
+Beyond these, it would also need the standard dating-app functionalities. I based those parts of the project primarily on Tinder, since Tinder's binary approach (users decide yes or no on each other, one at a time) seemed like logic that I could implement quickly. 
+
 ## Problems, challenges, and issues
   
 ### Efficient lookup of keyword strings: binary search vs. hash tables
