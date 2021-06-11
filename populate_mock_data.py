@@ -97,6 +97,7 @@ def populate_matches():
         })
 
 def main():
+    print(f"populate mock data ran")
     clear_existing_mock_data()
     populate_mock_users()
     populate_matches()
