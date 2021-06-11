@@ -9,6 +9,8 @@ dotenv.load_dotenv(dotenv_path)
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 
 secrets_available = len(dotenv.dotenv_values()) > 0  # TODO Quick workaround to ignore secret EVs in Travis
+    #  TODO There are ways to safely make the secrets available in the Travis environment.
+    #       See, e.g. https://docs.travis-ci.com/user/environment-variables/#defining-encrypted-variables-in-travisyml 
 
 from api_clients.google_places_api_client import Client
 
