@@ -5,6 +5,8 @@ import json, copy, sys
 from database_server import DatabaseServer
 from database_api import DatabaseAPI
 
+# TODO rename to "database_listener.py"
+
 class TestDatabaseServer(unittest.TestCase):
     """Unit tests for DatabaseServer methods that are testable without a live connection to the
     web server."""
