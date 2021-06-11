@@ -7,8 +7,5 @@ install:
     - pip3 install -r requirements.txt
 
 script:
-    - pip3 install nltk
-    - cd ../../../virtualenv/python3.8.7/lib/python3.8/site-packages/nltk && pwd && ls
-    - sudo python3 -m ../../../virtualenv/python3.8.7/lib/python3.8/site-packages/nltk/downloader -d /usr/share/nltk_data all
     - ./test.sh
     - python3 -m populate_mock_users
