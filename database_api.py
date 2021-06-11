@@ -13,17 +13,16 @@ import model_interfaces, models
 import api_clients.yelp_api_client
 from project_constants import *
 
-JSON_MAP_FILENAME = "jsonMap.json"  
-
 class DatabaseAPI:
 
-    def __init__(self, json_map_filename: str=JSON_MAP_FILENAME, live_google_maps: bool=False, live_yelp: bool=False):
+    def __init__(self, json_map_filename: str=MOCK_JSON_DB_MAP, live_google_maps: bool=False, live_yelp: bool=False):
         self._valid_model_names = {"user", "datespot", "match", "review", "message", "chat"}
         self._json_map_filename = json_map_filename
         self._live_google_maps = live_google_maps # TODO implement different dispatching for the datespot queries based on this setting
         self._live_yelp = live_yelp # TODO one combined boolean toggle "live mode"
 
-        self._yelp_client = api_clients.yelp_api_client.YelpClient()
+        if self._live_yelp:
+            self._yelp_client = api_clients.yelp_api_client.YelpClient()
 
     ### Public methods ### 
 
@@ -44,7 +43,7 @@ class DatabaseAPI:
 
                 {
                     "object_model_name": "user",
-                    "json_data": {
+                    "object_data": {
                         "name": myUserName,
                         "current_location": [40.00, -71.00],
                         "force_key": "1"

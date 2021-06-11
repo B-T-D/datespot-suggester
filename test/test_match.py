@@ -1,8 +1,5 @@
 import unittest
 
-import json
-import time
-
 import models, model_interfaces, geo_utils
 
 from database_api import DatabaseAPI
@@ -11,24 +8,12 @@ TEST_JSON_MAP_FILENAME = "testing_mockJsonMap.json"
 
 class TestHelloWorldThings(unittest.TestCase):
 
-    # Todo: These run conspicuously slower than other unit tests as of 5/19--why? Do time trials.
-        # If it's the haversine formula or the suggestions heap taking too long, that suggests a performance bottleneck
-        # for this backend system as a whole. 
-        # From watching dots anecdotally while the tests ran, looks like it may be suggestions return not null and suggestions return shape.
-        #   But just be all of them that request a suggestion, i.e. the heap etc. handling is too slow.
-
     def setUp(self):
         
         self.db = DatabaseAPI() # Testing on the real DB, to have restaurants
             # Todo script that populates the test DBs with realistic restaurants en masse. And/or separate JSON map for this test
             #   (pointing to same test DB filenames for some like users, different one for datespots)
         self.user_data = model_interfaces.UserModelInterface()
-
-        # TODO: This test adds more and more to the mock users DB, such that the test takes longer and longer to run each time (or as it gets more complex,
-        #   e.g. more Matches nested in each User).
-        #   TODO have the setup copy all the DB file first, save them under temp names; then have a tear down that rewrites the content of those temp files into the 
-        #       persistent mock DB.
-
 
         # Need user objects to instantiate a Match
         grortName = "Grort"
@@ -37,7 +22,6 @@ class TestHelloWorldThings(unittest.TestCase):
             "name": grortName,
             "current_location": self.grortCurrentLocation
         }
-        #user_db_ops_start = time.time()
         self.grort_user_id = self.db.post_object({"object_model_name": "user", "object_data": grort_data})
         self.userGrort = self.user_data.lookup_obj(self.grort_user_id)
 
@@ -49,26 +33,18 @@ class TestHelloWorldThings(unittest.TestCase):
         }
         self.drobb_user_id = self.db.post_object({"object_model_name": "user", "object_data": drobb_data})
         self.userDrobb = self.user_data.lookup_obj(self.drobb_user_id)
-        #user_db_ops_end = time.time()
-        #print(f"In test_match.py setUp: Create and lookup objects operations on full mock DB ran in {user_db_ops_end - user_db_ops_start} seconds")
 
         # distance should be approx 2610m
         # midpoint should be circa (40.75827478958617, -73.99310556132602)
 
-        #start = time.time()
         self.matchGrortDrobb = models.Match(self.userGrort, self.userDrobb)
-        #end = time.time()
-        #print(f"In test_match.py setUp: Match.__init__() bypassing DB layer ran in {end - start} seconds")
         assert self.matchGrortDrobb.midpoint is not None
         
-        #start = time.time()
         # Get the candidates list that the DatabaseAPI would be giving to Match:
         self.candidate_datespots_list = self.db.get_datespots_near(
             {
                 "location": self.matchGrortDrobb.midpoint
             })
-        #end = time.time()
-        #print(f"In test_match.py setUp: get_datespots_near() ran in {end - start} seconds")
     
     def test_hash(self):
         """Does the __hash__() method's return value match the value obtained by mimicking its logic in the test code?"""

@@ -9,13 +9,11 @@ import geo_utils
 
 from project_constants import *
 
-JSON_DB_NAME = "jsonMap.json"
-
 class ModelInterfaceABC: # Abstract base class
     __metaclasss__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def __init__(self, json_map_filename=JSON_DB_NAME):
+    def __init__(self, json_map_filename=MOCK_JSON_DB_MAP):
         self._master_datafile = json_map_filename
         self._datafile = None
         self._data = {}
