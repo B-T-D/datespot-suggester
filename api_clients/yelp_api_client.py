@@ -15,7 +15,6 @@ import sys, os, dotenv
 
 parent_path = os.path.abspath(os.path.join('.'))
 dotenv_path = os.path.join(parent_path, ".env")
-print(f"dotenv_path = {dotenv_path}")
 dotenv.load_dotenv(dotenv_path)
 
 ### API docs resources ###
