@@ -11,7 +11,7 @@ Conceptual prototype for a dating app API that analyzes user chat messages, geol
 ## Background and inspiration
 I often feel overwhelmed by choices in choosing restaurants to go to in densely populated or unfamiliar areas. Usually I make a choice by reading text about potential restaurants online, usually from Google Maps and Yelp. So I've often imagined automating this process: What if I could programatically read and analyze thousands of reviews and profiles for dozens of potential restaurants?
 
-In talking with friends about this choice-overload issue, I realized it may be especially problematic in a dating context. In choosing a location for a first date, the people choosing a restaurant want to make a good first impression on each other, and want a certain type of environment in the establishment, but don't know each other's preferences well. This led to the idea of a dating app that would use natural-language processing to learn about its users and the potential date locations in their area, and use that data to suggest date locations to the app's users.
+Talking with friends about this choice-overload issue, I realized it may be especially problematic in a dating context. In choosing a location for a first date, the people choosing a restaurant want to make a good first impression on each other, and want a certain type of environment in the establishment, but don't know each other's preferences well. This led to the idea of a dating app that would use natural-language processing to learn about its users and the potential date locations in their area, and use that data to suggest date locations to the app's users.
 
 ## Implementation overview
 The dating app I imagined would perform three basic tasks:
