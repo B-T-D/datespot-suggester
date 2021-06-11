@@ -1,34 +1,30 @@
 [![Build Status](https://travis-ci.com/B-T-D/datespot.svg?branch=main)](https://travis-ci.com/B-T-D/datespot)
 
 # Datespot suggester
-Conceptual prototype for a dating app API that suggests date locations to users.
+Conceptual prototype for a dating app API that analyzes user chat messages, geolocation data, and publicly available information about potential date locations to intelligently generate date location suggestions.
 
-## Roadmap
+- [Background and inspiration](#background-and-inspiration)
+- [Implementation overview](#implementation-overview)
+- [Problems, challenges, and issues](#problems-challenges-and-issues)
+- [Roadmap for further work](#roadmap-for-further-work)
 
-- [x] Design main domain-layer models
-- [x] Decide initial database architecture (SQL vs. NoSQL).
-- [x] Implement "repository" design pattern with simple JSON files as the database.
-- [x] Parse Google Maps Places API "Nearby Search" responses into the app's internal date-location objects.
-- [ ] Parse Google Maps Places API "Place Details" responses into attributes of app's internal date-location objects.
-- [ ] Implement HTTP client to make Nearby Search and Place Details requests in response to other internal app code.
-- [X] Implement core restaurant-suggestion algorithm as a heap/priority queue.
-- [ ] Implement unified API callable by a frontend / UI layer. An internal RESTful JSON server that can serve JSON to a Node/Express web API.
-- [X] Implement simple command line interface that simulates live interactions with the app's internal JSON-server API.
-- [ ] Refactor, rationalize architecture, simplify code, improve code quality and documentation, expand tests coverage.
-- [ ] Minimalist simulation of user chats so that chat text can be available for NLP. 
-- [ ] Improve the restaurant-suggestion algorithm with sentiment analysis on restaurant reviews and simulated user chat histories.
-- [ ] Integrate data from additional third-party APIs (Yelp?) to improve recommendation algorithm.
-- [ ] Add support for hypothetical concurrent DB interactions. In a real dating app, multiple users would sometims interact with a single DB object concurrently.
-- [ ] Resy integration. Support users booking via Resy; experiment with filtering suggestions by
-reservation availability.
-- [ ] Configure TravisCI and Coveralls on main branch of repo.
-- [ ] Achieve 100% unit test code coverage.
-- [ ] Improve unit tests to include large, edge, and boundary test cases for the most important algorithms.
-- [ ] Google-style Python docstrings for all public methods.
+## Background and inspiration
+When trying to pick a restaurant, I often feel overwhelmed by choices--especially in densely populated or unfamiliar areas. I typically select a place by reading about potential restaurants online, usually from Google Maps and Yelp. I've often imagined automating this process: What if I could programatically read thousands of reviews and profiles for dozens of nearby restaurants, and choose one based on my personal tastes and preferences?
 
-### Milestone features
-- [ ] Analyze user chats to find keywords relevant to date-location preferences, and tailor that user's suggestions accordingly.
-- [ ] Dynamically adjust suggested dates' price level and expected duration based on sentiment analysis of a user chats. Nudge users toward investing less money and time in a date that is less likely to be successful, and more in a date that is likelier to have good chemistry.
+Talking with friends about this choice-overload issue, I realized it could be especially problematic in a dating context. When picking a place for a first date, the people going on the date want to make a good first impression on each other, and want a certain type of environment in the establishment, but don't know each other's preferences well, and may want an establishment in an unfamiliar location. This led to the idea of a dating app that would use natural-language processing to learn about its users and the potential date locations in their area, and use that data to suggest date locations to the app's users.
+
+## Implementation overview
+The dating app I imagined would perform three basic tasks:
+
+1. **Get text data about businesses and users.** To get business data, I looked to the sources I use solving this problem non-programatically: Google and Yelp. In exploring each of their available APIs, I quickly found both could programatically provide the same data I was accustomed to: Searching for businesses in a certain geographic vicinity, and gathering information about those businesses.
+
+    For data about user preferences, I chose to rely solely on their chats. I wanted this project to focus on natural language processing, and modern dating apps   have an in-app chat feature. I also felt a user-preferences questionnaire would be undesirable from a hypothetical business standpoint: Network effects are critical to a dating app, and I assume asking users to complete a questionnaire about their dining preferences on signup would slow down user acquisition.
+
+2. **Analyze text data.** To analyze this text data--business reviews, and user messages--I implemented the system's core logic in Python, because the Python ecosystem has so many good NLP resources. I initially assumed I'd need to train custom machine-learning models or develop custom non-ML NLP algorithms. But I quickly found the [VADER Sentiment Analysis](https://github.com/cjhutto/vaderSentiment) tool and the [Natural Language Toolkit](https://www.nltk.org/) were quite effective as-is, and so leveraged these to speed up my initial proof-of-concept.
+
+3. **Transmit suggestions.** To process requests from outside callers, I used NodeJS and Express to create an HTTP server, and a custom Python listener process to manage communication between the HTTP server layer and the underlying model-layer algorithms. I wanted to use a lightweight HTTP framework rather than e.g. Django, and felt that Node would be more fully featured and extensible than Flask. To implement the chat functionality, I would use a separate WebSocket chat server that forwarded data to the HTTP server for analysis without delaying message delivery while waiting for expensive NLP algorithms to finish running.
+
+Beyond these, it would also need the standard dating-app functionalities. I based those parts of the project primarily on Tinder, since Tinder's binary approach (users decide yes or no on each other, one at a time) seemed like logic that I could implement quickly. 
 
 ## Problems, challenges, and issues
   
@@ -52,3 +48,34 @@ reservation availability.
   Solution TBD. 
   
   The date location suggestor requires lots of computationally intensive text processing. I expect that even when decently optimized, the system will be far too slow if it only begins computing suggestions the moment the users request one. To solve this, I plan to compute best-guess suggestions at some appropriate intervals between the moment two users match with each other and the moment they actually request a date location suggestion, and then cache that suggestions heap.
+  
+### Making NLTK data portable
+  NLTK [provides many collections of data](https://www.nltk.org/data.html) that aren't installed by default. VADER Sentiment relies on one of these for its tokenizers. When I configured this repostiory's TravisCI, making the NLTK data consistently available in the Travis virtual machine's environment turned out to be quite challenging. I realized this same issue would come up when the API is deployed--the cloud server instance's VM will also need the NLTK data. To make TravisCI work, I first tried scripting the VM to download the data programatically, using the [NLTK downloader's command line interface](https://www.nltk.org/data.html#command-line-installation). But the downloader had its own dependencies, and getting the downloader to run on the Travis VM seemed to require too many hacky workarounds. So I concluded that the best quick solution was to put the needed NLTK data (i.e., only the tokenizers) in the main repository, and use a single shell command to make the VM copy the data to a directory matching one of the paths where NLTK looks for the data.
+
+## Roadmap for further work
+This remains very much a work in progress. The ultimate end state would be a fully featured, production-grade, deployed mobile app using this API as its backend. I will see how far toward that I can get within the limits of a non-commercial portfolio project.
+
+### Currently working on
+- [ ] Stable server able to be deployed via Heroku or AWS EC2
+- [ ] SQL. Replace ad hoc JSON-based system with Postgres database server
+- [ ] Allow users to "swipe" on restaurant suggestions in the same way as they swipe on match candidates
+- [ ] Dynamically pre-compute suggestions at intelligently chosen intervals, to reduce latency at the time users request suggestions
+- [ ] Expand lexicons of dining-preference keywords
+- [ ] Detect menu-item and cuisine-genre keywords in reviews
+
+### Planned / proposed
+- [ ] Secondary, ordered suggestions--if users went to a restaurant and want to continue the date, suggest them a nearby bar
+- [ ] Implement mock chat WebSocket server
+- [ ] Create chat bots to generate simulated chat data
+- [ ] Resy integration. Support users booking via Resy; experiment with filtering suggestions by
+reservation availability.
+- [ ] Dynamically combine Yelp and Google API response data
+
+### Implemented
+- [X] Score all businesses on "baseline dateworthiness" to provide better suggestions even without personalized preferences data
+- [X] Rank suggestions for a given user-pair by considering both users' known preferences
+- [X] Filter for reviews that explicitly comment on a business's suitability as a date location, and update date location scoring based on whether the comment is negative or positive
+- [X] Detect keywords in user chat messages that are relevant to dining preferences, and update the stored user preferences data accordingly
+- [X] Begin search for date locations at a user pair's geographic midpoint
+- [X] Consider information about businesses that would be obvious to a human reader based on the name
+- [X] HTTP endpoints that return JSON for consumption by a front end client
