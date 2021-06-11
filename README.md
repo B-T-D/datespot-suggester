@@ -1,4 +1,6 @@
-# datespot
+[![Build Status](https://travis-ci.com/B-T-D/datespot.svg?branch=main)](https://travis-ci.com/B-T-D/datespot)
+
+# Datespot suggester
 Conceptual prototype for a dating app API that suggests date locations to users.
 
 ## Roadmap
