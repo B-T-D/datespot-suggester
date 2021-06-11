@@ -3,29 +3,26 @@
 # Datespot suggester
 Conceptual prototype for a dating app API that analyzes user chat messages, geolocation data, and publicly available information about potential date locations to intelligently generate date location suggestions.
 
-- [Background](#background)
+- [Background and inspiration](#background-and-inspiration)
 - [Implementation overview](#implementation-overview)
 - [Problems, challenges, and issues](#problems-challenges-and-issues)
 - [Roadmap for further work](#roadmap-for-further-work)
 
-## Background
+## Background and inspiration
 I often feel overwhelmed by choices in choosing restaurants to go to in densely populated or unfamiliar areas. Usually I make a choice by reading text about potential restaurants online, usually from Google Maps and Yelp. So I've often imagined automating this process: What if I could programatically read and analyze thousands of reviews and profiles for dozens of potential restaurants?
 
 In talking with friends about this choice-overload issue, I realized it may be especially problematic in a dating context. In choosing a location for a first date, the people choosing a restaurant want to make a good first impression on each other, and want a certain type of environment in the establishment, but don't know each other's preferences well. This led to the idea of a dating app that would use natural-language processing to learn about its users and the potential date locations in their area, and use that data to suggest date locations to the app's users.
 
 ## Implementation overview
-The dating app I imagined would need to perform three broad tasks:
-1. Obtaining text data about users and date locations
-2. Analyzing that data to produce useful suggestions
-3. Receive and respond to requests for suggestions and other data
+The dating app I imagined would perform three basic tasks:
 
-To get business data, I looked to the sources I use solving this problem non-programatically: Google and Yelp. In exploring each of their available APIs, I quickly found both could programatically provide the same data I was accustomed to: Searching for businesses in a certain geographic vicinity, and gathering information about those businesses.
+1. **Get text data about businesses and users.** To get business data, I looked to the sources I use solving this problem non-programatically: Google and Yelp. In exploring each of their available APIs, I quickly found both could programatically provide the same data I was accustomed to: Searching for businesses in a certain geographic vicinity, and gathering information about those businesses.
 
-For data about user preferences, I chose to rely solely on their chats. I wanted this project to focus on natural language processing, and modern dating apps have an in-app chat feature. I also felt a user-preferences questionnaire would be undesirable from a hypothetical business standpoint: Network effects are critical to a dating app, and I assume asking users to complete a questionnaire about their dining preferences on signup would slow down user acquisition.
+    For data about user preferences, I chose to rely solely on their chats. I wanted this project to focus on natural language processing, and modern dating apps   have an in-app chat feature. I also felt a user-preferences questionnaire would be undesirable from a hypothetical business standpoint: Network effects are critical to a dating app, and I assume asking users to complete a questionnaire about their dining preferences on signup would slow down user acquisition.
 
-To analyze this text data--business reviews, and user messages--I implemented the system's core logic in Python, because the Python ecosystem has so many good NLP resources. I initially assumed I'd need to train custom machine-learning models or develop custom non-ML NLP algorithms. But I quickly found the [VADER Sentiment Analysis](https://github.com/cjhutto/vaderSentiment) tool and the [Natural Language Toolkit](https://www.nltk.org/) were quite effective as-is, and so leveraged these to speed up my initial proof-of-concept.
+2. **Analyze text data.** To analyze this text data--business reviews, and user messages--I implemented the system's core logic in Python, because the Python ecosystem has so many good NLP resources. I initially assumed I'd need to train custom machine-learning models or develop custom non-ML NLP algorithms. But I quickly found the [VADER Sentiment Analysis](https://github.com/cjhutto/vaderSentiment) tool and the [Natural Language Toolkit](https://www.nltk.org/) were quite effective as-is, and so leveraged these to speed up my initial proof-of-concept.
 
-To process requests from outside callers, I used NodeJS and Express to create an HTTP server, and a custom Python listener process to manage communication between the HTTP server layer and the underlying model-layer algorithms. I wanted to use a lightweight HTTP framework rather than e.g. Django, and felt that Node would be more fully featured and extensible than Flask. To implement the chat functionality, I would use a separate WebSocket chat server that forwarded data to the HTTP server for analysis without delaying message delivery while waiting for expensive NLP algorithms to finish running.
+3. **Transmit suggestions.** To process requests from outside callers, I used NodeJS and Express to create an HTTP server, and a custom Python listener process to manage communication between the HTTP server layer and the underlying model-layer algorithms. I wanted to use a lightweight HTTP framework rather than e.g. Django, and felt that Node would be more fully featured and extensible than Flask. To implement the chat functionality, I would use a separate WebSocket chat server that forwarded data to the HTTP server for analysis without delaying message delivery while waiting for expensive NLP algorithms to finish running.
 
 ## Problems, challenges, and issues
   
