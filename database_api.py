@@ -23,7 +23,8 @@ class DatabaseAPI:
         self._live_google_maps = live_google_maps # TODO implement different dispatching for the datespot queries based on this setting
         self._live_yelp = live_yelp # TODO one combined boolean toggle "live mode"
 
-        self._yelp_client = api_clients.yelp_api_client.YelpClient()
+        if self._live_yelp:
+            self._yelp_client = api_clients.yelp_api_client.YelpClient()
 
     ### Public methods ### 
 
