@@ -9,5 +9,5 @@ install:
 script:
     - pwd && ls
     - cp -R nltk_data ../../../nltk_data
+    - python3 -m populate_mock_data
     - ./test.sh
-    - python3 -m populate_mock_users

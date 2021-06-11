@@ -119,8 +119,10 @@ class User(UserBase):
         self._sort_matches()  # Maintain list in sorted order on the default sort criteria
 
         self.match_blacklist = match_blacklist # References to Users with whom this user should never be matched. Keys are user ids, values timestamps indicating when the blacklisting happened. 
-        if not self.id in self.match_blacklist: # Prevent this user being matched with themself
-            self.match_blacklist[self.id] = time.time()
+        
+        # TODO Can't do it this way, this adds a bunch of other user ids
+        # if not self.id in self.match_blacklist: # Prevent this user being matched with themself
+        #     self.match_blacklist[self.id] = time.time()
 
         # TODO How much data do we need to confidently assign a "hard" preference like vegan, kosher, halal?
 

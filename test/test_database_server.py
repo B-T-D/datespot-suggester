@@ -70,18 +70,8 @@ class TestDatabaseServer(unittest.TestCase):
     def test_dispatcher_returns_ok_status_code(self):
         """Does the dispatcher return the expected json string for a valid request?"""
 
-        expected_response_dict = {
-            "status_code": 0
-        }
+        expected_status_code = 0
+        response = self.server._dispatch_request(self.valid_request_json)
+        actual_status_code = json.loads(response)["status_code"]
 
-        expected_body_data = self.db.get_login_user_info(self.valid_request_body_dict["query_data"]) # Make the same request to the DB without going through DB server
-        expected_response_dict["body_json"] = expected_body_data
-        #expected_packet_size = sys.getsizeof(json.dumps(expected_response_dict))
-        #expected_packet_size += expected_packet_size
-        expected_packet_size = 245  # TODO hardcoded
-        expected_response_dict["packet_size"] = expected_packet_size
-
-        expected_response_json = json.dumps(expected_response_dict)
-
-        actual_response_json = self.server._dispatch_request(self.valid_request_json)
-        self.assertEqual(actual_response_json, expected_response_json)
+        self.assertEqual(actual_status_code, expected_status_code)
