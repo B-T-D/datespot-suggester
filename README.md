@@ -34,7 +34,6 @@ Beyond these, it would also need the standard dating-app functionalities. I base
   My first instinct was to store the keywords in a hash set, for average-case O(1) time lookup. But the Python JSON encode/decode library doesn't decode to a Python set object by default; doing so would require creating a custom encoder (https://stackoverflow.com/questions/8230315/how-to-json-serialize-sets). So until I had time to write the custom encoder, I decided to store the keyword strings in a lexicographically sorted Python list (i.e. array) and look them up with binary search in worst-case O(log(n)) time. I expected this data to be quite static (i.e. not gaining new keywords very often), so I was not concerned about the time complexity of sorting the array or inserting new elements.
 
 ### Avoiding redundant iteration over message texts
-  Solution TBD.
   
   The vaderSentiment analyzer iterates over each character of the text it analyzes, but does not readily support certain tasks, such as matching strings against keywords relevant to a user's restaurant preferences. If the algorithms that analyze each message run the vaderSentiment analyzer once on the text to compute the sentiment, and then iterate over each word to check for keywords, that's a lot of duplicative work--two passes over the string when a single pass could perform both analyses.
   
@@ -45,8 +44,6 @@ Beyond these, it would also need the standard dating-app functionalities. I base
   This raised the issue of how best to have the Node HTTP server send JSON to and receive JSON from the Python database/model layer. In my initial implementation, I chose to do this with Linux named pipes.
 
 ### Pre-computing suggestions
-  Solution TBD. 
-  
   The date location suggestor requires lots of computationally intensive text processing. I expect that even when decently optimized, the system will be far too slow if it only begins computing suggestions the moment the users request one. To solve this, I plan to compute best-guess suggestions at some appropriate intervals between the moment two users match with each other and the moment they actually request a date location suggestion, and then cache that suggestions heap.
   
 ### Making NLTK data portable
