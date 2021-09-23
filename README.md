@@ -1,4 +1,4 @@
-[![Build Status](https://app.travis-ci.com/B-T-D/datespot-suggester.svg?branch=main)](https://travis-ci.com/B-T-D/datespot)
+[![Build Status](https://app.travis-ci.com/B-T-D/datespot-suggester.svg?branch=main)](https://app.travis-ci.com/github/B-T-D/datespot-suggester)
 
 # Datespot suggester
 Conceptual prototype for a dating app API that analyzes user chat messages, geolocation data, and publicly available information about potential date locations to intelligently generate date location suggestions.
