@@ -13,5 +13,6 @@ EARTH_CIRCUMFERENCE_KM = 40075
 # File paths
 MOCK_JSON_DB_MAP = "jsonMapMock.json"
 DEV_PERSISTENT_JSON_DB_MAP = "jsonMapDevPersistent.json"
+TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 TASTES_KEYWORDS = "data_static/tastes_keywords.txt"
 BASELINE_SCORING_DATA = "data_static/datespot_baseline_scoring_data.json"

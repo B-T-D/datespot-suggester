@@ -1,6 +1,7 @@
 import unittest
 import json
 
+from project_constants import *
 try:
     from python_backend.model_interfaces import UserModelInterface
     from python_backend.models import user
@@ -8,8 +9,6 @@ except:
     from model_interfaces import UserModelInterface
     import models.user
 
-
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 USER_ID_TYPE = str
 
 class TestHelloWorldThings(unittest.TestCase):

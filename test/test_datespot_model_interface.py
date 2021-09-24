@@ -2,6 +2,7 @@ import unittest
 import json
 import random
 
+from project_constants import *
 import models
 
 try:
@@ -13,7 +14,6 @@ except:
 # todo, style--define global constants before or after imports?
 
 DATESPOT_ID_TYPE = str
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
 
 class TestHelloWorldThings(unittest.TestCase):
