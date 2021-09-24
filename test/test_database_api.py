@@ -1,13 +1,12 @@
 import unittest
 import json, time, datetime
-
 from freezegun import freeze_time
 
+from project_constants import *
 from database_api import DatabaseAPI
 import models
 import model_interfaces
 
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
 class TestHelloWorldThings(unittest.TestCase):
     """Basic non-brokenness tests."""

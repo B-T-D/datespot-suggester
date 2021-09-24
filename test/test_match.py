@@ -1,17 +1,16 @@
 import unittest
 
+from project_constants import *
 import models, model_interfaces, geo_utils
-
 from database_api import DatabaseAPI
 
-TEST_JSON_MAP_FILENAME = "testing_mockJsonMap.json"
 
 class TestHelloWorldThings(unittest.TestCase):
 
     def setUp(self):
         
         self.db = DatabaseAPI() # Testing on the real DB, to have restaurants
-            # Todo script that populates the test DBs with realistic restaurants en masse. And/or separate JSON map for this test
+            # TODO: script that populates the test DBs with realistic restaurants en masse. And/or separate JSON map for this test
             #   (pointing to same test DB filenames for some like users, different one for datespots)
         self.user_data = model_interfaces.UserModelInterface()
 

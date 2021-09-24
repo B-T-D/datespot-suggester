@@ -1,11 +1,9 @@
 import unittest, json
 
+from project_constants import *
 import models, model_interfaces
-
 from database_api import DatabaseAPI
 
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
-DATESPOT_SCORE_DECIMAL_PLACES = 4
 
 class TestHelloWorldThings(unittest.TestCase):
     """Quick non-brokenness tests."""
@@ -14,7 +12,7 @@ class TestHelloWorldThings(unittest.TestCase):
 
         self.terrezanos_location = (40.72289821341384, -73.97993915779077)
         self.terrezanos_id = hash(self.terrezanos_location) # need to manually create the key, since intializing a Datespot directly from the model, rather than via the helper API. 
-            # todo set an environment variable designating the hash function to use? Function will probably change.
+            # TODO: Set an environment variable designating the hash function to use? Function will probably change.
         self.terrezanos_name = "Terrezano's"
         self.terrezanos_traits = {
             "italian": [1.0, "discrete"],

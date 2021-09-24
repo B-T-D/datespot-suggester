@@ -1,11 +1,10 @@
 import unittest
 import json
 
+from project_constants import *
 from model_interfaces import ReviewModelInterface, DatespotModelInterface
-
 from database_api import DatabaseAPI
 
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
 class TestHelloWorldThings(unittest.TestCase):
     """Simple non-brokenness tests."""

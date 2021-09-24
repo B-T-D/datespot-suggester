@@ -2,11 +2,9 @@ import unittest
 import json
 import time
 
+from project_constants import *
 import models, model_interfaces
 from database_api import DatabaseAPI
-
-
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
 class TestHelloWorldThings(unittest.TestCase):
 

@@ -2,14 +2,14 @@ import unittest
 import json
 import random
 
+from project_constants import *
+
 try:
     from python_backend.model_interfaces import MatchModelInterface, UserModelInterface
 except:
     from model_interfaces import MatchModelInterface, UserModelInterface
 
 import models
-
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json"
 
 
 class TestHelloWorldThings(unittest.TestCase):

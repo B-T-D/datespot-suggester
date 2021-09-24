@@ -2,11 +2,9 @@ import unittest
 import json
 import time
 
+from project_constants import *
 from model_interfaces import MessageModelInterface, UserModelInterface, ChatModelInterface
 from database_api import DatabaseAPI
-
-TEST_JSON_DB_NAME = "test/testing_mockJsonMap.json" # todo if all these tests were in a single module like the MIs are, could just define
-                                                    #   these constants once at top of that huge module. 
 
 class TestHelloWorldThings(unittest.TestCase):
     """Quick non-brokenness tests."""
